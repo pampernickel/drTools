@@ -583,7 +583,13 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, no.samples=1){
           panel.grid.minor=element_blank(),
           plot.background=element_blank(),
           panel.margin = unit(0.0, "lines"))+
-    man.col+theme(legend.position="bottom")+xlim(-0.6,4.5)
+    man.col+theme(legend.position="bottom")+xlim(-0.6,4.5) -> p
+  ncol(assembled.sub)-1 -> ndrugs
+  
+  ndrugs*60 -> dim
+  png(file=paste(rd, "/dotplot.png", sep=""), width=dim, height=dim)
+  print(p)
+  dev.off()
 }
 
 addDrug <- function(curr.df, all.drugs, patient, group){
@@ -627,7 +633,7 @@ plotRaw <- function(all.resp, mode=c("", "r")){
   gsub("\\.", "-", vis.df$Drug) -> vis.df$Drug
   toupper(vis.df$Drug) -> vis.df$Drug
   toupper(vis.df$Patient) -> vis.df$Patient
-  as.numeric(as.character(vis.df.sub$Replicate)) -> vis.df.sub$Replicate
+  as.numeric(as.character(vis.df$Replicate)) -> vis.df$Replicate
   unique(vis.df$Drug) -> all.drugs
   for (i in 1:length(all.drugs)){
     # split drugs into separate data frames, then handle per groups
@@ -656,6 +662,7 @@ plotRaw <- function(all.resp, mode=c("", "r")){
   
 
   if (mode == ""){
+    pdf(file=paste(rd, "/raw_check.pdf", sep=""), width=10, height=10, onefile=T)
     for (i in 1:length(unique(vis.df$Patient))){
       print(paste("Plotting response for patient", unique(vis.df$Patient)[i], "...", sep=" "))
       vis.df[which(vis.df$Patient %in% unique(vis.df$Patient)[i]),] -> vis.df.sub
@@ -665,6 +672,7 @@ plotRaw <- function(all.resp, mode=c("", "r")){
                  ggtitle(unique(vis.df$Patient)[i])-> p
       print(p)
     }
+    dev.off()
   } else {
     return(vis.df)
   }
@@ -676,12 +684,15 @@ visPlates <- function(dir){
   lapply(sd, function(x) getFiles(x)) -> files
   names(files) <- as.character(sapply(sd, function(x) split_path(x)[1]))
   unique(unlist(files)) -> ff
+  
+  pdf(file=paste(rd, "/plate_check.pdf", sep=""), width=8, height=6, onefile=T)
   for (k in 1:length(ff)){
     if (length(grep(".csv", as.character(ff[k]))) > 0){
       t(as.matrix(read.csv(as.character(ff[k]), stringsAsFactors=T, head=F))) -> p
       aheatmap(p, Rowv=NA, Colv=NA)
     }
   }
+  dev.off()
 }
 
 plotFits <- function(exp.res){
