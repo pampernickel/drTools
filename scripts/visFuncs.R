@@ -675,7 +675,6 @@ visPlates <- function(dir){
   list.dirs(dir, recursive=T) -> sd
   lapply(sd, function(x) getFiles(x)) -> files
   names(files) <- as.character(sapply(sd, function(x) split_path(x)[1]))
-  
   unique(unlist(files)) -> ff
   for (k in 1:length(ff)){
     if (length(grep(".csv", as.character(ff[k]))) > 0){
