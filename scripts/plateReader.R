@@ -3,6 +3,8 @@
 #@...
 # Layout processing functions
 #@...
+source('./scripts/routineFuncs.r')
+
 readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   # function that returns a list of length n, where
   # n corresponds to the number of drugs on the plate + one slot for the control
