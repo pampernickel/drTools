@@ -2,7 +2,8 @@
 
 start <- function(){
   # start saving all results from a session in a single folder
-  file.path("./results", format(Sys.time(), "%F %H-%M")) ->> rd
+  #file.path("./results", format(Sys.time(), "%F %H-%M")) ->> rd
+  file.path("./results", Sys.time()) ->> rd
   dir.create(rd)
 }
 
