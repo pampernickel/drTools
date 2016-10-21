@@ -583,10 +583,10 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, no.samples=1){
           panel.grid.minor=element_blank(),
           plot.background=element_blank(),
           panel.margin = unit(0.0, "lines"))+
-    man.col+theme(legend.position="bottom")+xlim(-0.6,4.5) -> p
+    man.col+theme(legend.position="bottom")+xlim(-0.6,4.75) -> p
   ncol(assembled.sub)-1 -> ndrugs
   
-  ndrugs*60 -> dim
+  ndrugs*20 -> dim
   png(file=paste(rd, "/dotplot.png", sep=""), width=dim, height=dim)
   print(p)
   dev.off()
@@ -662,7 +662,7 @@ plotRaw <- function(all.resp, mode=c("", "r")){
   
 
   if (mode == ""){
-    pdf(file=paste(rd, "/raw_check.pdf", sep=""), width=10, height=10, onefile=T)
+    pdf(file=paste(rd, "/raw_check.pdf", sep=""), width=15, height=15, onefile=T)
     for (i in 1:length(unique(vis.df$Patient))){
       print(paste("Plotting response for patient", unique(vis.df$Patient)[i], "...", sep=" "))
       vis.df[which(vis.df$Patient %in% unique(vis.df$Patient)[i]),] -> vis.df.sub
