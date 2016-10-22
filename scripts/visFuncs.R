@@ -505,7 +505,11 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, no.samples=1){
   if (nrow(res.df) == 1 && length(which(is.na(res.df))) > 0){
     # remove drugs where no fit was performed
     res.df[,-which(is.na(res.df))] -> res.df
-    t(as.data.frame(res.df)) -> res.df
+    # check if the removal of these columns
+    # change the orientation of res.df
+    if (nrow(res.df) != 1){
+      t(as.data.frame(res.df)) -> res.df
+    }
   }
   
   sapply(colnames(res.df), function(x) 
@@ -528,6 +532,17 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, no.samples=1){
       respMat[1:length(c.ind[[i]]),i] <- res.df.sub[c.ind[[i]]]
     }
     colnames(respMat) <- colnames(assembled.sub)
+  } else {
+    if (is.data.frame(res.df.sub) && nrow(res.df.sub) == 1){
+      sapply(colnames(assembled.sub), function(x) 
+        which(toupper(colnames(res.df.sub)) %in% x)) -> c.ind
+      max(sapply(c.ind, function(x) length(x))) -> ml
+      respMat <- matrix(NA, nrow=ml, ncol=length(c.ind))
+      for (i in 1:length(c.ind)){
+        respMat[1:length(c.ind[[i]]),i] <- as.numeric(res.df.sub[c.ind[[i]]])
+      }
+      colnames(respMat) <- colnames(assembled.sub)
+    }
   }
     
   rbind(assembled.sub, respMat) -> assembled.sub
