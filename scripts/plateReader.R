@@ -3,7 +3,13 @@
 #@...
 # Layout processing functions
 #@...
+
+#@...
+# load dependencies
+#@...
 source('./scripts/routineFuncs.r')
+source('./scripts/nomenclatureFuncs.r')
+
 
 readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   # function that returns a list of length n, where
@@ -273,7 +279,8 @@ readExperiment <- function(files, layout, resolve.warnings=F, historical.data=""
   }
   
   if (resolve.warnings %in% T && is.character(drug.list.all)){
-    stop("Include a matrix matching the list of your drug names against the drug names in historical data.")  
+    stop("Include a matrix matching the list of your drug names against the drug names in historical data.\nThe matrix should have at least two columns:
+         all.names and final.name.")  
   }
   
   lapply(files, function(f){
@@ -387,7 +394,7 @@ readExperiment <- function(files, layout, resolve.warnings=F, historical.data=""
       cbind(xu[seq(1,length(xu),by=2)], xu[seq(2,length(xu),by=2)]) -> mat
     }) -> warning.mat
     lapply(all.resp, function(x) x$resp) -> all.resp
-    resolveWarnings(all.resp, warning.mat, historical.data) -> all.resp
+    resolveWarnings(all.resp, warning.mat, historical.data, drug.list.all) -> all.resp
   } else {
     lapply(all.resp, function(x) x$resp) -> all.resp
   }
@@ -395,7 +402,7 @@ readExperiment <- function(files, layout, resolve.warnings=F, historical.data=""
   return(all.resp)
 }
 
-resolveWarnings <- function(all.resp, warning.mat, historical.data){
+resolveWarnings <- function(all.resp, warning.mat, historical.data, drug.list.all){
   # for each response with a warning, fit the data
   for (i in 1:length(all.resp)){
     all.resp[[i]][[1]] -> curr.resp
@@ -412,7 +419,8 @@ resolveWarnings <- function(all.resp, warning.mat, historical.data){
       names(fits) <- curr.warnings
       
       # find closest drug in historical data
-      
+      gsub("\\.", "-", names(fits)) -> sub.name
+      findClosestMatch(sub.name, drug.list.all) -> name.match
     }
   }
   return(all.resp)
