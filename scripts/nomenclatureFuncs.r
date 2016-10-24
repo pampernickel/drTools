@@ -39,6 +39,7 @@ formatDrugNames <- function(res.df, drug.list.all){
 findClosestMatch <- function(drug.name, drug.list.all){
   # input: character vector of drug names
   # output: standard name of the drug, as indicated in the "final.name" column of drug.list.all
+  strsplit(drug.list.all$all.names, ";") -> all.names
   sapply(drug.name, function(x){
     match <- NA
     toupper(x) -> x
@@ -55,9 +56,12 @@ findClosestMatch <- function(drug.name, drug.list.all){
     } else {
       # get closest match, but give a warning that it's second guessing
       sapply(drug.list.all$final.name, function(y) adist(y, x, counts=F)) -> d
-      sapply(drug.list.all$all.names, function(y) adist(y, x, counts=T)) -> d1
-      # drug.list.all$final.name[which(d %in% min(d))]
-      # drug.list.all$final.name[which(d1 %in% min(d1))]
+      sapply(all.names, function(y)
+        mean(sapply(y, function(z) adist(z, x, counts=T)))) -> d1
+      if (drug.list.all$final.name[which(d %in% min(d))] == 
+          drug.list.all$final.name[which(d1 %in% min(d1))]){
+        drug.list.all$final.name[which(d %in% min(d))] -> match
+      }
     }
   }) -> match
   return(match)
