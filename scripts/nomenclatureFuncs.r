@@ -2,6 +2,7 @@
 # standard Format: data frame with samples on rows and drugs on columns
 
 require(stringr)
+require(stringdist)
 
 '%ni%' <- Negate('%in%')
 
@@ -40,17 +41,23 @@ findClosestMatch <- function(drug.name, drug.list.all){
   # output: standard name of the drug, as indicated in the "final.name" column of drug.list.all
   sapply(drug.name, function(x){
     match <- NA
-    if (toupper(x) %in% drug.list.all$final.name){
-      toupper(x) -> match
+    toupper(x) -> x
+    if (x %in% drug.list.all$final.name){
+      x -> match
     } else if (length(grep(x, drug.list.all$all.names, ignore.case=T)) > 0) {
       if (length(grep(x, drug.list.all$all.names, ignore.case=T)) == 1){
         grep(x, drug.list.all$all.names, ignore.case=T) -> ind
         drug.list.all$final.name[ind] -> match
       } else {
         # get closer match
+        #str_match(string, pattern)
       }
     } else {
       # get closest match, but give a warning that it's second guessing
+      sapply(drug.list.all$final.name, function(y) adist(y, x, counts=F)) -> d
+      sapply(drug.list.all$all.names, function(y) adist(y, x, counts=T)) -> d1
+      # drug.list.all$final.name[which(d %in% min(d))]
+      # drug.list.all$final.name[which(d1 %in% min(d1))]
     }
   }) -> match
   return(match)
