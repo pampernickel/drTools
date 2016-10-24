@@ -267,7 +267,15 @@ checkFiles <- function(files, layout){
 #@...
 # Experiment processing functions
 #@...
-readExperiment <- function(files, layout){  
+readExperiment <- function(files, layout, resolve.warnings=F, historical.data="", drug.list.all=""){
+  if (resolve.warnings %in% T && is.character(historical.data)){
+    stop("Enter historical data in the form of a patient x drug response matrix to resolve response inconsistencies.")  
+  }
+  
+  if (resolve.warnings %in% T && is.character(drug.list.all)){
+    stop("Include a matrix matching the list of your drug names against the drug names in historical data.")  
+  }
+  
   lapply(files, function(f){
     lapply(f, function(y){
       if (length(grep(".csv", y)) == 1){
@@ -278,7 +286,7 @@ readExperiment <- function(files, layout){
     }) -> all.dat
     
     # start with layout
-    all.resp <- list()
+    fin.resp <- list()
     for (i in 1:length(layout)){
       t(all.dat[[i]]) -> curr.plate      
       layout[[i]] -> curr.layout
@@ -296,6 +304,8 @@ readExperiment <- function(files, layout){
         # check which format of the layout is available
         resp <- NULL
         curr.drug <- names(curr.layout)[x]
+        f.warn <- c()
+        d.warn <- c()
         if (length(grep("rows", names(curr.layout[[x]])))>0){
           curr.layout[[x]]$rows -> rows
           curr.layout[[x]]$cols -> cols
@@ -313,6 +323,9 @@ readExperiment <- function(files, layout){
             if (cors < 0.65){
               warning(paste("Replicates of ", names(curr.layout)[x], " in ",
                           f[1], " have cor < 0.65.", sep=""))
+              print(f[1])
+              c(f.warn, f[1]) -> f.warn
+              c(d.warn, names(curr.layout)[x]) -> d.warn
             }
           }
           
@@ -328,10 +341,16 @@ readExperiment <- function(files, layout){
           resp[,2:ncol(resp)]/c.mean -> resp[,2:ncol(resp)]
           colnames(resp) <- c("Concentrations", rep(curr.drug, length(2:ncol(resp))))
         }
-        return(resp)
-      }) -> all.resp[[i]]
+        list(resp, f.warn, d.warn) -> fin.resp
+        names(fin.resp) <- c("resp", "f.warn", "d.warn")
+        return(fin.resp)
+      }) -> fin.resp[[i]]
     }
     
+    lapply(fin.resp, function(x) 
+      lapply(x, function(y) y$resp)) -> all.resp
+    lapply(fin.resp, function(x)
+      lapply(x, function(y) y[2:3])) -> warnings.list
     # consolidate into plates that have the same concentrations
     lapply(all.resp, function(x) lapply(x, function(y) 
       return(y[,1]))) -> all.conc
@@ -354,9 +373,48 @@ readExperiment <- function(files, layout){
         }
       }
     }
-  
+    
+    list(all.resp.fin, warnings.list) -> all.resp.fin
+    names(all.resp.fin) <- c("resp", "warnings")
     return(all.resp.fin)
   }) -> all.resp
+  
+  # process warnings within all.resp; add tag if warnings are to be resolved
+  if (resolve.warnings %in% T){
+    lapply(all.resp, function(x) x$warnings) -> all.warnings
+    lapply(all.warnings, function(x){
+      unlist(x) -> xu
+      cbind(xu[seq(1,length(xu),by=2)], xu[seq(2,length(xu),by=2)]) -> mat
+    }) -> warning.mat
+    lapply(all.resp, function(x) x$resp) -> all.resp
+    resolveWarnings(all.resp, warning.mat, historical.data) -> all.resp
+  } else {
+    lapply(all.resp, function(x) x$resp) -> all.resp
+  }
+  
+  return(all.resp)
+}
+
+resolveWarnings <- function(all.resp, warning.mat, historical.data){
+  # for each response with a warning, fit the data
+  for (i in 1:length(all.resp)){
+    all.resp[[i]][[1]] -> curr.resp
+    gsub("([.-])|[[:punct:]]", "\\.", colnames(curr.resp)) -> colnames(curr.resp)
+    as.character(warning.mat[[i]][,2]) -> curr.warnings
+    gsub(" ", "\\.", gsub("([.-])|[[:punct:]]", "\\.", curr.warnings)) -> curr.warnings
+    lapply(curr.warnings, function(x) c(1,grep(x, colnames(curr.resp), ignore.case=T))) -> cols
+    
+    # do a check to make sure that everything  is matched
+    if (length(unique(sapply(cols, function(x) length(x)))) == 1){
+      lapply(cols, function(x) fit(curr.resp[,x], 
+                    min(curr.resp$Concentrations), max(curr.resp$Concentrations))) -> res
+      lapply(res, function(x) x$logIC50) -> fits
+      names(fits) <- curr.warnings
+      
+      # find closest drug in historical data
+      
+    }
+  }
   return(all.resp)
 }
 
