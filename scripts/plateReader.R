@@ -413,16 +413,57 @@ resolveWarnings <- function(all.resp, warning.mat, historical.data, drug.list.al
     
     # do a check to make sure that everything  is matched
     if (length(unique(sapply(cols, function(x) length(x)))) == 1){
-      lapply(cols, function(x) fit(curr.resp[,x], 
-                    min(curr.resp$Concentrations), max(curr.resp$Concentrations))) -> res
+      # fit with respect to position in concentration scale rather
+      # than absolute concentration to approximate doses used in
+      # historical data, i.e. scale as a function of range; note that 
+      # in historical data, max conc was log10 = 4, and min was 
+      # log10 ~ -0.5
+      lapply(cols, function(x){
+        apply(curr.resp[,x[-1]], 2, function(y) 
+          removeOutliers(y, 10^seq(1:5))) -> curr.resp[,x[-1]]
+        10^seq(1:5) -> curr.resp[,1]
+        fit(curr.resp[,x], 1, 10000) -> f
+        return(f)
+      }) -> res
+      
       lapply(res, function(x) x$logIC50) -> fits
       names(fits) <- curr.warnings
       
       # find closest drug in historical data
       gsub("\\.", "-", names(fits)) -> sub.name
       findClosestMatch(sub.name, drug.list.all) -> name.match
+      lapply(1:length(fits), function(x){
+        fits[[x]] -> y
+        median(historical.data[,which(colnames(historical.data) %in% 
+                                     name.match[x])], na.rm = T) -> med.act
+        
+        # check only cases where at least one is reported active;
+        # high discordance can be expected anyway if the compound
+        # is highly inactive
+        if (length(which(y == 4)) != length(y)){
+          # take the one that's closest to the historical median
+          # select the first element with the minimum difference,
+          # which(diff %in% min(diff))[1]
+          y-med.act -> diff
+          cols[[x]][2:length(cols[[x]])][which(diff %in% min(diff))[1]] ->
+            cols[[x]][2:length(cols[[x]])]
+        }
+        return(cols[[x]])
+      }) -> fin.fits
+      
+      # then change all.resp where fin.fits is difference from cols
+      which(mapply(function(x,y) 
+        length(unique(x)) ==length(unique(y)), fin.fits, cols) %in% F) -> c.ind
+      for (j in 1:length(c.ind)){
+        cols[[c.ind[j]]][-1] -> orig.cols
+        fin.fits[[c.ind[j]]][-1] -> rep.cols
+        curr.resp[,orig.cols] <- curr.resp[,rep.cols]
+        curr.resp[,1] <- all.resp[[i]][[1]]$Concentrations
+      }
     }
   }
+  
+  curr.resp -> all.resp[[i]][[1]]
   return(all.resp)
 }
 
