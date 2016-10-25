@@ -704,7 +704,18 @@ visPlates <- function(dir){
   for (k in 1:length(ff)){
     if (length(grep(".csv", as.character(ff[k]))) > 0){
       t(as.matrix(read.csv(as.character(ff[k]), stringsAsFactors=T, head=F))) -> p
-      aheatmap(p, Rowv=NA, Colv=NA)
+      # in case the max is far from the median, cap
+      # median(p), max(p)
+      if (median(p)/max(p) < 0.5){
+        # skewed distribution; cap
+        median(p)+median(p)*0.75 -> max.signal
+        as.vector(p)[which(as.vector(p) > max)] -> rest
+        
+        # compresss values in rest to x% of the original width
+        max.signal+rest/(0.001*max(rest)) -> p[which(p > max)]
+      }
+      
+      aheatmap(p, Rowv=NA, Colv=NA, main=ff[k])
     }
   }
   dev.off()
