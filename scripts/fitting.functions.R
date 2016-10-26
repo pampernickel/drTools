@@ -1,7 +1,5 @@
 library(drc)
 library(pracma)
-#library(sfsmisc)
-#library(outliers)
 
 '%ni%' <- Negate('%in%')
 
@@ -436,7 +434,6 @@ removeOutliers <- function(y.dat, x.dat, limit=0.35){
     }
     y.dat.old -> y.dat
   }
-  
   return(y.dat)
 }
 
@@ -601,7 +598,3 @@ getCIs <- function(exp.res){
   abs(log10(all.cis)) -> all.cis
   return(all.cis)
 }
-
-# batchCorrection <- function(exp.res.mat.merged){
-#   return(exp.res.mat.merged)
-# }
