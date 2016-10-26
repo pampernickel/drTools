@@ -4,6 +4,7 @@ library(lattice)
 library(reshape2)
 library(RColorBrewer)
 library(NMF)
+library(drc)
 
 processMaxCurves <- function(t){
   strsplit(strsplit(t,";")[[1]][2], ",")[[1]] -> y
@@ -507,8 +508,10 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, no.samples=1){
     res.df[,-which(is.na(res.df))] -> res.df
     # check if the removal of these columns
     # change the orientation of res.df
-    if (nrow(res.df) != 1){
-      t(as.data.frame(res.df)) -> res.df
+    if (is.numeric(res.df)){
+      as.data.frame(t(res.df)) -> res.df
+    } else {
+      as.data.frame(res.df) -> res.df
     }
   }
   
@@ -598,7 +601,7 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, no.samples=1){
           panel.grid.minor=element_blank(),
           plot.background=element_blank(),
           panel.margin = unit(0.0, "lines"))+
-    man.col+theme(legend.position="bottom")+xlim(-0.6,4.75) -> p
+    man.col+theme(legend.position="bottom")+xlim(-1,4.95) -> p
   ncol(assembled.sub)-1 -> ndrugs
   
   ndrugs*20 -> dim
@@ -700,23 +703,24 @@ visPlates <- function(dir){
   names(files) <- as.character(sapply(sd, function(x) split_path(x)[1]))
   unique(unlist(files)) -> ff
   
-  pdf(file=paste(rd, "/plate_check.pdf", sep=""), width=8, height=6, onefile=T)
+  p.list <- list()
   for (k in 1:length(ff)){
     if (length(grep(".csv", as.character(ff[k]))) > 0){
-      t(as.matrix(read.csv(as.character(ff[k]), stringsAsFactors=T, head=F))) -> p
-      # in case the max is far from the median, cap
-      # median(p), max(p)
-      if (median(p)/max(p) < 0.5){
-        # skewed distribution; cap
-        median(p)+median(p)*0.75 -> max.signal
-        as.vector(p)[which(as.vector(p) > max)] -> rest
-        
-        # compresss values in rest to x% of the original width
-        max.signal+rest/(0.001*max(rest)) -> p[which(p > max)]
-      }
-      
-      aheatmap(p, Rowv=NA, Colv=NA, main=ff[k])
+      t(as.matrix(read.csv(as.character(ff[k]), stringsAsFactors=T, head=F))) -> p.list[[k]]
     }
+  }
+  names(p.list) <- ff
+  
+  # range(unique(unlist(p.list)))
+  # fit p.list with some model (gaussian), get its area, and
+  # identify points that cover x % of the curve; all other values that
+  # exceed this value have to be capped.
+  # exp.model <- drm(y.dat~x.dat, fct = LL.4(), na.action = na.omit, control=drmc(errorm = F))
+  pdf(file=paste(rd, "/plate_check.pdf", sep=""), width=8, height=6, onefile=T)
+  for (i in 1:length(p.list)){
+    aheatmap(p.list[[i]], Rowv=NA, Colv=NA, main=names(p.list)[i])
+             #breaks=seq(range(unique(unlist(p.list)))[1],
+            #            range(unique(unlist(p.list)))[2], by=1000))
   }
   dev.off()
 }
