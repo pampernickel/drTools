@@ -501,28 +501,37 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 
 mapResponse <- function(res.df, assembled, drug.list.all=NULL, no.samples=1){
   # default: create dotplot of res.df results against assembled
+  # first, cap values
+  res.df[which(res.df >= 4.5)] <- 4.5
   toupper(colnames(res.df)) -> colnames(res.df)
   toupper(colnames(assembled)) -> colnames(assembled)
-  if (nrow(res.df) == 1 && length(which(is.na(res.df))) > 0){
-    # remove drugs where no fit was performed
-    res.df[,-which(is.na(res.df))] -> res.df
-    # check if the removal of these columns
-    # change the orientation of res.df
-    if (is.numeric(res.df)){
-      as.data.frame(t(res.df)) -> res.df
-    } else {
-      as.data.frame(res.df) -> res.df
-    }
+  if (is.matrix(res.df) && nrow(res.df) == 1 && length(which(is.na(res.df))) > 0){
+     # remove drugs where no fit was performed
+     res.df[,-which(is.na(res.df))] -> res.df
+      #check if the removal of these columns
+      #change the orientation or data type of res.df
+      if (is.numeric(res.df) && is.null(nrow(res.df))){
+        as.matrix(t(res.df)) -> res.df
+      }
   }
   
-  sapply(colnames(res.df), function(x) 
-    ifelse(length(grep(x, drug.list.all$all.names))==1, 
-          drug.list.all$final.name[grep(x, drug.list.all$all.names)],
-          x)) -> colnames(res.df)
-  
-  intersect(colnames(res.df), colnames(assembled)) -> common.drugs
-  res.df[,which(colnames(res.df) %in% common.drugs)] -> res.df.sub
-  assembled[,which(colnames(assembled) %in% common.drugs)] -> assembled.sub
+  if (is.matrix(res.df)){
+    sapply(colnames(res.df), function(x) 
+      ifelse(length(grep(x, drug.list.all$all.names))==1, 
+            drug.list.all$final.name[grep(x, drug.list.all$all.names)],
+            x)) -> colnames(res.df)
+    intersect(colnames(res.df), colnames(assembled)) -> common.drugs
+    res.df[,which(colnames(res.df) %in% common.drugs)] -> res.df.sub
+    assembled[,which(colnames(assembled) %in% common.drugs)] -> assembled.sub
+  } else if (is.numeric(res.df)){
+    sapply(names(res.df), function(x) 
+      ifelse(length(grep(x, drug.list.all$all.names))==1, 
+             drug.list.all$final.name[grep(x, drug.list.all$all.names)],
+             x)) -> names(res.df)
+    intersect(names(res.df), colnames(assembled)) -> common.drugs
+    as.matrix(t(res.df[which(names(res.df) %in% common.drugs)])) -> res.df.sub
+    assembled[,which(colnames(assembled) %in% common.drugs)] -> assembled.sub
+  }
   
   if (is.numeric(res.df.sub)){
     sapply(colnames(assembled.sub), function(x) 
@@ -601,10 +610,10 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, no.samples=1){
           panel.grid.minor=element_blank(),
           plot.background=element_blank(),
           panel.margin = unit(0.0, "lines"))+
-    man.col+theme(legend.position="bottom")+xlim(-1,4.95) -> p
+    man.col+theme(legend.position="bottom")+xlim(-1,4.75) -> p
   ncol(assembled.sub)-1 -> ndrugs
   
-  ndrugs*20 -> dim
+  ndrugs*22.5 -> dim
   png(file=paste(rd, "/dotplot.png", sep=""), width=dim, height=dim)
   print(p)
   dev.off()
