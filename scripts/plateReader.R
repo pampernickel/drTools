@@ -148,6 +148,11 @@ getDoses <- function(plate, dups){
   if (dups == "i" | dups == "e"){
     which(apply(plate, 1, function(y)
       length(which(y %in% ""))) < ncol(plate)) -> dose.rows
+    # also check if the doses are found in a single column or not
+    # if the doses are NOT found in a single column for multi-row
+    # cases, these are priming spots
+    which(apply(plate, 2, function(y)
+      length(which(y %in% ""))) < nrow(plate)) -> dose.cols
     
     which(plate[dose.rows,] %in% 
             max(as.numeric(plate[dose.rows,]),na.rm=T)) -> max.loc
@@ -165,7 +170,7 @@ getDoses <- function(plate, dups){
     which(apply(plate, 1, function(y)
       length(which(y %in% ""))) < ncol(plate)) -> dose.rows
     plate[dose.rows,] -> dr
-    if (length(dose.rows) > 1){
+    if (length(dose.rows) > 1 && length(dose.cols) > 1){
       as.vector(dr) -> dr
       as.numeric(dr[which(dr %ni% "")]) -> dr
       
