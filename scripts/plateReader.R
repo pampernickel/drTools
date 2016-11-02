@@ -7,9 +7,7 @@
 #@...
 # load dependencies
 #@...
-source('./scripts/routineFuncs.r')
-source('./scripts/nomenclatureFuncs.r')
-source('./scripts/visFuncs.R')
+
 
 readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   # function that returns a list of length n, where
