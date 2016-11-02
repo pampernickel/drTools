@@ -9,7 +9,7 @@
 #@...
 source('./scripts/routineFuncs.r')
 source('./scripts/nomenclatureFuncs.r')
-
+source('./scripts/visFuncs.R')
 
 readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   # function that returns a list of length n, where
@@ -169,6 +169,9 @@ getDoses <- function(plate, dups){
     # test on other "e" cases
     which(apply(plate, 1, function(y)
       length(which(y %in% ""))) < ncol(plate)) -> dose.rows
+    which(apply(plate, 2, function(y)
+      length(which(y %in% ""))) < nrow(plate)) -> dose.cols
+    
     plate[dose.rows,] -> dr
     if (length(dose.rows) > 1 && length(dose.cols) > 1){
       as.vector(dr) -> dr
@@ -299,6 +302,7 @@ readExperiment <- function(files, layout, resolve.warnings=F, historical.data=""
     
     # start with layout
     fin.resp <- list()
+    controls <- list()
     for (i in 1:length(layout)){
       t(all.dat[[i]]) -> curr.plate      
       layout[[i]] -> curr.layout
@@ -306,7 +310,8 @@ readExperiment <- function(files, layout, resolve.warnings=F, historical.data=""
       # of drugs that have the same columns
       ## treat controls separately
       curr.layout[grep("control", tolower(names(curr.layout)))] -> control
-      processControl(control, curr.plate) -> c.mean # dmso mean for plate
+      processControl(control, curr.plate)$mean -> c.mean # dmso mean for plate
+      as.numeric(processControl(control, curr.plate)$all.controls) -> controls[[i]]
       
       # get control, and return as a single value (i.e. mean of all
       # control values + sd)
@@ -386,10 +391,13 @@ readExperiment <- function(files, layout, resolve.warnings=F, historical.data=""
       }
     }
     
-    list(all.resp.fin, warnings.list) -> all.resp.fin
-    names(all.resp.fin) <- c("resp", "warnings")
+    # visualize controls
+    list(all.resp.fin, warnings.list, controls) -> all.resp.fin
+    names(all.resp.fin) <- c("resp", "warnings", "controls")
     return(all.resp.fin)
   }) -> all.resp
+  
+  visualizeControls(all.resp$controls)
   
   # process warnings within all.resp; add tag if warnings are to be resolved
   if (resolve.warnings %in% T){
@@ -403,7 +411,7 @@ readExperiment <- function(files, layout, resolve.warnings=F, historical.data=""
   } else {
     lapply(all.resp, function(x) x$resp) -> all.resp
   }
-  
+
   return(all.resp)
 }
 
@@ -479,7 +487,11 @@ processControl <- function(control, curr.plate){
     return(c)
   }) -> all.controls
  mean(unlist(all.controls)) -> control.mean
- return(control.mean)
+ 
+ # visualize control distibution
+ list(unlist(all.controls), control.mean) -> res
+ names(res) <- c("all.controls", "mean")
+ return(res)
 }
 
 findUniqueConc <- function(all.conc){
