@@ -361,7 +361,7 @@ readExperiment <- function(files, layout, resolve.warnings=F, historical.data=""
         return(fin.resp)
       }) -> fin.resp[[i]]
     }
-    
+
     lapply(fin.resp, function(x) 
       lapply(x, function(y) y$resp)) -> all.resp
     lapply(fin.resp, function(x)
@@ -392,10 +392,11 @@ readExperiment <- function(files, layout, resolve.warnings=F, historical.data=""
     # visualize controls
     list(all.resp.fin, warnings.list, controls) -> all.resp.fin
     names(all.resp.fin) <- c("resp", "warnings", "controls")
+    visualizeControls(all.resp.fin$controls)
     return(all.resp.fin)
   }) -> all.resp
   
-  visualizeControls(all.resp$controls)
+  
   
   # process warnings within all.resp; add tag if warnings are to be resolved
   if (resolve.warnings %in% T){
