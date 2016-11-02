@@ -748,7 +748,6 @@ visualizeControls <- function(controls){
   as.numeric(as.character(cdf$value)) -> cdf$value
   as.factor(cdf$plate) -> cdf$plate
   
-  png(file=paste(rd, "/dmso_check.png", sep=""), w=600, h=400)
   ggplot(cdf, aes(x=value, fill=plate))+
     geom_histogram(stat="bin", binwidth=150, alpha=0.3)+
     theme_bw()+
@@ -760,7 +759,10 @@ visualizeControls <- function(controls){
           panel.background=element_blank(),
           panel.grid.major=element_blank(),
           plot.background=element_blank(),
-          panel.margin = unit(0.0, "lines"))
+          panel.margin = unit(0.0, "lines")) -> p
+  
+  pdf(file=paste(rd, "/dmso_check.pdf", sep=""), width=6, height=4)
+  print(p)
   dev.off()
 }
 
