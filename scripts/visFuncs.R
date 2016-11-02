@@ -765,7 +765,7 @@ visualizeControls <- function(controls){
 }
 
 plotFit <- function(exp.res, drug.list){
-  # plotRaw(exp.res$experiments, mode="r") -> vis.df
+  pdf(file=paste(rd, "/fitFiles.pdf", sep=""), width=15, height=15, onefile=T)
   for (i in 1:length(exp.res$res)){
     lapply(exp.res$res[[i]]$max,
            function(x) unlist(strsplit(x, ";"))) -> resp
@@ -827,19 +827,37 @@ plotFit <- function(exp.res, drug.list){
       df.fin[which(df.fin$type %in% "fit"),] -> dff
       df.fin[which(df.fin$type %in% "raw"),] -> dfr
       
-      unique(df.fin$drug) -> dru
-      for (j in 1:length(dru)){
-        grep(dru[j], dff$drug) -> m
-        
-      }
-      
-      ggplot(dff, aes(x=x, y=y, color=factor(replicate), 
+      updateReplicates(df.fin$drug, dff) -> dfff
+      updateReplicates(df.fin$drug, dfr) -> dfrf
+      dfrf$replicate <- dfr$replicate
+      ggplot(dfff, aes(x=x, y=y, color=factor(replicate), 
           group=factor(replicate)))+geom_line()+
-          geom_point(data=dfr, aes(x=x, y=y, color=factor(replicate), 
+          geom_point(data=dfrf, aes(x=x, y=y, color=factor(replicate), 
                                    group=factor(replicate)))+
           facet_wrap(~drug)+theme_bw() -> p
       print(p)
-      #dev.off()
     }
   }
+  dev.off()
+}
+
+updateReplicates <- function(drug, df){
+  # need to check how many unique plates in the raw???
+  unique(drug) -> dru
+  as.character(df$drug) -> df$drug
+  
+  # for Idarubicin, rename all versions, as this is a typical control
+  df$drug[grep("Idarubicin", df$drug)] <- "Idarubicin"
+  dru[grep("Idarubicin", dru)] <- "Idarubicin"
+  
+  as.numeric(as.character(df$replicate)) -> df$replicate
+  for (j in 1:length(dru)){
+    as.numeric(grep(dru[j], df$drug)) -> m
+    if (length(unique(df$set[m])) != length(unique(df$replicate[m]))){
+      for (k in 1:length(unique(df$set[m]))){
+        df$replicate[m[which(df$set[m] %in% unique(df$set[m])[k])]] <- k
+      }
+    }
+  }
+  return(df)
 }
