@@ -1,4 +1,5 @@
 `%ni%` <- Negate(`%in%`)
+library(RCurl)
 
 start <- function(){
   # start saving all results from a session in a single folder
@@ -13,4 +14,22 @@ toFile <- function(ic50){
 
 end <- function(){
   rm(rd)
+}
+
+loadAllDependencies <- function(){
+  print("Loading scripts from pampernickel/drTools...")
+  getURL('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/analysis.Funcs.R', ssl.verifypeer = F) -> script
+  eval(parse(text=script))
+  getURL('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/fitting.functions.R', ssl.verifypeer = F) -> script
+  eval(parse(text=script))
+  getURL('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/plateReader.R', ssl.verifypeer = F) -> script
+  eval(parse(text=script))
+  getURL('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/routineFuncs.r', ssl.verifypeer = F) -> script
+  eval(parse(text=script))
+  getURL('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/visFuncs.R', ssl.verifypeer = F) -> script
+  eval(parse(text=script))
+  
+  library(ggplot2)
+  library(reshape2)
+  print("Done.")
 }
