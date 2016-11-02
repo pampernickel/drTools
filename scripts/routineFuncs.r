@@ -24,8 +24,6 @@ loadAllDependencies <- function(){
   eval(parse(text=script))
   getURL('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/plateReader.R', ssl.verifypeer = F) -> script
   eval(parse(text=script))
-  getURL('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/routineFuncs.r', ssl.verifypeer = F) -> script
-  eval(parse(text=script))
   getURL('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/visFuncs.R', ssl.verifypeer = F) -> script
   eval(parse(text=script))
   getURL('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/nomenclatureFuncs.r', ssl.verifypeer = F) -> script
