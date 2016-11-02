@@ -829,7 +829,6 @@ plotFit <- function(exp.res, drug.list){
       
       updateReplicates(df.fin$drug, dff) -> dfff
       updateReplicates(df.fin$drug, dfr) -> dfrf
-      dfrf$replicate <- dfr$replicate
       ggplot(dfff, aes(x=x, y=y, color=factor(replicate), 
           group=factor(replicate)))+geom_line()+
           geom_point(data=dfrf, aes(x=x, y=y, color=factor(replicate), 
@@ -853,11 +852,27 @@ updateReplicates <- function(drug, df){
   as.numeric(as.character(df$replicate)) -> df$replicate
   for (j in 1:length(dru)){
     as.numeric(grep(dru[j], df$drug)) -> m
-    if (length(unique(df$set[m])) != length(unique(df$replicate[m]))){
+    if (length(unique(df$set[m])) >= length(unique(df$replicate[m])) & 
+        df$type == "fit") {
       for (k in 1:length(unique(df$set[m]))){
         df$replicate[m[which(df$set[m] %in% unique(df$set[m])[k])]] <- k
       }
+    } else if (length(unique(df$set[m])) > 1 && df$type == "raw"){
+      # just make sure (esp in the case of raw data) that there
+      # each set is associated with just one replicate; otherwise,
+      # there's a need to change replicate names
+      new.max <- 0 # start changing the second one
+      for (k in 2:length(unique(df$set[m]))){
+        length(unique(df$replicate[m[which(df$set[m] %in% unique(df$set[m])[k])]])) -> int
+        unique(df$replicate[m[which(df$set[m] %in% unique(df$set[m])[k])]])+int-> new.max
+        unique(df$replicate[m[which(df$set[m] %in% unique(df$set[m])[k])]]) -> old.max
+        m[which(df$set[m] %in% unique(df$set[m])[k])] -> fin.ind
+        for (l in 1:length(old.max)){
+          df$replicate[fin.ind[which(df$replicate[fin.ind] %in% old.max[l])]] <- new.max[l]
+        }
+      }
     }
   }
+  
   return(df)
 }
