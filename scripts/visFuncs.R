@@ -5,6 +5,8 @@ library(reshape2)
 library(RColorBrewer)
 library(NMF)
 library(drc)
+library(plyr)
+library(reshape2)
 
 processMaxCurves <- function(t){
   strsplit(strsplit(t,";")[[1]][2], ",")[[1]] -> y
@@ -309,8 +311,6 @@ plotResponses <- function(experiments, exp.res.ave, param, func, cat){
   #}
   
   #cbind(df, categories) -> df
-  
-  
   colnames(df) <- c("drug", "param", "cat")
   as.numeric(as.character(df[,2])) -> df[,2]
   
@@ -734,6 +734,112 @@ visPlates <- function(dir){
   dev.off()
 }
 
-plotFits <- function(exp.res){
-  plotRaw(exp.res$experiments, mode="r") -> vis.df
+visualizeControls <- function(controls){
+  print("Visualizing DMSO controls...")
+  cdf <- matrix(0, nrow=0, ncol=2)
+  colnames(cdf) <- c("value", "plate")
+  for (i in 1:length(controls)){
+    cbind(controls[[i]], 
+          rep(i, length(controls[[i]]))) -> t
+    colnames(t) <- colnames(cdf)
+    rbind(cdf, t) -> cdf
+  }
+  as.data.frame(cdf) -> cdf
+  as.numeric(as.character(cdf$value)) -> cdf$value
+  as.factor(cdf$plate) -> cdf$plate
+  
+  png(file=paste(rd, "/dmso_check.png", sep=""), w=600, h=400)
+  ggplot(cdf, aes(x=value, fill=plate))+
+    geom_histogram(stat="bin", binwidth=150, alpha=0.3)+
+    theme_bw()+
+    theme(axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          axis.text.y=element_text(size=14),
+          axis.text.x=element_text(size=14),
+          strip.text=element_text(size=11),
+          panel.background=element_blank(),
+          panel.grid.major=element_blank(),
+          plot.background=element_blank(),
+          panel.margin = unit(0.0, "lines"))
+  dev.off()
+}
+
+plotFit <- function(exp.res, drug.list){
+  # plotRaw(exp.res$experiments, mode="r") -> vis.df
+  for (i in 1:length(exp.res$res)){
+    lapply(exp.res$res[[i]]$max,
+           function(x) unlist(strsplit(x, ";"))) -> resp
+    lapply(resp, function(x)
+      strsplit(x, ",")) -> resp
+    lapply(resp, function(x) as.numeric(unlist(x[1]))) -> x
+    lapply(resp, function(x) as.numeric(unlist(x[2]))) -> y
+    
+    # proceed with plots if drug list is as long as x and y
+    if (length(drug.list) != length(x) |
+        length(drug.list) != length(y)){
+      stop("Number of drugs not the same as number of fitted responses.")
+    } else {
+      df <- matrix(0, nrow=0, ncol=4)
+      colnames(df) <- c("drug", "x", "y", "set")
+      for (j in 1:length(drug.list)){
+        if (length(x[[j]]) == 100){
+          cbind(drug.list[j], x[[j]], y[[j]], rep(j, length(x[[j]]))) -> t
+          colnames(t) <- colnames(df)
+          rbind(df, t) -> df
+        }
+      }
+      cbind(df, rep(names(exp.res$res), nrow(df)), rep("fit", nrow(df))) -> df
+      colnames(df) <- c(colnames(df)[1:4], "patient", "type")
+      
+      # add raw responses
+      dfr <- matrix(0, nrow=0, ncol=4)
+      colnames(dfr) <- c("x", "drug", "y", "set")
+      for (j in 1:length(exp.res$experiments[[i]])){
+        melt(exp.res$experiments[[i]][[j]], id.vars="Concentrations") -> t
+        cbind(t, rep(j, nrow(t))) -> t
+        colnames(t) <- colnames(dfr)
+        rbind(dfr, t) -> dfr
+      }
+      cbind(dfr, rep(names(exp.res$res), nrow(dfr)), rep("raw", nrow(dfr))) -> dfr
+      colnames(dfr) <- c(colnames(dfr)[1:4], "patient", "type")
+      dfr[,c(2,1,3,4,5,6)] -> dfr
+      as.matrix(dfr) -> dfr
+      
+      rbind(df, dfr) -> df.fin
+      as.data.frame(df.fin) -> df.fin
+      rownames(df.fin) <- c(1:nrow(df.fin))
+      
+      replicate <- rep("1",nrow(df.fin))
+      replicate[grep( "_2", df.fin$drug)] <- 2
+      cbind(df.fin, replicate) -> df.fin
+      
+      gsub("_2", "", gsub("_1", "", df.fin$drug)) -> df.fin$drug
+      as.numeric(as.character(df.fin$x)) -> df.fin$x
+      as.numeric(as.character(df.fin$y)) -> df.fin$y
+      log10(df.fin$x) -> df.fin$x
+      
+      # per drug, check how many sets there are and amend
+      # replicate based on this
+      #pdf(file=paste(rd, "/raw_check.pdf", sep=""), width=15, height=15, onefile=T)
+      #print(paste("Plotting response for patient", unique(vis.df$Patient)[i], "...", sep=" "))
+      
+      # create multiple layers: df.fin$type = fit: lines; df.fin$type = raw: points
+      df.fin[which(df.fin$type %in% "fit"),] -> dff
+      df.fin[which(df.fin$type %in% "raw"),] -> dfr
+      
+      unique(df.fin$drug) -> dru
+      for (j in 1:length(dru)){
+        grep(dru[j], dff$drug) -> m
+        
+      }
+      
+      ggplot(dff, aes(x=x, y=y, color=factor(replicate), 
+          group=factor(replicate)))+geom_line()+
+          geom_point(data=dfr, aes(x=x, y=y, color=factor(replicate), 
+                                   group=factor(replicate)))+
+          facet_wrap(~drug)+theme_bw() -> p
+      print(p)
+      #dev.off()
+    }
+  }
 }
