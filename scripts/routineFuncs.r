@@ -16,22 +16,27 @@ end <- function(){
   rm(rd)
 }
 
+# https://www.r-bloggers.com/source_https-sourcing-an-r-script-from-github-over-https/
+source_https <- function(url, ...) {
+  # load package
+  # parse and evaluate each .R script
+  sapply(c(url, ...), function(u) {
+    eval(parse(text = getURL(u, followlocation = TRUE, cainfo = system.file("CurlSSL", "cacert.pem", package = "RCurl"))), envir = .GlobalEnv)
+  })
+}
+
 loadAllDependencies <- function(){
+  
   print("Loading scripts from pampernickel/drTools...")
-  getURL('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/plateReader.R', ssl.verifypeer = F) -> script
-  eval(parse(text=script), envir=.GlobalEnv)
+  source_https('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/plateReader.R')
   print("Loading I/O tools...")
-  getURL('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/fitting.functions.R', ssl.verifypeer = F) -> script
-  eval(parse(text=script), envir=.GlobalEnv)
+  source_https('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/fitting.functions.R')
   print("Loading fitting tools...")
-  getURL('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/analysis.Funcs.R', ssl.verifypeer = F) -> script
-  eval(parse(text=script), envir=.GlobalEnv)
+  source_https('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/analysis.Funcs.R')
   print("Loading analysis tools...")
-  getURL('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/visFuncs.R', ssl.verifypeer = F) -> script
-  eval(parse(text=script), envir=.GlobalEnv)
+  source_https('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/visFuncs.R')
   print("Loading visualization tools...")
-  getURL('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/nomenclatureFuncs.r', ssl.verifypeer = F) -> script
-  eval(parse(text=script), envir=.GlobalEnv)
+  source_https('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/nomenclatureFuncs.r')
   print("Loading nomenclature tools...")
   
   library(ggplot2)
