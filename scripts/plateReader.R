@@ -4,10 +4,6 @@
 # Layout processing functions
 #@...
 
-#@...
-# load dependencies
-#@...
-
 
 readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   # function that returns a list of length n, where
@@ -95,7 +91,7 @@ readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
 
 
 getFiles <- function(dir){
-  print(paste("Checking directory ", dir, "...", sep=""))
+  #print(paste("Checking directory ", dir, "...", sep=""))
   c(list.files(path = dir, pattern = ".txt", recursive=TRUE, full.names = TRUE), 
     list.files(path = dir, pattern = ".csv", recursive=TRUE, full.names = TRUE)) -> files
   return(files)
@@ -279,7 +275,8 @@ checkFiles <- function(files, layout){
 #@...
 # Experiment processing functions
 #@...
-readExperiment <- function(files, layout, resolve.warnings=F, historical.data="", drug.list.all=""){
+readExperiment <- function(files, layout, mode="", pos.control="",
+                           resolve.warnings=F, historical.data="", drug.list.all=""){
   if (resolve.warnings %in% T && is.character(historical.data)){
     stop("Enter historical data in the form of a patient x drug response matrix to resolve response inconsistencies.")  
   }
@@ -302,7 +299,12 @@ readExperiment <- function(files, layout, resolve.warnings=F, historical.data=""
     fin.resp <- list()
     controls <- list()
     for (i in 1:length(layout)){
-      t(all.dat[[i]]) -> curr.plate      
+      if (mode==""){
+        t(all.dat[[i]]) -> curr.plate      
+      } else {
+        all.dat[[i]] -> curr.plate
+      }
+      
       layout[[i]] -> curr.layout
       # check column batches; here, check if there are a bunch
       # of drugs that have the same columns
@@ -310,6 +312,11 @@ readExperiment <- function(files, layout, resolve.warnings=F, historical.data=""
       curr.layout[grep("control", tolower(names(curr.layout)))] -> control
       processControl(control, curr.plate)$mean -> c.mean # dmso mean for plate
       as.numeric(processControl(control, curr.plate)$all.controls) -> controls[[i]]
+      
+      if (mode=="indirect"){
+        curr.layout[which(names(curr.layout) %in% pos.control)] -> pos_control
+        processPosControl(pos_control, curr.plate) -> pos
+      }
       
       # get control, and return as a single value (i.e. mean of all
       # control values + sd)
@@ -327,6 +334,10 @@ readExperiment <- function(files, layout, resolve.warnings=F, historical.data=""
           cbind(curr.layout[[x]]$doses, sapply(1:length(rows), function(y){
             curr.plate[rows[y], cols[[y]]]
           })) -> resp
+          
+          # check if resp elements are lists; if this is the case, convert
+          # to numeric
+          apply(resp, 2, function(x) as.numeric(as.character(x))) -> resp
           
           length(curr.layout[[x]]$rows) -> reps
           colnames(resp) <- c("Concentrations", sapply(1:reps, function(y) paste(names(curr.layout)[x],y,sep="_")))
@@ -346,14 +357,23 @@ readExperiment <- function(files, layout, resolve.warnings=F, historical.data=""
           
           as.data.frame(resp) -> resp
           apply(resp, 2, function(x) as.numeric(as.character(x))) -> resp
-          resp[,2:ncol(resp)]/c.mean -> resp[,2:ncol(resp)]
+          if (mode == "indirect"){
+            (resp[,2:ncol(resp)]-pos)/(c.mean-pos) -> resp[,2:ncol(resp)]
+          } else {
+            resp[,2:ncol(resp)]/c.mean -> resp[,2:ncol(resp)]
+          }
         } else if (length(grep("coords", names(curr.layout[[x]])))>0){
           as.numeric(curr.layout[[x]]$coords[1,]) -> rows
           as.numeric(curr.layout[[x]]$coords[2,]) -> cols
           cbind(curr.layout[[x]]$doses, sapply(1:length(rows), function(y){
             curr.plate[rows[y], cols[[y]]]
           })) -> resp
-          resp[,2:ncol(resp)]/c.mean -> resp[,2:ncol(resp)]
+          apply(resp, 2, function(x) as.numeric(as.character(x))) -> resp
+          if (mode == "indirect"){
+            (resp[,2:ncol(resp)]-pos)/(c.mean-pos) -> resp[,2:ncol(resp)]
+          } else {
+            resp[,2:ncol(resp)]/c.mean -> resp[,2:ncol(resp)]
+          }
           colnames(resp) <- c("Concentrations", rep(curr.drug, length(2:ncol(resp))))
         }
         list(resp, f.warn, d.warn) -> fin.resp
@@ -392,11 +412,10 @@ readExperiment <- function(files, layout, resolve.warnings=F, historical.data=""
     # visualize controls
     list(all.resp.fin, warnings.list, controls) -> all.resp.fin
     names(all.resp.fin) <- c("resp", "warnings", "controls")
-    visualizeControls(all.resp.fin$controls)
+    
+    ## visualizeControls(all.resp.fin$controls)
     return(all.resp.fin)
   }) -> all.resp
-  
-  
   
   # process warnings within all.resp; add tag if warnings are to be resolved
   if (resolve.warnings %in% T){
@@ -405,12 +424,13 @@ readExperiment <- function(files, layout, resolve.warnings=F, historical.data=""
       unlist(x) -> xu
       cbind(xu[seq(1,length(xu),by=2)], xu[seq(2,length(xu),by=2)]) -> mat
     }) -> warning.mat
+    lapply(all.resp, function(x) x$controls) -> all.controls
     lapply(all.resp, function(x) x$resp) -> all.resp
     resolveWarnings(all.resp, warning.mat, historical.data, drug.list.all) -> all.resp
   } else {
     lapply(all.resp, function(x) x$resp) -> all.resp
   }
-
+  
   return(all.resp)
 }
 
@@ -456,14 +476,14 @@ resolveWarnings <- function(all.resp, warning.mat, historical.data, drug.list.al
           # take the one that's closest to the historical median
           # select the first element with the minimum difference,
           # which(diff %in% min(diff))[1]
-          y-med.act -> diff
+          abs(y-med.act) -> diff
           cols[[x]][2:length(cols[[x]])][which(diff %in% min(diff))[1]] ->
             cols[[x]][2:length(cols[[x]])]
         }
         return(cols[[x]])
       }) -> fin.fits
       
-      # then change all.resp where fin.fits is difference from cols
+      # then change all.resp where fin.fits is different from cols
       which(mapply(function(x,y) 
         length(unique(x)) ==length(unique(y)), fin.fits, cols) %in% F) -> c.ind
       for (j in 1:length(c.ind)){
@@ -473,9 +493,12 @@ resolveWarnings <- function(all.resp, warning.mat, historical.data, drug.list.al
         curr.resp[,1] <- all.resp[[i]][[1]]$Concentrations
       }
     }
+    
+    gsub("\\.2", "_2", gsub("\\.1", "_1", colnames(curr.resp))) -> colnames(curr.resp)
+    curr.resp -> all.resp[[i]][[1]]
   }
   
-  curr.resp -> all.resp[[i]][[1]]
+  
   return(all.resp)
 }
 
@@ -491,6 +514,18 @@ processControl <- function(control, curr.plate){
  list(unlist(all.controls), control.mean) -> res
  names(res) <- c("all.controls", "mean")
  return(res)
+}
+
+processPosControl <- function(control, curr.plate){
+  lapply(1:length(control[[1]]$rows), function(x){
+    curr.plate[as.numeric(unlist(control[[1]]$rows[x])), 
+               as.numeric(unlist(control[[1]]$cols[x]))] -> c
+    return(c)
+  }) -> all.controls
+  
+  mean(unlist(lapply(all.controls, function(x)
+    x[which(control[[1]]$doses %in% max(control[[1]]$doses))]))) -> res
+  return(res)
 }
 
 findUniqueConc <- function(all.conc){
