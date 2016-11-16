@@ -3,18 +3,16 @@ library(RCurl)
 
 start <- function(){
   # start saving all results from a session in a single folder
-  #file.path("./results", format(Sys.time(), "%F %H-%M")) ->> rd
-  file.path("./results", Sys.time()) ->> rd
-  dir.create(rd)
+  #file.path("./results", Sys.time()) ->> rd
+  
+  # for the report mode, use a fixed name file name
+  dir.create("./temp")
 }
 
 toFile <- function(ic50){
   write.csv(ic50, paste(rd, "/raw_vals.csv", sep=""))
 }
 
-end <- function(){
-  rm(rd)
-}
 
 # https://www.r-bloggers.com/source_https-sourcing-an-r-script-from-github-over-https/
 source_https <- function(url, ...) {
