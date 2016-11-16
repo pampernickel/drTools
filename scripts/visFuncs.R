@@ -404,11 +404,8 @@ visMatrices <- function(exp.res.mat, labels, width, height, annot.width){
     # --- save names of patient order (in a cluster) per matrix
     # --- currently needs to be implemented this way since patient
     # --- names are currently in the form of full directory names
-    #listPatients(nclust.clust, names(exp.res.mat)[i])
-    png(paste(names(exp.res.mat)[i],".png", sep=""), w=width, h=height)
     coldmap(curr.mat, clust = nclust.clust, rannot=list(color.m), clab=colnames(exp.res.mat[[i]]),
             rdw = 5, cdw = 5, rlab=list(pat.names), rannot.width=annot.width, clab.height=7, rlab.width=5, cex.clab=1.5)
-    dev.off()
   }
 }
 
@@ -458,7 +455,6 @@ getPatientCoords <- function(df,name,drug,auc,ic50,max){
   as.numeric(auc[row.ind, col.ind]) -> x
   as.numeric(ic50[row.ind, col.ind]) -> y
   as.numeric(max[row.ind, col.ind]) -> z
-  #as.data.frame(cbind(x,y,z)) -> coords
   cbind(x,y,z) -> coords
   return(coords)
 }
@@ -499,64 +495,54 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   }
 }
 
-mapResponse <- function(res.df, assembled, drug.list.all=NULL, no.samples=1){
+mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL){
   # default: create dotplot of res.df results against assembled
-  # first, cap values
-  res.df[which(res.df >= 4.5)] <- 4.5
-  toupper(colnames(res.df)) -> colnames(res.df)
-  toupper(colnames(assembled)) -> colnames(assembled)
-  if (is.matrix(res.df) && nrow(res.df) == 1 && length(which(is.na(res.df))) > 0){
-     # remove drugs where no fit was performed
-     res.df[,-which(is.na(res.df))] -> res.df
-      #check if the removal of these columns
-      #change the orientation or data type of res.df
-      if (is.numeric(res.df) && is.null(nrow(res.df))){
-        as.matrix(t(res.df)) -> res.df
-      }
+  # poi: patient in assembled that the user wants to highlight
+  # first, cap values, then convert into a matrix for uniform handling
+  nrow(res.df) -> e
+  as.matrix(res.df) -> conv
+  if (is.null(dim(res.df)) & ncol(conv) < nrow(conv)){
+    # case of named numeric vector
+    t(conv) -> res.df
   }
   
-  if (is.matrix(res.df)){
-    sapply(colnames(res.df), function(x) 
+  res.df[which(res.df >= 4.5)] <- 4.5
+  res.df[which(res.df <= min(assembled, na.rm=T))] <- min(assembled, na.rm=T)
+  toupper(colnames(res.df)) -> colnames(res.df)
+  toupper(colnames(assembled)) -> colnames(assembled)
+  
+  # cases where nothing was fitted
+  apply(res.df, 2, function(x) length(which(is.na(x)))) -> nas
+  as.numeric(which(nas == nrow(res.df))) -> ind
+  if (length(ind) > 0){
+    # remove drugs where no fit was performed, then check
+    # again if the matrix has been converted to a named numeric
+    res.df[,-ind] -> res.df
+    nrow(res.df) -> e
+    as.matrix(res.df) -> conv
+    if (is.null(dim(res.df)) & ncol(conv) < nrow(conv)){
+      # case of named numeric vector
+      t(conv) -> res.df
+    }
+  }
+
+  sapply(colnames(res.df), function(x) 
       ifelse(length(grep(x, drug.list.all$all.names))==1, 
             drug.list.all$final.name[grep(x, drug.list.all$all.names)],
             x)) -> colnames(res.df)
-    intersect(colnames(res.df), colnames(assembled)) -> common.drugs
-    res.df[,which(colnames(res.df) %in% common.drugs)] -> res.df.sub
-    assembled[,which(colnames(assembled) %in% common.drugs)] -> assembled.sub
-  } else if (is.numeric(res.df)){
-    sapply(names(res.df), function(x) 
-      ifelse(length(grep(x, drug.list.all$all.names))==1, 
-             drug.list.all$final.name[grep(x, drug.list.all$all.names)],
-             x)) -> names(res.df)
-    intersect(names(res.df), colnames(assembled)) -> common.drugs
-    as.matrix(t(res.df[which(names(res.df) %in% common.drugs)])) -> res.df.sub
-    assembled[,which(colnames(assembled) %in% common.drugs)] -> assembled.sub
-  }
+  intersect(colnames(res.df), colnames(assembled)) -> common.drugs
+  res.df[,which(colnames(res.df) %in% common.drugs)] -> res.df.sub
+  assembled[,which(colnames(assembled) %in% common.drugs)] -> assembled.sub
   
-  if (is.numeric(res.df.sub)){
-    sapply(colnames(assembled.sub), function(x) 
-      which(toupper(names(res.df.sub)) %in% x)) -> c.ind
-    max(sapply(c.ind, function(x) length(x))) -> ml
-    respMat <- matrix(NA, nrow=ml, ncol=length(c.ind))
-    # create 
-    #res.df.sub[c.ind] -> res.df.sub
-    for (i in 1:length(c.ind)){
-      respMat[1:length(c.ind[[i]]),i] <- res.df.sub[c.ind[[i]]]
-    }
-    colnames(respMat) <- colnames(assembled.sub)
-  } else {
-    if (is.data.frame(res.df.sub) && nrow(res.df.sub) == 1){
-      sapply(colnames(assembled.sub), function(x) 
-        which(toupper(colnames(res.df.sub)) %in% x)) -> c.ind
-      max(sapply(c.ind, function(x) length(x))) -> ml
-      respMat <- matrix(NA, nrow=ml, ncol=length(c.ind))
-      for (i in 1:length(c.ind)){
-        respMat[1:length(c.ind[[i]]),i] <- as.numeric(res.df.sub[c.ind[[i]]])
-      }
-      colnames(respMat) <- colnames(assembled.sub)
-    }
+  sapply(colnames(assembled.sub), function(x) 
+    which(toupper(names(res.df.sub)) %in% x)) -> c.ind
+  max(sapply(c.ind, function(x) length(x))) -> ml
+  respMat <- matrix(NA, nrow=ml, ncol=length(c.ind))
+  for (i in 1:length(c.ind)){
+    respMat[1:length(c.ind[[i]]),i] <- res.df.sub[c.ind[[i]]]
   }
-    
+  colnames(respMat) <- colnames(assembled.sub)
+  
   rbind(assembled.sub, respMat) -> assembled.sub
   which(rownames(assembled.sub) %ni% 
           rownames(assembled)) -> r.ind
@@ -572,6 +558,17 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, no.samples=1){
   assembled.l[which(class %in% "OTHER"),] -> df.o
   assembled.l[which(class %in% "CHECK"),] -> df.i
   
+  if (!is.null(poi)){
+    # add the patient of interest to check
+    if (poi %ni% df.o$id){
+      stop("Patient ID not found.")
+    }
+    
+    df.o[which(df.o$id %in% poi),] -> df.p
+    df.o[-which(df.o$id %in% poi),] -> df.o
+    rbind(df.i, df.p) -> df.i
+  }
+  
   # order by drug class
   sapply(df.o$variable, function(x) 
     drug.list.all$classification[which(drug.list.all$final.name %in% x)]) -> dc
@@ -585,7 +582,16 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, no.samples=1){
     drug.list.all$subclass[which(drug.list.all$final.name %in% x)]) -> dc2
   cbind(df.i, dc, dc2) -> df.i
   
-  man.col <- scale_colour_manual(values = rep("red", no.samples))
+  length(unique(df.i$id)) -> no.samples
+  
+  fin.cols <- NA
+  if (no.samples == 1){
+   "red" -> fin.cols 
+  } else {
+    brewer.pal(no.samples, "Spectral") -> fin.cols
+  }
+  
+  man.col <- scale_colour_manual(values = fin.cols)
   ggplot(df.o, aes(x=value))+
     stat_density(aes(ymax = ..density..,  ymin = -..density..),
                  fill = "grey50", colour = "grey50",
@@ -595,7 +601,7 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, no.samples=1){
     geom_jitter(data = df.o, 
                 aes(x=value, y=0), alpha=0.2, width=0.005)+
     geom_jitter(data = df.i, 
-                aes(x=value, y=0,shape=class,color=class), alpha=0.7, width=0.005,
+                aes(x=value, y=0,shape=id,color=id), alpha=0.7, width=0.005,
                 size=4.5)+
     scale_y_continuous(breaks=c(-2, 0, 2))+theme_bw()+
     theme(axis.text.x=element_blank(),
@@ -610,13 +616,18 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, no.samples=1){
           panel.grid.minor=element_blank(),
           plot.background=element_blank(),
           panel.margin = unit(0.0, "lines"))+
-    man.col+theme(legend.position="bottom")+xlim(-1,4.75) -> p
+    man.col+theme(legend.position="bottom")+xlim(min(assembled,na.rm=T)-0.05,4.75) -> p
   ncol(assembled.sub)-1 -> ndrugs
   
-  ndrugs*22.5 -> dim
-  png(file=paste(rd, "/dotplot.png", sep=""), width=dim, height=dim)
+  dim <- 1000
+  if (ndrugs > 20){
+    ndrugs*22.5 -> dim
+  }
+  
+  #png(file=paste(rd, "/dotplot.png", sep=""), width=dim, height=dim)
+  #png(file="dotplot.png", width=dim, height=dim)
   print(p)
-  dev.off()
+  #dev.off()
 }
 
 addDrug <- function(curr.df, all.drugs, patient, group){
@@ -653,15 +664,18 @@ plotRaw <- function(all.resp, mode=c("", "r")){
     }
   }
   as.data.frame(vis.df) -> vis.df
+  
   for (i in 1:2){
     as.numeric(as.character(vis.df[,i])) -> vis.df[,i]
   }
+  
   log10(vis.df$Concentration) -> vis.df$Concentration
   gsub("\\.", "-", vis.df$Drug) -> vis.df$Drug
   toupper(vis.df$Drug) -> vis.df$Drug
   toupper(vis.df$Patient) -> vis.df$Patient
   as.numeric(as.character(vis.df$Replicate)) -> vis.df$Replicate
   unique(vis.df$Drug) -> all.drugs
+  
   for (i in 1:length(all.drugs)){
     # split drugs into separate data frames, then handle per groups
     vis.df[which(vis.df$Drug %in% all.drugs[i]),] -> vis.df.sub
@@ -689,9 +703,7 @@ plotRaw <- function(all.resp, mode=c("", "r")){
   
 
   if (mode == ""){
-    pdf(file=paste(rd, "/raw_check.pdf", sep=""), width=15, height=15, onefile=T)
     for (i in 1:length(unique(vis.df$Patient))){
-      print(paste("Plotting response for patient", unique(vis.df$Patient)[i], "...", sep=" "))
       vis.df[which(vis.df$Patient %in% unique(vis.df$Patient)[i]),] -> vis.df.sub
       ggplot(vis.df.sub, aes(x=Concentration, y=Response, color=factor(Replicate), 
                  group=factor(Replicate)))+geom_point()+geom_line()+
@@ -699,13 +711,12 @@ plotRaw <- function(all.resp, mode=c("", "r")){
                  ggtitle(unique(vis.df$Patient)[i])-> p
       print(p)
     }
-    dev.off()
   } else {
     return(vis.df)
   }
 }
 
-visPlates <- function(dir){
+visPlates <- function(dir, mode="t"){
   # get all .csv/.txt files and create a heatmap of each
   list.dirs(dir, recursive=T) -> sd
   lapply(sd, function(x) getFiles(x)) -> files
@@ -715,7 +726,11 @@ visPlates <- function(dir){
   p.list <- list()
   for (k in 1:length(ff)){
     if (length(grep(".csv", as.character(ff[k]))) > 0){
-      t(as.matrix(read.csv(as.character(ff[k]), stringsAsFactors=T, head=F))) -> p.list[[k]]
+      if (mode == "t"){
+        as.matrix(read.csv(as.character(ff[k]), stringsAsFactors=T, head=F)) -> p.list[[k]]
+      } else {
+        t(as.matrix(read.csv(as.character(ff[k]), stringsAsFactors=T, head=F))) -> p.list[[k]]
+      }
     }
   }
   names(p.list) <- ff
@@ -724,18 +739,13 @@ visPlates <- function(dir){
   # fit p.list with some model (gaussian), get its area, and
   # identify points that cover x % of the curve; all other values that
   # exceed this value have to be capped.
-  # exp.model <- drm(y.dat~x.dat, fct = LL.4(), na.action = na.omit, control=drmc(errorm = F))
-  pdf(file=paste(rd, "/plate_check.pdf", sep=""), width=8, height=6, onefile=T)
   for (i in 1:length(p.list)){
     aheatmap(p.list[[i]], Rowv=NA, Colv=NA, main=names(p.list)[i])
-             #breaks=seq(range(unique(unlist(p.list)))[1],
-            #            range(unique(unlist(p.list)))[2], by=1000))
   }
-  dev.off()
 }
 
 visualizeControls <- function(controls){
-  print("Visualizing DMSO controls...")
+  #print("Visualizing DMSO controls...")
   cdf <- matrix(0, nrow=0, ncol=2)
   colnames(cdf) <- c("value", "plate")
   for (i in 1:length(controls)){
@@ -760,14 +770,13 @@ visualizeControls <- function(controls){
           panel.grid.major=element_blank(),
           plot.background=element_blank(),
           panel.margin = unit(0.0, "lines")) -> p
-  
-  pdf(file=paste(rd, "/dmso_check.pdf", sep=""), width=6, height=4)
+   
+  #pdf(file=paste(rd, "/dmso_check.pdf", sep=""), width=6, height=4)s
   print(p)
-  dev.off()
 }
 
 plotFit <- function(exp.res, drug.list){
-  pdf(file=paste(rd, "/fitFiles.pdf", sep=""), width=15, height=15, onefile=T)
+  #pdf(file=paste(rd, "/fitFiles.pdf", sep=""), width=15, height=15, onefile=T)
   for (i in 1:length(exp.res$res)){
     lapply(exp.res$res[[i]]$max,
            function(x) unlist(strsplit(x, ";"))) -> resp
@@ -820,6 +829,9 @@ plotFit <- function(exp.res, drug.list){
       as.numeric(as.character(df.fin$y)) -> df.fin$y
       log10(df.fin$x) -> df.fin$x
       
+      
+      #unlist(strsplit(curr.name, "/"))[length(unlist(strsplit(curr.name, "/")))] -> curr.name
+      
       # per drug, check how many sets there are and amend
       # replicate based on this
       #pdf(file=paste(rd, "/raw_check.pdf", sep=""), width=15, height=15, onefile=T)
@@ -835,11 +847,11 @@ plotFit <- function(exp.res, drug.list){
           group=factor(replicate)))+geom_line()+
           geom_point(data=dfrf, aes(x=x, y=y, color=factor(replicate), 
                                    group=factor(replicate)))+
-          facet_wrap(~drug)+theme_bw() -> p
+          facet_wrap(~drug)+theme_bw()+
+          ggtitle(names(exp.res$res)[i])-> p
       print(p)
     }
   }
-  dev.off()
 }
 
 updateReplicates <- function(drug, df){
