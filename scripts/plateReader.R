@@ -221,7 +221,8 @@ handleExplicit <- function(mode, t, doses, dilution){
          list(all.inds, all.inds)) -> res
     names(res) <- c("doses", "rows", "cols")
   } else if (length(grep("c", mode)) > 0){
-    # cols processing
+    # cols processing, also handle case
+    # when a drug appears twice on a plate
     sapply(doses$doses, function(y)
       which(t %in% y)) -> all.inds
     t(all.inds) -> cols
@@ -230,8 +231,9 @@ handleExplicit <- function(mode, t, doses, dilution){
       cols[,i] -> all.inds[[i]]
     }
     list(doses$doses/dilution, 
-         c(as.numeric(doses$dose.rows),
-          as.numeric(doses$dose.rows)),
+         #c(as.numeric(doses$dose.rows),
+         #as.numeric(doses$dose.rows)),
+         as.numeric(doses$dose.rows),
          all.inds) -> res
     names(res) <- c("doses", "rows", "cols")
   }
@@ -329,7 +331,7 @@ readExperiment <- function(files, layout, mode="", pos.control="",
         f.warn <- c()
         d.warn <- c()
         if (length(grep("rows", names(curr.layout[[x]])))>0){
-          unique(curr.layout[[x]]$rows) -> rows # quick fix for some files where rows appear in dup config
+          curr.layout[[x]]$rows -> rows
           curr.layout[[x]]$cols -> cols
           cbind(curr.layout[[x]]$doses, sapply(1:length(rows), function(y){
             curr.plate[rows[y], cols[[y]]]
