@@ -329,7 +329,7 @@ readExperiment <- function(files, layout, mode="", pos.control="",
         f.warn <- c()
         d.warn <- c()
         if (length(grep("rows", names(curr.layout[[x]])))>0){
-          curr.layout[[x]]$rows -> rows
+          unique(curr.layout[[x]]$rows) -> rows # quick fix for some files where rows appear in dup config
           curr.layout[[x]]$cols -> cols
           cbind(curr.layout[[x]]$doses, sapply(1:length(rows), function(y){
             curr.plate[rows[y], cols[[y]]]
