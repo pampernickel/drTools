@@ -50,9 +50,9 @@ readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
               all.res[[j]] <- doses
             } else if (replicates==2 && dups[x] == "i") {
               all.res[[j]] <- handleImplicit(dup.mode[x], t, doses, dilution)
-            } else if (replicates==2 && dups[x] == "e"){
+            } else if (dups[x] == "e"){
               # replicates are explicitly indicated
-              all.res[[j]] <- handleExplicit(dup.mode[x], t, doses, dilution)
+              all.res[[j]] <- handleExplicit(dup.mode[x], t, doses, dilution, replicates)
             }
         } else {
             # control: single dose only; problem is to localize it
@@ -212,7 +212,7 @@ handleImplicit <- function(mode, t, doses, dilution){
   return(res)  
 }
 
-handleExplicit <- function(mode, t, doses, dilution){
+handleExplicit <- function(mode, t, doses, dilution, replicates){
   res <- list()
   if (length(grep("r", mode)) > 0){
     sapply(doses$doses, function(y)
@@ -226,14 +226,29 @@ handleExplicit <- function(mode, t, doses, dilution){
     sapply(doses$doses, function(y)
       which(t %in% y)) -> all.inds
     t(all.inds) -> cols
+    
+    # check if the number of rows and columns match
+    as.numeric(rep(doses$dose.rows, replicates))  -> rows
     all.inds <- list()
     for (i in 1:ncol(cols)){
       cols[,i] -> all.inds[[i]]
     }
+    
+    if (length(rows) > ncol(cols)){
+      all.inds <- list()
+      ctr <- 1
+      for (j in 1:replicates){
+        for (i in 1:ncol(cols)){
+          cols[,i] -> all.inds[[ctr]]
+          ctr <- ctr+1
+        }
+      }
+    }
+    
+    
+    # confirm if rows have the same length as columns
     list(doses$doses/dilution, 
-         #c(as.numeric(doses$dose.rows),
-         #as.numeric(doses$dose.rows)),
-         as.numeric(doses$dose.rows),
+         rows,
          all.inds) -> res
     names(res) <- c("doses", "rows", "cols")
   }
