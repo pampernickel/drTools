@@ -245,8 +245,6 @@ handleExplicit <- function(mode, t, doses, dilution, replicates){
       }
     }
     
-    
-    # confirm if rows have the same length as columns
     list(doses$doses/dilution, 
          rows,
          all.inds) -> res
