@@ -6,7 +6,7 @@ start <- function(){
   #file.path("./results", Sys.time()) ->> rd
   
   # for the report mode, use a fixed name file name
-  dir.create("./temp")
+  #dir.create("./temp")
 }
 
 toFile <- function(ic50){
@@ -21,6 +21,16 @@ source_https <- function(url, ...) {
   sapply(c(url, ...), function(u) {
     eval(parse(text = getURL(u, followlocation = TRUE, cainfo = system.file("CurlSSL", "cacert.pem", package = "RCurl"))), envir = .GlobalEnv)
   })
+}
+
+loadComboDependencies <- function(){
+  print("Loading scripts from xtmgah/DDCV...")
+  source_https("https://raw.githubusercontent.com/xtmgah/DDCV/master/DDCV_function/IC50.R")
+  source_https("https://raw.githubusercontent.com/xtmgah/DDCV/master/DDCV_function/isobologram.R")
+  source_https("https://raw.githubusercontent.com/xtmgah/DDCV/master/DDCV_function/shapeA.R")
+  source_https("https://raw.githubusercontent.com/xtmgah/DDCV/master/DDCV_function/cIndex.R")
+  source_https("https://raw.githubusercontent.com/xtmgah/DDCV/master/DDCV_function/cIndex2.R")
+  print("Done.")
 }
 
 loadAllDependencies <- function(){
