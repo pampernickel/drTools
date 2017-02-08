@@ -228,7 +228,12 @@ handleExplicit <- function(mode, t, doses, dilution, replicates){
     t(all.inds) -> cols
     
     # check if the number of rows and columns match
-    as.numeric(rep(doses$dose.rows, replicates))  -> rows
+    # as.numeric(rep(doses$dose.rows, replicates))  -> rows
+    rows <- c()
+    for (i in 1:length(doses$dose.rows)){
+      c(rows, rep(doses$dose.rows[i], replicates)) -> rows
+    }
+    
     all.inds <- list()
     for (i in 1:ncol(cols)){
       cols[,i] -> all.inds[[i]]
