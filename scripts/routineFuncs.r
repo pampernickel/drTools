@@ -27,7 +27,7 @@ loadComboDependencies <- function(){
   print("Loading scripts from xtmgah/DDCV...")
   source_https("https://raw.githubusercontent.com/xtmgah/DDCV/master/DDCV_function/IC50.R")
   source_https("https://raw.githubusercontent.com/xtmgah/DDCV/master/DDCV_function/isobologram.R")
-  source_https("https://raw.githubusercontent.com/xtmgah/DDCV/master/DDCV_function/shapeA.R")
+  source_https("https://raw.githubusercontent.com/pampernickel/DDCV/master/DDCV_function/shapeA.R")
   source_https("https://raw.githubusercontent.com/xtmgah/DDCV/master/DDCV_function/cIndex.R")
   source_https("https://raw.githubusercontent.com/xtmgah/DDCV/master/DDCV_function/cIndex2.R")
   print("Done.")
