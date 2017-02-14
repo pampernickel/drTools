@@ -499,6 +499,7 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL){
   # default: create dotplot of res.df results against assembled
   # poi: patient in assembled that the user wants to highlight
   # first, cap values, then convert into a matrix for uniform handling
+  
   nrow(res.df) -> e
   as.matrix(res.df) -> conv
   if (is.null(dim(res.df)) & ncol(conv) < nrow(conv)){
@@ -531,6 +532,14 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL){
             drug.list.all$final.name[grep(x, drug.list.all$all.names)],
             x)) -> colnames(res.df)
   intersect(colnames(res.df), colnames(assembled)) -> common.drugs
+  
+  if (length(grep("_",colnames(res.df))) > 0 && length(common.drugs) == 0){
+    # split & sub
+    gsub("\\.", "-", as.character(sapply(strsplit(colnames(res.df), "_"), 
+                                         function(x) x[1]))) -> colnames(res.df)
+    intersect(colnames(res.df), colnames(assembled)) -> common.drugs
+  }
+  
   res.df[,which(colnames(res.df) %in% common.drugs)] -> res.df.sub
   assembled[,which(colnames(assembled) %in% common.drugs)] -> assembled.sub
   
@@ -754,6 +763,7 @@ visualizeControls <- function(controls){
     colnames(t) <- colnames(cdf)
     rbind(cdf, t) -> cdf
   }
+  
   as.data.frame(cdf) -> cdf
   as.numeric(as.character(cdf$value)) -> cdf$value
   as.factor(cdf$plate) -> cdf$plate
