@@ -65,13 +65,20 @@ fitData <- function(experiments, min=NA, max.x=NA){
         ci.all <- c(ci.all, all.res$ci.all)
         df -> curr.exp[[j]]
       }
-      
       curr.exp -> experiments[[i]]
-      
       res.loc <- list(logIC50, logEC10, logEC50, logEC90, inf.pt, AUC, max, Error.50, ci.all)
+      
+      sapply(experiments[[i]], function(x)
+        colnames(x)[2:ncol(x)]) -> nn
+      as.character(unlist(nn)) -> nn
+      for (k in 1:length(res.loc)){
+        res.loc[[k]] -> x
+        names(x) <- nn
+        x -> res.loc[[k]]
+      }
       names(res.loc) <- c("logIC50", "logEC10", "logEC50", "logEC90", "inf.pt", "AUC", "max", "error.50", "ci.all")
       res[[i]] <- res.loc
-      names(res)[[i]] <- names(experiments)[i]
+      names(res)[i] <- names(experiments)[i]
     }
   }
   
@@ -442,46 +449,43 @@ removeOutliers <- function(y.dat, x.dat, limit=0.35){
   return(y.dat)
 }
 
-averageRes <- function(exp.res, replic=2){
+averageRes <- function(exp.res){
   exp.res.ave <- list()
-  for (i in 1:length(exp.res)){
-    exp.res[[i]] -> curr.exp
-    logIC50 <- logEC90 <- logEC50 <- logEC10 <- rep(NA, (length(curr.exp[[1]])/replic))
-    inf.pt <- AUC <- fit <- max <- rep(NA, (length(curr.exp[[1]])/replic))
-    ctr <- 1
-    for (j in seq(from=1, to=length(curr.exp[[1]]), by=replic)){
-      logIC50[ctr] <- mean(c(na.omit(curr.exp$logIC50[j]),na.omit(curr.exp$logIC50[j+1])))
-      logEC90[ctr] <- mean(c(na.omit(curr.exp$logEC90[j]),na.omit(curr.exp$logEC90[j+1])))
-      logEC50[ctr] <- mean(c(na.omit(curr.exp$logEC50[j]),na.omit(curr.exp$logEC50[j+1])))
-      logEC10[ctr] <- mean(c(na.omit(curr.exp$logEC10[j]),na.omit(curr.exp$logEC10[j+1])))
-      AUC[ctr] <- mean(c(na.omit(curr.exp$AUC[j]),na.omit(curr.exp$AUC[j+1])))
-      inf.pt[ctr] <- mean(c(na.omit(curr.exp$inf.pt[j]),na.omit(curr.exp$inf.pt[j+1])))
-      
-      # add param: max, which is the maximum effect; also provide an average of the fits
-      if (is.numeric(curr.exp$max[j]) && is.numeric(curr.exp$max[j+1])){
-        fit[ctr] <- mean(c(na.omit(curr.exp$max[j]),na.omit(curr.exp$max[j+1])))
-      } else if (is.character(curr.exp$max[j]) && is.character(curr.exp$max[j+1]) && 
-                   !is.na(curr.exp$max[j]) && !is.na(curr.exp$max[j+1]) &&
-                   nchar(curr.exp$max[j])/nchar(curr.exp$max[j+1]) >= 0.8 &&
-                   nchar(curr.exp$max[j])/nchar(curr.exp$max[j+1]) <= 1.2){
-        as.numeric(strsplit(strsplit(curr.exp$max[j], ";")[[1]], ",")[[1]]) -> x.fit.ext
-        as.numeric(strsplit(strsplit(curr.exp$max[j], ";")[[1]], ",")[[2]]) -> y.fit.ext.1
-        as.numeric(strsplit(strsplit(curr.exp$max[j+1], ";")[[1]], ",")[[2]]) -> y.fit.ext.2
-        apply(rbind(y.fit.ext.1, y.fit.ext.2), 2, function(x) return(mean(x))) -> y.fit.ext.mean
-        fit[ctr] <- paste(c(paste(x.fit.ext, collapse=","), 
-                            paste(y.fit.ext.mean, collapse=",")), collapse = ";")
-        max[ctr] <- mean(y.fit.ext.1[length(y.fit.ext.1)],
-                         y.fit.ext.2[length(y.fit.ext.2)], na.omit=T)
-      }
-      ctr <- ctr + 1
-    }
+  for (k in 1:length(exp.res)){
+    exp.res[[k]] -> curr.exp
     
+    # using the first feature, ic50, determine how many replicates there are;
+    # if the number of replicates are not even, i.e. some have two, while some have four
+    unique(sapply(strsplit(names(curr.exp$logIC50), "_"), function(x) x[1])) -> nn
+    sapply(strsplit(names(curr.exp$logIC50), "_"), function(x) x[1]) -> nno
+    logIC50 <- logEC90 <- logEC50 <- logEC10 <- inf.pt <- AUC <- fit <- max <- c()
     res.loc <- list(logIC50, logEC10, logEC50, logEC90, inf.pt, AUC, fit, max)
-    names(res.loc) <- c("logIC50", "logEC10", "logEC50", "logEC90", "inf.pt", "AUC", "fit", "Emax")
-    exp.res.ave[[i]] <- res.loc
-    names(exp.res.ave)[i] <- names(exp.res)[i]
-  }
+    names(res.loc) <- c("logIC50", "logEC10", "logEC50", "logEC90", "inf.pt", "AUC", "fit", "max")
+    vars <- names(curr.exp)
+    for (i in 1:length(nn)){
+      which(nno %in% nn[i]) -> ind
+        for (j in 1:length(curr.exp)){
+          if (vars[j] %in% c("logIC50", "logEC10", "logEC50",
+                          "logEC90", "inf.pt", "AUC")){
+            c(res.loc[[which(names(res.loc) %in% vars[j])]],
+              mean(as.numeric(curr.exp[[j]][ind]), na.rm=T)) -> 
+              res.loc[[which(names(res.loc) %in% vars[j])]]
+          } else if (vars[j] %in% "max") {
+            as.numeric(strsplit(strsplit(curr.exp$max[ind[1]], ";")[[1]], ",")[[1]]) -> x.fit
+            y.fits <- matrix(NA, nrow=length(x.fit), ncol=length(ind))
+            for (l in 1:length(ind)){
+              as.numeric(strsplit(strsplit(curr.exp$max[ind[l]], ";")[[1]], ",")[[2]]) -> y.fits[,l]
+            }
+            apply(y.fits, 1, function(x) mean(x, na.rm=T)) -> mean.y
+            c(res.loc[[which(names(res.loc) %in% vars[j])]], paste(c(paste(x.fit, collapse=","), 
+                    paste(mean.y, collapse=",")), collapse = ";")) -> res.loc[[which(names(res.loc) %in% vars[j])]]
+          }
+        }
+    }
   
+    exp.res.ave[[k]] <- res.loc
+  }
+  names(exp.res.ave) <- names(exp.res)
   return(exp.res.ave)
 }
 
