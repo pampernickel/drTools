@@ -471,14 +471,24 @@ averageRes <- function(exp.res){
               mean(as.numeric(curr.exp[[j]][ind]), na.rm=T)) -> 
               res.loc[[which(names(res.loc) %in% vars[j])]]
           } else if (vars[j] %in% "max") {
-            as.numeric(strsplit(strsplit(curr.exp$max[ind[1]], ";")[[1]], ",")[[1]]) -> x.fit
-            y.fits <- matrix(NA, nrow=length(x.fit), ncol=length(ind))
+            # nrow is constant, given that fits return 100 points
+            y.fits <- matrix(NA, nrow=100, ncol=length(ind))
             for (l in 1:length(ind)){
-              as.numeric(strsplit(strsplit(curr.exp$max[ind[l]], ";")[[1]], ",")[[2]]) -> y.fits[,l]
+              if (!is.na(curr.exp$max[ind[l]])){
+                as.numeric(strsplit(strsplit(curr.exp$max[ind[l]], ";")[[1]], ",")[[1]]) -> y.fits[,l]
+                as.numeric(strsplit(strsplit(curr.exp$max[ind[l]], ";")[[1]], ",")[[2]]) -> y.fits[,l]
+              }
             }
-            apply(y.fits, 1, function(x) mean(x, na.rm=T)) -> mean.y
-            c(res.loc[[which(names(res.loc) %in% vars[j])]], paste(c(paste(x.fit, collapse=","), 
-                    paste(mean.y, collapse=",")), collapse = ";")) -> res.loc[[which(names(res.loc) %in% vars[j])]]
+            
+            # then check if all columns are populated by NAs
+            apply(y.fits, 2, function(x) length(which(is.na(x)))) -> check
+            if (length(which(check %in% 100)) < ncol(y.fits)){
+              apply(y.fits, 1, function(x) mean(x, na.rm=T)) -> mean.y
+              c(res.loc[[which(names(res.loc) %in% vars[j])]], paste(c(paste(x.fit, collapse=","), 
+                  paste(mean.y, collapse=",")), collapse = ";")) -> res.loc[[which(names(res.loc) %in% vars[j])]]
+            } else {
+              c(res.loc[[which(names(res.loc) %in% vars[j])]], NA) -> res.loc[[which(names(res.loc) %in% vars[j])]]
+            }
           }
         }
     }
