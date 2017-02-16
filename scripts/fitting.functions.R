@@ -473,9 +473,10 @@ averageRes <- function(exp.res){
           } else if (vars[j] %in% "max") {
             # nrow is constant, given that fits return 100 points
             y.fits <- matrix(NA, nrow=100, ncol=length(ind))
+            x.fits <- matrix(NA, nrow=100, ncol=length(ind))
             for (l in 1:length(ind)){
               if (!is.na(curr.exp$max[ind[l]])){
-                as.numeric(strsplit(strsplit(curr.exp$max[ind[l]], ";")[[1]], ",")[[1]]) -> y.fits[,l]
+                as.numeric(strsplit(strsplit(curr.exp$max[ind[l]], ";")[[1]], ",")[[1]]) -> x.fits[,l]
                 as.numeric(strsplit(strsplit(curr.exp$max[ind[l]], ";")[[1]], ",")[[2]]) -> y.fits[,l]
               }
             }
@@ -484,7 +485,8 @@ averageRes <- function(exp.res){
             apply(y.fits, 2, function(x) length(which(is.na(x)))) -> check
             if (length(which(check %in% 100)) < ncol(y.fits)){
               apply(y.fits, 1, function(x) mean(x, na.rm=T)) -> mean.y
-              c(res.loc[[which(names(res.loc) %in% vars[j])]], paste(c(paste(x.fit, collapse=","), 
+              apply(x.fits, 1, function(x) mean(x, na.rm=T)) -> mean.x
+              c(res.loc[[which(names(res.loc) %in% vars[j])]], paste(c(paste(mean.x, collapse=","), 
                   paste(mean.y, collapse=",")), collapse = ";")) -> res.loc[[which(names(res.loc) %in% vars[j])]]
             } else {
               c(res.loc[[which(names(res.loc) %in% vars[j])]], NA) -> res.loc[[which(names(res.loc) %in% vars[j])]]
