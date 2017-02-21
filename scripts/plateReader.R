@@ -92,8 +92,21 @@ readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
 
 getFiles <- function(dir){
   #print(paste("Checking directory ", dir, "...", sep=""))
+  
+  #list.files(path=dir, full.names=T) -> f
   c(list.files(path = dir, pattern = ".txt", recursive=TRUE, full.names = TRUE), 
     list.files(path = dir, pattern = ".csv", recursive=TRUE, full.names = TRUE)) -> files
+  # draft option to keep subdirectory structure
+  # lapply(f, function(x){
+  #   l <- x
+  #   if (length(grep(".csv", x)) > 0){
+  #     return(l)
+  #   } else {
+  #     c(list.files(path = x, pattern = ".txt", recursive=TRUE, full.names = TRUE), 
+  #       list.files(path = x, pattern = ".csv", recursive=TRUE, full.names = TRUE)) -> l
+  #   }
+  #   return(l)
+  # }) -> files
   return(files)
 }
 
