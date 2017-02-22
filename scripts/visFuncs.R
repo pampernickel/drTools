@@ -801,25 +801,48 @@ plotFit <- function(exp.res, drug.list){
       stop("Number of drugs not the same as number of fitted responses.")
     } else {
       df <- matrix(0, nrow=0, ncol=4)
-      colnames(df) <- c("drug", "x", "y", "set")
-      for (j in 1:length(drug.list)){
-        if (length(x[[j]]) == 100){
-          cbind(drug.list[j], x[[j]], y[[j]], rep(j, length(x[[j]]))) -> t
-          colnames(t) <- colnames(df)
-          rbind(df, t) -> df
+      colnames(df) <- c("drug", "x", "y", "replicate")
+      
+      # create drug list internally
+      names(x) -> drug.list
+      sapply(strsplit(drug.list, "_"), 
+             function(x) x[1]) -> drugs.u
+      
+      for (j in 1:length(drugs.u)){
+        grep(drugs.u[j],names(x)) -> ind
+        for (k in 1:length(ind)){
+          if (length(x[[ind[k]]]) == 100){
+            cbind(drugs.u[j], x[[ind[k]]], y[[ind[k]]], 
+                  rep(k, length(x[[ind[k]]]))) -> t
+            colnames(t) <- colnames(df)
+            rbind(df, t) -> df
+          }
         }
       }
       cbind(df, rep(names(exp.res$res), nrow(df)), rep("fit", nrow(df))) -> df
       colnames(df) <- c(colnames(df)[1:4], "patient", "type")
       
+      #as.data.frame(df) -> test
+      #as.numeric(as.character(test$x)) -> test$x
+      #as.numeric(as.character(test$y)) -> test$y
+      #ggplot(test, aes(x=x, y=y, color=factor(replicate), 
+      #                 group=factor(replicate)))+geom_line()+
+      #  facet_wrap(~drug)+theme_bw()+
+      #  ggtitle(names(exp.res$res)[i])+
+      #  scale_x_log10()-> p
+      
       # add raw responses
       dfr <- matrix(0, nrow=0, ncol=4)
-      colnames(dfr) <- c("x", "drug", "y", "set")
+      colnames(dfr) <- c("x", "drug", "y", "replicate")
       for (j in 1:length(exp.res$experiments[[i]])){
-        melt(exp.res$experiments[[i]][[j]], id.vars="Concentrations") -> t
-        cbind(t, rep(j, nrow(t))) -> t
-        colnames(t) <- colnames(dfr)
-        rbind(dfr, t) -> dfr
+        melt(exp.res$experiments[[i]][[j]], 
+             id.vars="Concentrations") -> t
+        cbind(t, sapply(strsplit(as.character(t$variable), "_"),
+                        function(x) x[2])) -> t1
+        sapply(strsplit(as.character(t$variable), "_"),
+               function(x) x[1]) -> t1$variable
+        colnames(t1) <- colnames(dfr)
+        rbind(dfr, t1) -> dfr
       }
       cbind(dfr, rep(names(exp.res$res), nrow(dfr)), rep("raw", nrow(dfr))) -> dfr
       colnames(dfr) <- c(colnames(dfr)[1:4], "patient", "type")
@@ -830,17 +853,9 @@ plotFit <- function(exp.res, drug.list){
       as.data.frame(df.fin) -> df.fin
       rownames(df.fin) <- c(1:nrow(df.fin))
       
-      replicate <- rep("1",nrow(df.fin))
-      replicate[grep( "_2", df.fin$drug)] <- 2
-      cbind(df.fin, replicate) -> df.fin
-      
-      gsub("_2", "", gsub("_1", "", df.fin$drug)) -> df.fin$drug
       as.numeric(as.character(df.fin$x)) -> df.fin$x
       as.numeric(as.character(df.fin$y)) -> df.fin$y
       log10(df.fin$x) -> df.fin$x
-      
-      
-      #unlist(strsplit(curr.name, "/"))[length(unlist(strsplit(curr.name, "/")))] -> curr.name
       
       # per drug, check how many sets there are and amend
       # replicate based on this
@@ -850,53 +865,13 @@ plotFit <- function(exp.res, drug.list){
       # create multiple layers: df.fin$type = fit: lines; df.fin$type = raw: points
       df.fin[which(df.fin$type %in% "fit"),] -> dff
       df.fin[which(df.fin$type %in% "raw"),] -> dfr
-      
-      updateReplicates(df.fin$drug, dff) -> dfff
-      updateReplicates(df.fin$drug, dfr) -> dfrf
-      ggplot(dfff, aes(x=x, y=y, color=factor(replicate), 
+      ggplot(dff, aes(x=x, y=y, color=factor(replicate), 
           group=factor(replicate)))+geom_line()+
-          geom_point(data=dfrf, aes(x=x, y=y, color=factor(replicate), 
+          geom_point(data=dfr, aes(x=x, y=y, color=factor(replicate), 
                                    group=factor(replicate)))+
           facet_wrap(~drug)+theme_bw()+
           ggtitle(names(exp.res$res)[i])-> p
       print(p)
     }
   }
-}
-
-updateReplicates <- function(drug, df){
-  # need to check how many unique plates in the raw???
-  unique(drug) -> dru
-  as.character(df$drug) -> df$drug
-  
-  # for Idarubicin, rename all versions, as this is a typical control
-  df$drug[grep("Idarubicin", df$drug)] <- "Idarubicin"
-  dru[grep("Idarubicin", dru)] <- "Idarubicin"
-  
-  as.numeric(as.character(df$replicate)) -> df$replicate
-  for (j in 1:length(dru)){
-    as.numeric(grep(dru[j], df$drug)) -> m
-    if (length(unique(df$set[m])) >= length(unique(df$replicate[m])) & 
-        df$type == "fit") {
-      for (k in 1:length(unique(df$set[m]))){
-        df$replicate[m[which(df$set[m] %in% unique(df$set[m])[k])]] <- k
-      }
-    } else if (length(unique(df$set[m])) > 1 && df$type == "raw"){
-      # just make sure (esp in the case of raw data) that there
-      # each set is associated with just one replicate; otherwise,
-      # there's a need to change replicate names
-      new.max <- 0 # start changing the second one
-      for (k in 2:length(unique(df$set[m]))){
-        length(unique(df$replicate[m[which(df$set[m] %in% unique(df$set[m])[k])]])) -> int
-        unique(df$replicate[m[which(df$set[m] %in% unique(df$set[m])[k])]])+int-> new.max
-        unique(df$replicate[m[which(df$set[m] %in% unique(df$set[m])[k])]]) -> old.max
-        m[which(df$set[m] %in% unique(df$set[m])[k])] -> fin.ind
-        for (l in 1:length(old.max)){
-          df$replicate[fin.ind[which(df$replicate[fin.ind] %in% old.max[l])]] <- new.max[l]
-        }
-      }
-    }
-  }
-  
-  return(df)
 }
