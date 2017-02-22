@@ -494,7 +494,14 @@ averageRes <- function(exp.res){
           }
         }
     }
-  
+    
+    # make all elements of res.loc a named a vector
+    for (i in 1:length(res.loc)){
+      if (!is.null(res.loc[[i]])){
+        names(res.loc[[i]]) <- nn
+      }
+    }
+    
     exp.res.ave[[k]] <- res.loc
   }
   names(exp.res.ave) <- names(exp.res)
