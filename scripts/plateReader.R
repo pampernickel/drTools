@@ -45,13 +45,14 @@ readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
         # case of all drugs, where there is a serial dilution
         if (length(grep("control", tolower(meta[[x]][[j]]))) == 0){
             getDoses(plate, dups[x]) -> doses
-            as.numeric(plate[doses$dose.rows[1],]) -> t # used for finding the columns/rows of dups
-            if (replicates == 1 && dups == "ei"){ #explicit, irregular
+            if (dups[x] == "ei"){ #explicit, irregular
               all.res[[j]] <- doses
             } else if (replicates==2 && dups[x] == "i") {
+              as.numeric(plate[doses$dose.rows[1],]) -> t # used for finding the columns/rows of dups
               all.res[[j]] <- handleImplicit(dup.mode[x], t, doses, dilution)
             } else if (dups[x] == "e"){
               # replicates are explicitly indicated
+              as.numeric(plate[doses$dose.rows[1],]) -> t # used for finding the columns/rows of dups
               all.res[[j]] <- handleExplicit(dup.mode[x], t, doses, dilution, replicates)
             }
         } else {
@@ -181,6 +182,7 @@ getDoses <- function(plate, dups){
     
     plate[dose.rows,] -> dr
     if (length(dose.rows) > 1 && length(dose.cols) > 1){
+      #print("Here")
       as.vector(dr) -> dr
       as.numeric(dr[which(dr %ni% "")]) -> dr
       
@@ -189,23 +191,69 @@ getDoses <- function(plate, dups){
       table(round((dr[1:(length(dr)-1)]/dr[2:length(dr)]), 3)) -> int.counts
       dr[which(round((dr[1:(length(dr)-1)]/dr[2:length(dr)]), 3) %in%
               names(int.counts)[which(int.counts %in% max(int.counts))])] -> doses
+      
+      if (length(dose.rows) < length(dose.cols)/2){
+        # indicates that the duplicates are spread across rows; treat like 
+        # explicit cases; check dose cols associated with each dose.row
+        lapply(dose.rows, function(x){
+          which(plate[x,] %ni% "")
+        }) -> cols
+        list(doses, dose.rows, cols) -> res
+        names(res) <- c("doses", "rows", "cols")
+      } else if (length(dose.rows) == length(dose.cols) ||
+                 length(dose.rows) != length(dose.cols)) {
+        # replicates distributed over rows and columns
+        # dose.rows: columns
+        # dose.cols: rows
+        # find these again as contigs
+        find.cols <- find.rows <- list()
+        for (i in 1:length(doses)){
+          # find those in a row
+          which(sapply(apply(plate, 1, function(x) 
+            grep(doses[i], x)), function(y) length(y)) != 0) -> find.rows[[i]]
+          
+          which(sapply(apply(plate, 2, function(x) 
+            grep(doses[i], x)), function(y) length(y)) != 0) -> find.cols[[i]]
+        }
+        
+        col <- names(table(unlist(find.cols)))[which(table(unlist(find.cols)) %in% 
+                                                       max(table(unlist(find.cols))))]
+        row <- names(table(unlist(find.rows)))[which(table(unlist(find.rows)) %in% 
+                                                       max(table(unlist(find.rows))))]
+        
+        # then for both row and col, find cols and rows, respectively
+        which(plate[as.numeric(row),] %in% doses) -> row.cols
+        which(plate[,as.numeric(col)] %in% doses) -> col.rows
+        
+        row.cols[c(which(diff(row.cols) %in% 1),
+                   (length(which(diff(row.cols) %in% 1))+1))] -> row.cols
+        col.rows[c(which(diff(col.rows) %in% 1),
+                   (length(which(diff(col.rows) %in% 1))+1))] -> col.rows
+        list(doses, 
+             list(col.rows, as.numeric(row)), 
+             list(as.numeric(col), row.cols)) -> res
+        names(res) <- c("doses", "rows", "cols")
+      } else {
+        stop("Tough luck -- this part is not yet handled. Contact me at maria.pamela.david@gmail.com.")
+      }
+      
     } else {
       as.vector(dr) -> dr
       as.numeric(dr[which(dr %ni% "")]) -> doses
+  
+      # for each dose, get row and column coords
+      as.numeric(sapply(doses, function(x)
+        unlist(apply(plate, 1, function(y) which(y %in% x))))) -> cols
+      
+      as.numeric(sapply(doses, function(x)
+        unlist(apply(plate, 2, function(y) which(y %in% x))))) -> rows
+      
+      
+      # check if there are replicates or not
+      rbind(rows, cols) -> coords
+      list(doses, coords) -> res
+      names(res) <- c("doses", "coords")
     }
-    
-    # for each dose, get row and column coords
-    as.numeric(sapply(doses, function(x)
-      unlist(apply(plate, 1, function(y) which(y %in% x))))) -> cols
-    
-    as.numeric(sapply(doses, function(x)
-      unlist(apply(plate, 2, function(y) which(y %in% x))))) -> rows
-    
-    
-    # check if there are replicates or not
-    rbind(rows, cols) -> coords
-    list(doses, coords) -> res
-    names(res) <- c("doses", "coords")
   }
   return(res)
 }
@@ -354,9 +402,12 @@ readExperiment <- function(files, layout, mode="", pos.control="",
       # get control, and return as a single value (i.e. mean of all
       # control values + sd)
       curr.layout[-grep("control", tolower(names(curr.layout)))] -> curr.layout
+      
+      # change if duplicates are implicit (e.g. in "ei" cases)
       names(curr.layout) -> drug.names
       lapply(1:length(curr.layout), function(x){
         # check which format of the layout is available
+        print(x)
         resp <- NULL
         curr.drug <- names(curr.layout)[x]
         f.warn <- c()
@@ -364,16 +415,29 @@ readExperiment <- function(files, layout, mode="", pos.control="",
         if (length(grep("rows", names(curr.layout[[x]])))>0){
           curr.layout[[x]]$rows -> rows
           curr.layout[[x]]$cols -> cols
-          cbind(curr.layout[[x]]$doses, sapply(1:length(rows), function(y){
-            curr.plate[rows[y], cols[[y]]]
-          })) -> resp
+          
+          ## handle different row/col combinations
+          resp <- matrix(NA, nrow=length(curr.layout[[x]]$doses),
+                         ncol=(length(rows)+1))
+          resp[,1] <- curr.layout[[x]]$doses
+          for (i in 1:length(rows)){
+            if (is.list(rows) && is.list(cols)){
+                curr.plate[rows[[i]],cols[[i]]] -> resp[,(i+1)]
+            } else if (is.numeric(rows) && is.numeric(cols)){
+                curr.plate[rows[i], cols[i]] -> resp[,(i+1)]
+            } else if (is.numeric(rows) && !is.numeric(cols)){
+              curr.plate[rows[i], cols[[i]]] -> resp[,(i+1)]
+            } else if (!is.numeric(rows) && is.numeric(cols)){
+              curr.plate[rows[i], cols[[i]]] -> resp[,(i+1)]
+            }
+          }
           
           # check if resp elements are lists; if this is the case, convert
           # to numeric
           apply(resp, 2, function(x) as.numeric(as.character(x))) -> resp
-          
           length(curr.layout[[x]]$rows) -> reps
-          colnames(resp) <- c("Concentrations", sapply(1:reps, function(y) paste(names(curr.layout)[x],y,sep="_")))
+          colnames(resp) <- c("Concentrations", sapply(1:reps, function(y) 
+            paste(names(curr.layout)[x],y,sep="_")))
           
           if (length(1:reps) > 1){
             combn(reps, 2) -> all.combs
