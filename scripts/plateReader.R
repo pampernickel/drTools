@@ -182,7 +182,6 @@ getDoses <- function(plate, dups){
     
     plate[dose.rows,] -> dr
     if (length(dose.rows) > 1 && length(dose.cols) > 1){
-      #print("Here")
       as.vector(dr) -> dr
       as.numeric(dr[which(dr %ni% "")]) -> dr
       
@@ -198,6 +197,7 @@ getDoses <- function(plate, dups){
         lapply(dose.rows, function(x){
           which(plate[x,] %ni% "")
         }) -> cols
+        as.numeric(plate[dose.rows[1], cols[[1]]]) -> doses #make sure that doses are in a correct orientation
         list(doses, dose.rows, cols) -> res
         names(res) <- c("doses", "rows", "cols")
       } else if (length(dose.rows) == length(dose.cols) ||
@@ -229,6 +229,7 @@ getDoses <- function(plate, dups){
                    (length(which(diff(row.cols) %in% 1))+1))] -> row.cols
         col.rows[c(which(diff(col.rows) %in% 1),
                    (length(which(diff(col.rows) %in% 1))+1))] -> col.rows
+        as.numeric(plate[col.rows,as.numeric(col)]) -> doses #make sure that doses are in a correct orientation
         list(doses, 
              list(col.rows, as.numeric(row)), 
              list(as.numeric(col), row.cols)) -> res
