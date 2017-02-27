@@ -863,6 +863,7 @@ plotFit <- function(exp.res, drug.list){
       #print(paste("Plotting response for patient", unique(vis.df$Patient)[i], "...", sep=" "))
       
       # create multiple layers: df.fin$type = fit: lines; df.fin$type = raw: points
+      toupper(df.fin$drug) -> df.fin$drug
       df.fin[which(df.fin$type %in% "fit"),] -> dff
       df.fin[which(df.fin$type %in% "raw"),] -> dfr
       ggplot(dff, aes(x=x, y=y, color=factor(replicate), 
