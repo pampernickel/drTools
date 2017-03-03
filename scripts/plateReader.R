@@ -37,7 +37,6 @@ readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
     lapply(c(1:length(contents)), function(x)
       strsplit(contents[[x]][infoLines[[x]]], "\t")) -> meta
     meta1 <- list()
-    
     for (x in 1:length(contents)){
       all.res <- list()
       for (j in 1:length(infoLines[[x]])){
@@ -276,11 +275,15 @@ handleImplicit <- function(mode, t, doses, dilution){
 
 handleExplicit <- function(mode, t, doses, dilution, replicates){
   res <- list()
-  if (length(grep("r", mode)) > 0){
+  if (length(grep("r", mode)) > 0 | length(grep("n", mode)) > 0){
     sapply(doses$doses, function(y)
       which(t %in% y)) -> all.inds
+    all.cols <- all.rows <- list()
+    for (i in 1:length(replicates)){
+      all.cols[[i]] <- all.inds
+    }
     list(doses$doses/dilution, as.numeric(doses$dose.rows), 
-         list(all.inds, all.inds)) -> res
+         all.cols) -> res
     names(res) <- c("doses", "rows", "cols")
   } else if (length(grep("c", mode)) > 0){
     # cols processing, also handle case
@@ -406,78 +409,7 @@ readExperiment <- function(files, layout, mode="", pos.control="",
       
       # change if duplicates are implicit (e.g. in "ei" cases)
       names(curr.layout) -> drug.names
-      lapply(1:length(curr.layout), function(x){
-        # check which format of the layout is available
-        print(x)
-        resp <- NULL
-        curr.drug <- names(curr.layout)[x]
-        f.warn <- c()
-        d.warn <- c()
-        if (length(grep("rows", names(curr.layout[[x]])))>0){
-          curr.layout[[x]]$rows -> rows
-          curr.layout[[x]]$cols -> cols
-          
-          ## handle different row/col combinations
-          resp <- matrix(NA, nrow=length(curr.layout[[x]]$doses),
-                         ncol=(length(rows)+1))
-          resp[,1] <- curr.layout[[x]]$doses
-          for (i in 1:length(rows)){
-            if (is.list(rows) && is.list(cols)){
-                curr.plate[rows[[i]],cols[[i]]] -> resp[,(i+1)]
-            } else if (is.numeric(rows) && is.numeric(cols)){
-                curr.plate[rows[i], cols[i]] -> resp[,(i+1)]
-            } else if (is.numeric(rows) && !is.numeric(cols)){
-              curr.plate[rows[i], cols[[i]]] -> resp[,(i+1)]
-            } else if (!is.numeric(rows) && is.numeric(cols)){
-              curr.plate[rows[i], cols[[i]]] -> resp[,(i+1)]
-            }
-          }
-          
-          # check if resp elements are lists; if this is the case, convert
-          # to numeric
-          apply(resp, 2, function(x) as.numeric(as.character(x))) -> resp
-          length(curr.layout[[x]]$rows) -> reps
-          colnames(resp) <- c("Concentrations", sapply(1:reps, function(y) 
-            paste(names(curr.layout)[x],y,sep="_")))
-          
-          if (length(1:reps) > 1){
-            combn(reps, 2) -> all.combs
-            apply(all.combs, 2, function(y)
-              cor.test(resp[,y[1]+1], resp[,y[2]+1], method="s")$estimate) -> cors
-            if (cors < 0.65){
-              warning(paste("Replicates of ", names(curr.layout)[x], " in ",
-                          f[1], " have cor < 0.65.", sep=""))
-              print(f[1])
-              c(f.warn, f[1]) -> f.warn
-              c(d.warn, names(curr.layout)[x]) -> d.warn
-            }
-          }
-          
-          as.data.frame(resp) -> resp
-          apply(resp, 2, function(x) as.numeric(as.character(x))) -> resp
-          if (mode == "indirect"){
-            (resp[,2:ncol(resp)]-pos)/(c.mean-pos) -> resp[,2:ncol(resp)]
-          } else {
-            resp[,2:ncol(resp)]/c.mean -> resp[,2:ncol(resp)]
-          }
-        } else if (length(grep("coords", names(curr.layout[[x]])))>0){
-          as.numeric(curr.layout[[x]]$coords[1,]) -> rows
-          as.numeric(curr.layout[[x]]$coords[2,]) -> cols
-          cbind(curr.layout[[x]]$doses, sapply(1:length(rows), function(y){
-            curr.plate[rows[y], cols[[y]]]
-          })) -> resp
-          apply(resp, 2, function(x) as.numeric(as.character(x))) -> resp
-          if (mode == "indirect"){
-            (resp[,2:ncol(resp)]-pos)/(c.mean-pos) -> resp[,2:ncol(resp)]
-          } else {
-            resp[,2:ncol(resp)]/c.mean -> resp[,2:ncol(resp)]
-          }
-          colnames(resp) <- c("Concentrations", rep(curr.drug, length(2:ncol(resp))))
-        }
-        list(resp, f.warn, d.warn) -> fin.resp
-        names(fin.resp) <- c("resp", "f.warn", "d.warn")
-        return(fin.resp)
-      }) -> fin.resp[[i]]
+      processPlate(curr.layout, curr.plate) -> fin.resp[[i]]
     }
 
     lapply(fin.resp, function(x) 
@@ -600,6 +532,80 @@ resolveWarnings <- function(all.resp, warning.mat, historical.data, drug.list.al
   return(all.resp)
 }
 
+processPlate <- function(curr.layout, curr.plate){
+  lapply(1:length(curr.layout), function(x){
+    # check which format of the layout is available
+    resp <- NULL
+    curr.drug <- names(curr.layout)[x]
+    f.warn <- c()
+    d.warn <- c()
+    if (length(grep("rows", names(curr.layout[[x]])))>0){
+      curr.layout[[x]]$rows -> rows
+      curr.layout[[x]]$cols -> cols
+      
+      ## handle different row/col combinations
+      resp <- matrix(NA, nrow=length(curr.layout[[x]]$doses),
+                     ncol=(length(rows)+1))
+      resp[,1] <- curr.layout[[x]]$doses
+      for (i in 1:length(rows)){
+        if (is.list(rows) && is.list(cols)){
+          curr.plate[rows[[i]],cols[[i]]] -> resp[,(i+1)]
+        } else if (is.numeric(rows) && is.numeric(cols)){
+          curr.plate[rows[i], cols[i]] -> resp[,(i+1)]
+        } else if (is.numeric(rows) && !is.numeric(cols)){
+          as.numeric(curr.plate[rows[i], cols[[i]]]) -> resp[,(i+1)]
+        } else if (!is.numeric(rows) && is.numeric(cols)){
+          as.numeric(curr.plate[rows[i], cols[[i]]]) -> resp[,(i+1)]
+        }
+      }
+      
+      # check if resp elements are lists; if this is the case, convert
+      # to numeric
+      apply(resp, 2, function(x) as.numeric(as.character(x))) -> resp
+      length(curr.layout[[x]]$rows) -> reps
+      colnames(resp) <- c("Concentrations", sapply(1:reps, function(y) 
+        paste(names(curr.layout)[x],y,sep="_")))
+      
+      if (length(1:reps) > 1){
+        combn(reps, 2) -> all.combs
+        apply(all.combs, 2, function(y)
+          cor.test(resp[,y[1]+1], resp[,y[2]+1], method="s")$estimate) -> cors
+        if (cors < 0.65){
+          warning(paste("Replicates of ", names(curr.layout)[x], " in ",
+                        f[1], " have cor < 0.65.", sep=""))
+          print(f[1])
+          c(f.warn, f[1]) -> f.warn
+          c(d.warn, names(curr.layout)[x]) -> d.warn
+        }
+      }
+      
+      as.data.frame(resp) -> resp
+      apply(resp, 2, function(x) as.numeric(as.character(x))) -> resp
+      if (mode == "indirect"){
+        (resp[,2:ncol(resp)]-pos)/(c.mean-pos) -> resp[,2:ncol(resp)]
+      } else {
+        resp[,2:ncol(resp)]/c.mean -> resp[,2:ncol(resp)]
+      }
+    } else if (length(grep("coords", names(curr.layout[[x]])))>0){
+      as.numeric(curr.layout[[x]]$coords[1,]) -> rows
+      as.numeric(curr.layout[[x]]$coords[2,]) -> cols
+      cbind(curr.layout[[x]]$doses, sapply(1:length(rows), function(y){
+        curr.plate[rows[y], cols[[y]]]
+      })) -> resp
+      apply(resp, 2, function(x) as.numeric(as.character(x))) -> resp
+      if (mode == "indirect"){
+        (resp[,2:ncol(resp)]-pos)/(c.mean-pos) -> resp[,2:ncol(resp)]
+      } else {
+        resp[,2:ncol(resp)]/c.mean -> resp[,2:ncol(resp)]
+      }
+      colnames(resp) <- c("Concentrations", rep(curr.drug, length(2:ncol(resp))))
+    }
+    list(resp, f.warn, d.warn) -> fin.resp
+    names(fin.resp) <- c("resp", "f.warn", "d.warn")
+    return(fin.resp)
+  }) -> res
+  return(res)
+}
 processControl <- function(control, curr.plate){
   lapply(1:length(control[[1]]$rows), function(x){
     curr.plate[as.numeric(unlist(control[[1]]$rows[x])), 
