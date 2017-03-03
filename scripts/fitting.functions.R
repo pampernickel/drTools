@@ -30,16 +30,9 @@ fitData <- function(experiments, min=NA, max.x=NA){
       # --- res is a list of 5 lists, corresponding to different fitted
       # --- parameters
       print(paste("Processing ", names(experiments)[i], "...", sep=""))
-      logIC50 <- c()
-      logEC10 <- c()
-      logEC50 <- c()
-      logEC90 <- c()
-      inf.pt <- c()
-      max <- c()
-      AUC <- c()
-      Error.50 <- c()
-      ci.all <- c()
-      
+      orig.min <- min; orig.max <- max.x
+      logIC50 <- logEC10 <- logEC50 <- logEC90 <- inf.pt <- max <- AUC <- Error.50 <- ci.all <- c()
+      all.res.list <- list()
       for (j in 1:length(curr.exp)){
         print(paste("Plate", j, sep=" "))
         curr.exp[[j]] -> df
@@ -53,29 +46,28 @@ fitData <- function(experiments, min=NA, max.x=NA){
           max.x <- max(df[,1])
         }
         
-        fit(df, min, max.x) -> all.res
-        logIC50 <- c(logIC50, all.res$logIC50)
-        logEC10 <- c(logEC10, all.res$logEC10)
-        logEC50 <- c(logEC50, all.res$logEC50)
-        logEC90 <- c(logEC90, all.res$logEC90)
-        inf.pt <- c(inf.pt, all.res$inf.pt)
-        max <- c(max, all.res$max)
-        AUC <- c(AUC, all.res$AUC)
-        Error.50 <- c(Error.50, all.res$error.50)
-        ci.all <- c(ci.all, all.res$ci.all)
+        fit(df, min, max.x) -> all.res.list[[j]]
         df -> curr.exp[[j]]
+        min <- orig.min; max.x <- orig.max #reset
       }
       curr.exp -> experiments[[i]]
       res.loc <- list(logIC50, logEC10, logEC50, logEC90, inf.pt, AUC, max, Error.50, ci.all)
       
-      sapply(experiments[[i]], function(x)
-        colnames(x)[2:ncol(x)]) -> nn
+      for (k in 1:length(all.res.list)){
+        for (l in 1:length(res.loc)){
+          c(res.loc[[l]], all.res.list[[k]][[l]]) -> res.loc[[l]]
+        }  
+      }
+      
+      sapply(experiments[[i]], function(x) colnames(x)[2:ncol(x)]) -> nn
       as.character(unlist(nn)) -> nn
+      
       for (k in 1:length(res.loc)){
         res.loc[[k]] -> x
         names(x) <- nn
         x -> res.loc[[k]]
       }
+      
       names(res.loc) <- c("logIC50", "logEC10", "logEC50", "logEC90", "inf.pt", "AUC", "max", "error.50", "ci.all")
       res[[i]] <- res.loc
       names(res)[i] <- names(experiments)[i]
@@ -164,7 +156,7 @@ formatResList <- function(results, df, response.class, min.x, max.x){
     unlist(sapply(names(results), function(x) getMatchIndex(x,all.names))) -> ind
     for (i in 1:length(ind)){
       which(names(results) %in% all.names[ind[i]]) -> list.ind
-      results[[list.ind]] -> curr.result; 
+      results[[list.ind]] -> curr.result
       res.loc$logIC50[ind[i]] <- as.numeric(curr.result$logIC50)
       res.loc$logEC10[ind[i]] <- as.numeric(curr.result$logEC10); res.loc$logEC50[ind[i]] <- as.numeric(curr.result$logEC50)
       res.loc$logEC90[ind[i]] <- as.numeric(curr.result$logEC90); res.loc$inf.pt[ind[i]] <- as.numeric(curr.result$inf.pt)
