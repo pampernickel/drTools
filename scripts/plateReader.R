@@ -391,6 +391,7 @@ readExperiment <- function(files, layout, mode="", pos.control="",
       }
       
       layout[[i]] -> curr.layout
+      
       # check column batches; here, check if there are a bunch
       # of drugs that have the same columns
       ## treat controls separately
@@ -398,7 +399,7 @@ readExperiment <- function(files, layout, mode="", pos.control="",
       processControl(control, curr.plate)$mean -> c.mean # dmso mean for plate
       as.numeric(processControl(control, curr.plate)$all.controls) -> controls[[i]]
       
-      if (mode=="indirect"){
+      if (mode == "indirect"){
         curr.layout[which(names(curr.layout) %in% pos.control)] -> pos_control
         processPosControl(pos_control, curr.plate) -> pos
       }
@@ -604,6 +605,7 @@ processPlate <- function(curr.layout, curr.plate, mode){
   }) -> res
   return(res)
 }
+
 processControl <- function(control, curr.plate){
   lapply(1:length(control[[1]]$rows), function(x){
     curr.plate[as.numeric(unlist(control[[1]]$rows[x])), 
