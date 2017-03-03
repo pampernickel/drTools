@@ -665,6 +665,20 @@ groupResponses <- function(all.resp, unique.conc){
       }
     }
   
+    # case of two drugs on different plates
+    if (length(which(duplicated(colnames(loc.df)[-grep("Concentrations", colnames(loc.df))]))) > 0){
+      colnames(loc.df)[which(duplicated(colnames(loc.df)))] -> cols
+      for (j in 1:length(cols)){
+        if (length(grep(cols[j], "Concentrations"))==0){
+          which(colnames(loc.df) %in% cols[j]) -> inds
+          colnames(loc.df)[inds] -> dups
+          for (k in 1:length(dups)){
+            colnames(loc.df)[inds[k]] <- paste(dups[k], k, sep="_")
+          }
+        }
+      }
+    }
+    
     if (ncol(loc.df) > 0 && length(grep("Concentrations", colnames(loc.df), ignore.case=T))>1){
       grep("Concentrations", colnames(loc.df), ignore.case=T)[2:length(grep("Concentrations", colnames(loc.df), ignore.case=T))] -> rm.ind
       rm.ind[which(!is.na(rm.ind))] -> rm.ind
