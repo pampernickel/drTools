@@ -17,7 +17,6 @@ processMaxCurves <- function(t){
   return(res)
 }
 
-
 visualizePrognosticator <- function(exp.res.mat, class.1, class.2, prognosticator.df, label1, label2){
   unique(prognosticator.df[,1]) -> doi # drugs of interest
   as.numeric(as.character(prognosticator.df[,2])) -> prognosticator.df[,2]
@@ -789,11 +788,9 @@ plotFit <- function(exp.res, drug.list){
   #pdf(file=paste(rd, "/fitFiles.pdf", sep=""), width=15, height=15, onefile=T)
   for (i in 1:length(exp.res$res)){
     lapply(exp.res$res[[i]]$max,
-           function(x) unlist(strsplit(x, ";"))) -> resp
-    lapply(resp, function(x)
-      strsplit(x, ",")) -> resp
-    lapply(resp, function(x) as.numeric(unlist(x[1]))) -> x
-    lapply(resp, function(x) as.numeric(unlist(x[2]))) -> y
+           function(x) processMaxCurves(x)) -> resp
+    lapply(resp, function(x) x[,2]) -> x
+    lapply(resp, function(x) x[,1]) -> y
     
     # proceed with plots if drug list is as long as x and y
     if (length(drug.list) != length(x) |
@@ -837,8 +834,10 @@ plotFit <- function(exp.res, drug.list){
       for (j in 1:length(exp.res$experiments[[i]])){
         melt(exp.res$experiments[[i]][[j]], 
              id.vars="Concentrations") -> t
-        cbind(t, sapply(strsplit(as.character(t$variable), "_"),
-                        function(x) x[2])) -> t1
+        sapply(strsplit(as.character(t$variable), "_"),
+               function(x) x[2]) -> reps
+        reps[which(reps %in% NA)] <- 1 # cases with no replicates
+        cbind(t, reps) -> t1
         sapply(strsplit(as.character(t$variable), "_"),
                function(x) x[1]) -> t1$variable
         colnames(t1) <- colnames(dfr)
