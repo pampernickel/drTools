@@ -128,7 +128,6 @@ getResponseClass <- function(y.dat, x.dat, curr.exp=NA){
                    lm(formula=y.dat~log10(x.dat), na.action=na.omit)$coefficients[2] >= -0.2 &&
                    (lm(formula=y.dat~log10(x.dat), na.action=na.omit)$coefficients[1] > 0.55 ||
                       mean(y.dat, na.rm=T) > 0.8)){
-        # previous version @ -0.1 (works for JP's)
         fit.class <- 2 # yet another max
       } else {
         fit.class <- 1
@@ -334,7 +333,6 @@ addFit <- function(x.dat, y.dat, max.x){
       #     c(x.dat, max.x) -> x.dat        
       #   }
       }
-      
       exp.model <- drm(y.dat~x.dat, fct = LL.4(), na.action = na.omit, control=drmc(errorm = F))
     } else if (slope < -0.1){
       # estimate y at max.x
