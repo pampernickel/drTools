@@ -417,6 +417,7 @@ readExperiment <- function(files, layout, mode="", pos.control="",
       lapply(x, function(y) y$resp)) -> all.resp
     lapply(fin.resp, function(x)
       lapply(x, function(y) y[2:3])) -> warnings.list
+    
     # consolidate into plates that have the same concentrations
     lapply(all.resp, function(x) lapply(x, function(y) 
       return(y[,1]))) -> all.conc
