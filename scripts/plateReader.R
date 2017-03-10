@@ -410,7 +410,7 @@ readExperiment <- function(files, layout, mode="", pos.control="",
       
       # change if duplicates are implicit (e.g. in "ei" cases)
       names(curr.layout) -> drug.names
-      processPlate(curr.layout, curr.plate, mode, c.mean) -> fin.resp[[i]]
+      processPlate(curr.layout, curr.plate, mode, c.mean, f) -> fin.resp[[i]]
     }
 
     lapply(fin.resp, function(x) 
@@ -532,7 +532,7 @@ resolveWarnings <- function(all.resp, warning.mat, historical.data, drug.list.al
   return(all.resp)
 }
 
-processPlate <- function(curr.layout, curr.plate, mode, c.mean){
+processPlate <- function(curr.layout, curr.plate, mode, c.mean, f){
   lapply(1:length(curr.layout), function(x){
     # check which format of the layout is available
     resp <- NULL
