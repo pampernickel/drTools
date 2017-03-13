@@ -96,17 +96,19 @@ getFiles <- function(dir){
   #list.files(path=dir, full.names=T) -> f
   c(list.files(path = dir, pattern = ".txt", recursive=TRUE, full.names = TRUE), 
     list.files(path = dir, pattern = ".csv", recursive=TRUE, full.names = TRUE)) -> files
-  # draft option to keep subdirectory structure
-  # lapply(f, function(x){
-  #   l <- x
-  #   if (length(grep(".csv", x)) > 0){
-  #     return(l)
-  #   } else {
-  #     c(list.files(path = x, pattern = ".txt", recursive=TRUE, full.names = TRUE), 
-  #       list.files(path = x, pattern = ".csv", recursive=TRUE, full.names = TRUE)) -> l
-  #   }
-  #   return(l)
-  # }) -> files
+  
+  # check if there are subdirectories, in which case keep files in a list
+  strsplit(gsub(dir, "", files), "/") -> sp
+  unique(sapply(sp, function(x) 
+    x[2])) -> subdirs
+  if (length(subdirs) > 1){
+    lapply(subdirs, function(x) 
+      files[grep(x, files)]) -> files
+    paste(strsplit(dir, "/")[[1]][length(strsplit(dir, "/")[[1]])], subdirs, sep="_") -> names(files)
+  } else {
+    strsplit(dir, "/")[[1]][length(strsplit(dir, "/")[[1]])] -> names(files) 
+  }
+  
   return(files)
 }
 
