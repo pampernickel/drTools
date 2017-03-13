@@ -514,6 +514,7 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL){
   # cases where nothing was fitted
   apply(res.df, 2, function(x) length(which(is.na(x)))) -> nas
   as.numeric(which(nas == nrow(res.df))) -> ind
+  
   if (length(ind) > 0){
     # remove drugs where no fit was performed, then check
     # again if the matrix has been converted to a named numeric
@@ -542,26 +543,53 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL){
   res.df[,which(colnames(res.df) %in% common.drugs)] -> res.df.sub
   assembled[,which(colnames(assembled) %in% common.drugs)] -> assembled.sub
   
-  sapply(colnames(assembled.sub), function(x) 
-    which(toupper(names(res.df.sub)) %in% x)) -> c.ind
-  max(sapply(c.ind, function(x) length(x))) -> ml
+  c.ind <- NA
+  if (is.matrix(res.df.sub)){
+    sapply(colnames(assembled.sub), function(x) 
+      which(toupper(colnames(res.df.sub)) %in% x)) -> c.ind
+  } else {
+    sapply(colnames(assembled.sub), function(x) 
+      which(toupper(names(res.df.sub)) %in% x)) -> c.ind
+  }
+  
+  if (is.matrix(res.df.sub)){
+    nrow(res.df.sub) -> ml
+  } else {
+    max(sapply(c.ind, function(x) length(x))) -> ml
+  }
+  
   respMat <- matrix(NA, nrow=ml, ncol=length(c.ind))
   for (i in 1:length(c.ind)){
-    respMat[1:length(c.ind[[i]]),i] <- res.df.sub[c.ind[[i]]]
+    if (is.matrix(res.df.sub)){
+      for (j in 1:ml){
+        respMat[j,i] <- res.df.sub[j,c.ind[[i]]]
+      }
+    } else {
+      respMat[1:length(c.ind[[i]]),i] <- res.df.sub[c.ind[[i]]]
+    }
   }
   colnames(respMat) <- colnames(assembled.sub)
+  
+  if (is.matrix(res.df.sub)){
+    rownames(respMat) <- rownames(res.df.sub)
+  }
   
   rbind(assembled.sub, respMat) -> assembled.sub
   which(rownames(assembled.sub) %ni% 
           rownames(assembled)) -> r.ind
-  rownames(assembled.sub)[which(rownames(assembled.sub) %ni% rownames(assembled))] <- 
-    paste("POI",r.ind, sep=",")
+  
+  if (!is.matrix(res.df.sub)){
+    rownames(assembled.sub)[which(rownames(assembled.sub) %ni% rownames(assembled))] <- 
+      paste("POI",r.ind, sep=",")
+  }
+  
   cbind(rownames(assembled.sub), assembled.sub) -> assembled.sub
   colnames(assembled.sub)[1] <- "id"
   melt(assembled.sub, id.vars="id") -> assembled.l
-    
+  c("", rownames(assembled.sub)[which(rownames(assembled.sub) %ni% rownames(assembled))]) -> etc
   class <- rep("OTHER", nrow(assembled.l))
-  class[grep("POI", assembled.l$id)] <- "CHECK"
+  class[c(grep("POI", assembled.l$id),
+          which(assembled.l$id %in% etc))] <- "CHECK"
   cbind(assembled.l, class) -> assembled.l
   assembled.l[which(class %in% "OTHER"),] -> df.o
   assembled.l[which(class %in% "CHECK"),] -> df.i
@@ -596,7 +624,12 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL){
   if (no.samples == 1){
    "red" -> fin.cols 
   } else {
-    brewer.pal(no.samples, "Spectral") -> fin.cols
+    if (no.samples < 3){
+      brewer.pal(3, "Spectral") -> fin.cols
+      fin.cols[c(1:no.samples)] -> fin.cols
+    } else {
+      brewer.pal(no.samples, "Spectral") -> fin.cols
+    }
   }
   
   man.col <- scale_colour_manual(values = fin.cols)
