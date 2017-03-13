@@ -785,12 +785,11 @@ visualizeControls <- function(controls){
 }
 
 plotFit <- function(exp.res, drug.list){
-  #pdf(file=paste(rd, "/fitFiles.pdf", sep=""), width=15, height=15, onefile=T)
   for (i in 1:length(exp.res$res)){
     lapply(exp.res$res[[i]]$max,
            function(x) processMaxCurves(x)) -> resp
-    lapply(resp, function(x) x[,2]) -> x
-    lapply(resp, function(x) x[,1]) -> y
+    lapply(resp, function(x) ifelse(is.matrix(x), x[,2], NA)) -> x
+    lapply(resp, function(x) ifelse(is.matrix(x), x[,2], NA)) -> y
     
     # proceed with plots if drug list is as long as x and y
     if (length(drug.list) != length(x) |
@@ -855,11 +854,6 @@ plotFit <- function(exp.res, drug.list){
       as.numeric(as.character(df.fin$x)) -> df.fin$x
       as.numeric(as.character(df.fin$y)) -> df.fin$y
       log10(df.fin$x) -> df.fin$x
-      
-      # per drug, check how many sets there are and amend
-      # replicate based on this
-      #pdf(file=paste(rd, "/raw_check.pdf", sep=""), width=15, height=15, onefile=T)
-      #print(paste("Plotting response for patient", unique(vis.df$Patient)[i], "...", sep=" "))
       
       # create multiple layers: df.fin$type = fit: lines; df.fin$type = raw: points
       toupper(as.character(df.fin$drug)) -> df.fin$drug
