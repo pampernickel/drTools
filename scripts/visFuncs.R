@@ -788,8 +788,21 @@ plotFit <- function(exp.res, drug.list){
   for (i in 1:length(exp.res$res)){
     lapply(exp.res$res[[i]]$max,
            function(x) processMaxCurves(x)) -> resp
-    lapply(resp, function(x) ifelse(is.matrix(x), x[,2], NA)) -> x
-    lapply(resp, function(x) ifelse(is.matrix(x), x[,2], NA)) -> y
+    lapply(resp, function(x){
+      res <- NA
+      if (is.matrix(x)){
+        res <- x[,2]
+      }
+      return(res)
+    }) -> x
+    
+    lapply(resp, function(x){
+      res <- NA
+      if (is.matrix(x)){
+        res <- x[,1]
+      }
+      return(res)
+    }) -> y
     
     # proceed with plots if drug list is as long as x and y
     if (length(drug.list) != length(x) |
