@@ -776,12 +776,16 @@ visPlates <- function(dir, mode="t"){
   }
   names(p.list) <- ff
   
-  # range(unique(unlist(p.list)))
-  # fit p.list with some model (gaussian), get its area, and
-  # identify points that cover x % of the curve; all other values that
-  # exceed this value have to be capped.
+  # check if the delimiter used in the saved file is correct
   for (i in 1:length(p.list)){
-    aheatmap(p.list[[i]], Rowv=NA, Colv=NA, main=names(p.list)[i])
+    if (ncol(p.list[[i]]) == 1){
+      warning("Possibly incorrect delimiter in results file. Trying other delimiters...")
+      apply(p.list[[i]], 1, function(x) 
+        as.numeric(as.character(unlist(strsplit(x, "\t"))))) -> df
+      aheatmap(df, Rowv=NA, Colv=NA, main=names(p.list)[i])
+    } else {
+      aheatmap(p.list[[i]], Rowv=NA, Colv=NA, main=names(p.list)[i]) 
+    }
   }
 }
 
