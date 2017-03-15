@@ -96,11 +96,16 @@ getResponseClass <- function(y.dat, x.dat, curr.exp=NA){
     order(x.dat) -> ind
     x.dat[ind] -> x.dat
     y.dat[ind] -> y.dat
+    rbind(y.dat[1:(length(y.dat)-1)], y.dat[2:length(y.dat)]) -> pts
+    slopes <- apply(pts, 2, 
+                    function(x) lm(c(x[1],x[2])~c(1,2))$coefficients[2])
+    y.dat.u <- y.dat # unsmoothed y.dat
     smooth(y.dat) -> y.dat
     rbind(y.dat[1:(length(y.dat)-1)], y.dat[2:length(y.dat)]) -> pts
     slopes <- apply(pts, 2, 
                     function(x) lm(c(x[1],x[2])~c(1,2))$coefficients[2])
     slopes[c(floor((length(slopes)/2)):length(slopes))] -> last
+    
     if (lm(formula=y.dat~log10(x.dat), na.action = na.omit)$coefficients[2] < -0.07 &&
           mean(y.dat, na.rm=T) < 0.76 || mean(slopes) <= -0.1 ||
           length(which(slopes < 0)) == length(slopes) ||
@@ -120,9 +125,12 @@ getResponseClass <- function(y.dat, x.dat, curr.exp=NA){
                mean(y.dat, na.rm=T) >= 0.7 && round(lm(formula=y.dat~log10(x.dat), na.action = na.omit)$coefficients[2], 2) > -0.2)){
         fit.class <- 2 # another max
       } else if (lm(formula=y.dat~log10(x.dat), na.action=na.omit)$coefficients[2] <= 0.1 &&
-                   lm(formula=y.dat~log10(x.dat), na.action=na.omit)$coefficients[2] >= -0.1 &&
-                   lm(formula=y.dat~log10(x.dat), na.action=na.omit)$coefficients[1] <= 0.55) {
-        # --- check if even the linear fit with log10(x) is flat
+                  lm(formula=y.dat~log10(x.dat), na.action=na.omit)$coefficients[2] >= -0.1 &&
+                  lm(formula=y.dat~log10(x.dat), na.action=na.omit)$coefficients[1] <= 0.55 &&
+                  lm(formula=y.dat.u~log10(x.dat), na.action=na.omit)$coefficients[2] <= 0.1 &&
+                  lm(formula=y.dat.u~log10(x.dat), na.action=na.omit)$coefficients[2] >= -0.1 &&
+                  lm(formula=y.dat.u~log10(x.dat), na.action=na.omit)$coefficients[1] <= 0.55) {
+        # --- check if even the linear fit with log10(x) is flat; condition has to be met for both y.dat.u, y.dat
         fit.class <- 3 # min
       } else if (lm(formula=y.dat~log10(x.dat), na.action=na.omit)$coefficients[2] <= 0.1 &&
                    lm(formula=y.dat~log10(x.dat), na.action=na.omit)$coefficients[2] >= -0.2 &&
