@@ -89,6 +89,65 @@ readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   return(meta1)
 }
 
+readCombos <- function(dir, res.dir, mode=c("normalized", "")){
+  print(paste("Processing directory ", dir, "...", sep=""))
+  unlist(strsplit(dir, "/")) -> dir.name
+  
+  c(list.files(path = dir, pattern = ".txt", recursive=TRUE, full.names = TRUE), 
+    list.files(path = dir, pattern = ".csv", recursive=TRUE, full.names = TRUE)) -> files  
+  c(list.files(path = res.dir, pattern = ".txt", recursive=TRUE, full.names = TRUE), 
+    list.files(path = res.dir, pattern = ".csv", recursive=TRUE, full.names = TRUE)) -> res.files
+  
+  if (length(files) == 0){
+    stop(paste("No files found in ", dir, ".", sep=""))
+  }
+  
+  if (length(res.files) == 0){
+    stop(paste("No files found in ", res.dir, ".", sep=""))
+  }
+  
+  if (length(grep(".txt", files)) > 0){ # 
+    lapply(files, function(x) suppressWarnings(readLines(x))) -> contents
+    lapply(contents, function(x) c(grep("mM", x),grep("mL", x))) -> infoLines
+    lapply(infoLines, function(x) sort(x)) -> infoLines
+    lapply(c(1:length(contents)), function(x)
+      strsplit(contents[[x]][infoLines[[x]]], "\t")) -> meta
+    
+    for (i in 1:length(contents)){
+      all.res <- list()
+      for (j in 1:length(infoLines[[i]])){
+        getPlate(infoLines, contents, i, j) -> plate
+        
+        # check if the uniform values are in rows or columns
+        max(apply(plate, 1, function(x) length(unique(x[which(x %ni% "")])))) -> row.max
+        max(apply(plate, 2, function(x) length(unique(x[which(x %ni% "")])))) -> col.max
+        
+        d1.dose <- d2.dose <- NA
+        if (row.max < col.max){
+          # titration in columns
+          plate[,which(apply(plate, 2, function(x) 
+            length(unique(x[which(x %ni% "")]))) %in% col.max)[1]] -> d1.dose
+          as.numeric(as.character(d1.dose[which(d1.dose %ni% "")])) -> d1.dose
+        } else {
+          # titration in rows, currently handle only case where one could have two
+          # patients on a plate, but the drugs and concentration combinations used
+          # are the same
+          plate[which(apply(plate, 1, function(x) 
+            length(unique(x[which(x %ni% "")]))) %in% row.max)[1],] -> d2.dose
+          unique(as.numeric(as.character(d2.dose[which(d2.dose %ni% "")]))) -> d2.dose
+        }
+      }
+      
+      all.res <- list(d1.dose, d2.dose)
+      names(all.res) <- sapply(meta[[i]], function(x) x[1])
+    }
+    
+  }
+  
+  
+  
+  
+}
 
 getFiles <- function(dir){
   #print(paste("Checking directory ", dir, "...", sep=""))
@@ -694,6 +753,31 @@ groupResponses <- function(all.resp, unique.conc){
   }
   
   return(all.df)
+}
+
+# ::: Functions to remove cases with quality control failures ::: #
+# start from layout?
+removeFromLayout <- function(layout, efile){
+  # layout is generated from the readFormat() function
+  # efile is a user-provided file with the following information
+  # Drug name, plate, row, column (give just one number each)
+  for (i in 1:nrow(efile)){
+    as.numeric(as.character(efile[i,2])) -> plate.no
+    which(names(layout[[plate.no]]) %in% efile[i,1]) -> d.ind
+    efile[i,3] -> row
+    efile[i,4] -> col
+    sapply(layout[[plate.no]][[d.ind]]$rows, function(x) 
+      ifelse(row %in% x, T, F)) -> r.check
+    sapply(layout[[plate.no]][[d.ind]]$cols, function(x) 
+      ifelse(col %in% x, T, F)) -> c.check
+    
+    intersect(which(r.check %in% T), which(c.check %in% T)) -> rep.ind
+    if (length(rep.ind) > 0){
+      layout[[plate.no]][[d.ind]]$cols[-rep.ind] -> layout[[plate.no]][[d.ind]]$cols
+      layout[[plate.no]][[d.ind]]$rows[-rep.ind] -> layout[[plate.no]][[d.ind]]$rows
+    }
+  }
+  return(layout)
 }
 
 #@...
