@@ -89,7 +89,9 @@ readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   return(meta1)
 }
 
-readCombos <- function(dir, res.dir, mode=c("normalized", "")){
+readCombos <- function(dir, res.dir, no.pat = 1, mode=c("normalized", "")){
+  # no.pat: number of patients per plate
+  
   print(paste("Processing directory ", dir, "...", sep=""))
   unlist(strsplit(dir, "/")) -> dir.name
   
@@ -114,39 +116,28 @@ readCombos <- function(dir, res.dir, mode=c("normalized", "")){
       strsplit(contents[[x]][infoLines[[x]]], "\t")) -> meta
     
     for (i in 1:length(contents)){
-      all.res <- list()
-      for (j in 1:length(infoLines[[i]])){
-        getPlate(infoLines, contents, i, j) -> plate
+      getPlate(infoLines, contents, i, 1) -> p1
+      getPlate(infoLines, contents, i, 2) -> p2
+      which(p1 != "", arr.ind = T) -> p1.ind
+      which(p2 != "", arr.ind = T) -> p2.ind
         
-        # check if the uniform values are in rows or columns
-        max(apply(plate, 1, function(x) length(unique(x[which(x %ni% "")])))) -> row.max
-        max(apply(plate, 2, function(x) length(unique(x[which(x %ni% "")])))) -> col.max
-        
-        d1.dose <- d2.dose <- NA
-        if (row.max < col.max){
-          # titration in columns
-          plate[,which(apply(plate, 2, function(x) 
-            length(unique(x[which(x %ni% "")]))) %in% col.max)[1]] -> d1.dose
-          as.numeric(as.character(d1.dose[which(d1.dose %ni% "")])) -> d1.dose
-        } else {
-          # titration in rows, currently handle only case where one could have two
-          # patients on a plate, but the drugs and concentration combinations used
-          # are the same
-          plate[which(apply(plate, 1, function(x) 
-            length(unique(x[which(x %ni% "")]))) %in% row.max)[1],] -> d2.dose
-          unique(as.numeric(as.character(d2.dose[which(d2.dose %ni% "")]))) -> d2.dose
-        }
-      }
+      # check area of overlap bet p1.ind and p2.ind
+      apply(p1.ind, 1, function(x) 
+        ifelse(x[1] %in% p2.ind[,1] && x[2] %in% p2.ind[,2], T, F)) -> o.1
+      apply(p2.ind, 1, function(x) 
+        ifelse(x[1] %in% p1.ind[,1] && x[2] %in% p1.ind[,2], T, F)) -> o.2
+
+      p1.ind[which(o.1 %in% T),] -> o.coords
+      p1.ind[which(o.1 %in% F),] -> d1.only
+      p2.ind[which(o.2 %in% F),] -> d2.only
       
-      all.res <- list(d1.dose, d2.dose)
-      names(all.res) <- sapply(meta[[i]], function(x) x[1])
+      # get doses
+      as.numeric(as.character(apply(d1.only, 1, function(x) p1[x[1],x[2]]))) -> d1.doses
+      as.numeric(as.character(apply(d2.only, 1, function(x) p2[x[1],x[2]]))) -> d2.doses
     }
     
+    
   }
-  
-  
-  
-  
 }
 
 getFiles <- function(dir){
