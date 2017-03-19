@@ -178,7 +178,11 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
             which(content != 0, arr.ind = T) -> plate.coords
             plate.coords[which(apply(plate.coords, 1, function(x)
               x[1] %in% all.coords[,1] && x[2] %in% all.coords[,2]) %in% F),] -> dmso.coords
-            mean(apply(dmso.coords, 1, function(x)
+            dmso.coords[order(dmso.coords[,1]),] -> dmso.coords
+            
+            # split dmso.coords as well
+            dmso.coords[which(dmso.coords[,1] %in% unique(dmso.coords[,1])[j]),] -> dmso.coords.sub
+            mean(apply(dmso.coords.sub, 1, function(x)
               content[x[1],x[2]])) -> dmso.mean
             mat[nrow(mat),2] <- dmso.mean
             mat -> combo.mat[[j]]
