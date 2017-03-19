@@ -115,8 +115,6 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
     lapply(c(1:length(contents)), function(x)
       strsplit(contents[[x]][infoLines[[x]]], "\t")) -> meta
     
-    p1.ind <- p2.ind <- o.coords <- d1.only <- d2.only <-
-      d1.doses <- d2.doses <- NA
     if (length(infoLines[[1]]) == 2){
       # case of one pair of combos per plate (can be with one or two
       # patients)
@@ -168,9 +166,10 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
             c(nrow(d1.only)/length(unique(d1.only[,2])),
               nrow(d1.only)) -> lims.1
             mat[2:(nrow(mat)-1),2] <- as.numeric(content[d1.only[c(start.1:lims.1[j]),1],
-                                         unique(d1.only[c(start.1:lims.1[j]),2])])
+                                                         unique(d1.only[c(start.1:lims.1[j]),2])])
             mat[nrow(mat), 3:ncol(mat)] <- as.numeric(content[unique(d2.only[c(start.1:lims.1[j]),1]),
                                          d2.only[c(start.1:lims.1[j]),2]])
+            start.1 <- lims.1[j]+1
             
             # then get all contents that are NOT part of o.coords, d1.only or d2.only,
             # which correspond with the DMSO-containing wells; the value here would be in the 0,0, and
