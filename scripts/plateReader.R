@@ -175,15 +175,20 @@ readCombos <- function(dir, res.dir, no.pat = 1, mode=c("normalized", "")){
             # then get all contents that are NOT part of o.coords, d1.only or d2.only,
             # which correspond with the DMSO-containing wells; the value here would be in the 0,0, and
             # used in the normalization of the plate
+            rbind(o.coords, d1.only, d2.only) -> all.coords
+            which(content != 0, arr.ind = T) -> plate.coords
+            plate.coords[which(apply(plate.coords, 1, function(x)
+              x[1] %in% all.coords[,1] && x[2] %in% all.coords[,2]) %in% F),] -> dmso.coords
+            mean(apply(dmso.coords, 1, function(x)
+              content[x[1],x[2]])) -> dmso.mean
+            mat[nrow(mat),2] <- dmso.mean
             mat -> combo.mat[[j]]
           }
-          
           return(combo.mat)
         }) -> combo.mats
       }
     }
   }
-  
   return(combo.mats)
 }
 
