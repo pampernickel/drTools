@@ -89,7 +89,7 @@ readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   return(meta1)
 }
 
-readCombos <- function(dir, res.dir, no.pat = 1, mode=c("normalized", "")){
+readCombos <- function(dir, res.dir, mode=c("", "normalized")){
   # no.pat: number of patients per plate
   
   print(paste("Processing directory ", dir, "...", sep=""))
