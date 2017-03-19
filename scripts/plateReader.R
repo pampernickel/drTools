@@ -108,7 +108,7 @@ readCombos <- function(dir, res.dir, no.pat = 1, mode=c("normalized", "")){
     stop(paste("No files found in ", res.dir, ".", sep=""))
   }
   
-  if (length(grep(".txt", files)) > 0){ # 
+  if (length(grep(".txt", files)) > 0 && mode=="normalized"){ # 
     lapply(files, function(x) suppressWarnings(readLines(x))) -> contents
     lapply(contents, function(x) c(grep("mM", x),grep("mL", x))) -> infoLines
     lapply(infoLines, function(x) sort(x)) -> infoLines
@@ -117,54 +117,55 @@ readCombos <- function(dir, res.dir, no.pat = 1, mode=c("normalized", "")){
     
     p1.ind <- p2.ind <- o.coords <- d1.only <- d2.only <-
       d1.doses <- d2.doses <- NA
-    for (i in 1:length(contents)){
-      if (length(infoLines[[1]]) == 2){
-        # case of one pair of combos per plate (can be with one or two
-        # patients)
-        getPlate(infoLines, contents, i, 1) -> p1
-        getPlate(infoLines, contents, i, 2) -> p2
-        which(p1 != "", arr.ind = T) -> p1.ind
-        which(p2 != "", arr.ind = T) -> p2.ind
+    if (length(infoLines[[1]]) == 2){
+      # case of one pair of combos per plate (can be with one or two
+      # patients)
+      getPlate(infoLines, contents, i, 1) -> p1
+      getPlate(infoLines, contents, i, 2) -> p2
+      which(p1 != "", arr.ind = T) -> p1.ind
+      which(p2 != "", arr.ind = T) -> p2.ind
           
-        # check area of overlap bet p1.ind and p2.ind
-        apply(p1.ind, 1, function(x) 
-          ifelse(x[1] %in% p2.ind[,1] && x[2] %in% p2.ind[,2], T, F)) -> o.1
-        apply(p2.ind, 1, function(x) 
-          ifelse(x[1] %in% p1.ind[,1] && x[2] %in% p1.ind[,2], T, F)) -> o.2
+      # check area of overlap bet p1.ind and p2.ind
+      apply(p1.ind, 1, function(x) 
+        ifelse(x[1] %in% p2.ind[,1] && x[2] %in% p2.ind[,2], T, F)) -> o.1
+      apply(p2.ind, 1, function(x) 
+        ifelse(x[1] %in% p1.ind[,1] && x[2] %in% p1.ind[,2], T, F)) -> o.2
   
-        p1.ind[which(o.1 %in% T),] -> o.coords
-        p1.ind[which(o.1 %in% F),] -> d1.only
-        p2.ind[which(o.2 %in% F),] -> d2.only
+      p1.ind[which(o.1 %in% T),] -> o.coords
+      p1.ind[which(o.1 %in% F),] -> d1.only
+      p2.ind[which(o.2 %in% F),] -> d2.only
         
-        if (length(unique(d1.only[,1])) > length(unique(d1.only[,2])) &&
-            length(unique(d2.only[,1])) < length(unique(d2.only[,2]))){
-          lapply(res.files, function(x){
-            read.csv(x, header=F) -> content
-            t(content) -> content
-            combo.mat <- list()
-            for (j in 1:length(unique(d1.only[,2]))){
-              as.numeric(as.character(p1[d1.only[which(d1.only[,2] %in% 
-                                 d1.only[j,2]),1],d1.only[j,2]])) -> d1.doses
-              as.numeric(as.character(p2[unique(d2.only[1:length(d1.doses),1]),
-                                         d2.only[1:length(d1.doses),2]])) -> d2.doses
+      combo.mats <- NA
+      if (length(unique(d1.only[,1])) > length(unique(d1.only[,2])) &&
+          length(unique(d2.only[,1])) < length(unique(d2.only[,2]))){
+        lapply(res.files, function(x){
+          read.csv(x, header=F) -> content
+          t(content) -> content
+          combo.mat <- list()
+          for (j in 1:length(unique(d1.only[,2]))){
+            as.numeric(as.character(p1[d1.only[which(d1.only[,2] %in% 
+                  d1.only[j,2]),1],d1.only[j,2]])) -> d1.doses
+            as.numeric(as.character(p2[unique(d2.only[1:length(d1.doses),1]),
+                 d2.only[1:length(d1.doses),2]])) -> d2.doses
               
-              mat <- matrix(NA, nrow=length(d1.doses)+1, ncol=length(d2.doses)+1)
-              mat[1,1] <- "XX"
-              mat[2:nrow(mat),1] <- d1.doses
-              mat[1,2:ncol(mat)] <- d2.doses
-              row.base <- col.base <- 2 
-              for (k in 1:nrow(o.coords)){
-                mat[which(mat[,1] %in% p1[o.coords[k,1],o.coords[k,2]]),
-                        which(mat[1,] %in% p2[o.coords[k,1],o.coords[k,2]])] <-
-                  content[o.coords[k,1],o.coords[k,2]]
-              }
-              mat -> combo.mat[[j]]
-              return(combo.mat)
-          }}) -> combo.mats
+            mat <- matrix(NA, nrow=length(d1.doses)+1, ncol=length(d2.doses)+1)
+            mat[1,1] <- "XX"
+            mat[2:nrow(mat),1] <- d1.doses
+            mat[1,2:ncol(mat)] <- d2.doses
+            row.base <- col.base <- 2 
+            for (k in 1:nrow(o.coords)){
+              mat[which(mat[,1] %in% p1[o.coords[k,1],o.coords[k,2]]),
+                      which(mat[1,] %in% p2[o.coords[k,1],o.coords[k,2]])] <-
+                content[o.coords[k,1],o.coords[k,2]]
+            }
+            mat -> combo.mat[[j]]
+            return(combo.mat)
+        }}) -> combo.mats
       }
     }
-    
   }
+  
+  return(combo.mats)
 }
 
 getFiles <- function(dir){
