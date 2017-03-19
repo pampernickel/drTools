@@ -142,25 +142,44 @@ readCombos <- function(dir, res.dir, no.pat = 1, mode=c("normalized", "")){
           read.csv(x, header=F) -> content
           t(content) -> content
           combo.mat <- list()
-          for (j in 1:length(unique(d1.only[,2]))){
+          
+          length(unique(d1.only[,2])) -> no.combos
+          c(nrow(o.coords)/no.combos, nrow(o.coords)) -> lims
+          start <- start.1 <- 1
+          for (j in 1:no.combos){
             as.numeric(as.character(p1[d1.only[which(d1.only[,2] %in% 
-                  d1.only[j,2]),1],d1.only[j,2]])) -> d1.doses
+                  unique(d1.only[,2])[j]),1],d1.only[j,2]])) -> d1.doses
             as.numeric(as.character(p2[unique(d2.only[1:length(d1.doses),1]),
                  d2.only[1:length(d1.doses),2]])) -> d2.doses
               
-            mat <- matrix(NA, nrow=length(d1.doses)+1, ncol=length(d2.doses)+1)
+            mat <- matrix(NA, nrow=length(d1.doses)+2, ncol=length(d2.doses)+2)
             mat[1,1] <- "XX"
-            mat[2:nrow(mat),1] <- d1.doses
-            mat[1,2:ncol(mat)] <- d2.doses
-            row.base <- col.base <- 2 
-            for (k in 1:nrow(o.coords)){
+            mat[2:nrow(mat),1] <- c(d1.doses,0)
+            mat[1,2:ncol(mat)] <- c(0,d2.doses)
+            
+            for (k in start:lims[j]){
               mat[which(mat[,1] %in% p1[o.coords[k,1],o.coords[k,2]]),
                       which(mat[1,] %in% p2[o.coords[k,1],o.coords[k,2]])] <-
                 content[o.coords[k,1],o.coords[k,2]]
             }
+            start <- lims[j]+1
+            
+            # fill content for single drug treatment
+            c(nrow(d1.only)/length(unique(d1.only[,2])),
+              nrow(d1.only)) -> lims.1
+            mat[2:(nrow(mat)-1),2] <- as.numeric(content[d1.only[c(start.1:lims.1[j]),1],
+                                         unique(d1.only[c(start.1:lims.1[j]),2])])
+            mat[nrow(mat), 3:ncol(mat)] <- as.numeric(content[unique(d2.only[c(start.1:lims.1[j]),1]),
+                                         d2.only[c(start.1:lims.1[j]),2]])
+            
+            # then get all contents that are NOT part of o.coords, d1.only or d2.only,
+            # which correspond with the DMSO-containing wells; the value here would be in the 0,0, and
+            # used in the normalization of the plate
             mat -> combo.mat[[j]]
-            return(combo.mat)
-        }}) -> combo.mats
+          }
+          
+          return(combo.mat)
+        }) -> combo.mats
       }
     }
   }
