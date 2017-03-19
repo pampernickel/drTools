@@ -148,15 +148,19 @@ readCombos <- function(dir, res.dir, no.pat = 1, mode=c("normalized", "")){
               as.numeric(as.character(p2[unique(d2.only[1:length(d1.doses),1]),
                                          d2.only[1:length(d1.doses),2]])) -> d2.doses
               
-                mat <- matrix(NA, nrow=length(d1.doses)+1, ncol=length(d2.doses)+1)
-                mat[1,1] <- "XX"
-                mat[2:nrow(mat),1] <- d1.doses
-                mat[1,2:ncol(mat)] <- d2.doses
-                row.base <- col.base <- 2 
-                for (k in 1:nrow(o.coords)){
+              mat <- matrix(NA, nrow=length(d1.doses)+1, ncol=length(d2.doses)+1)
+              mat[1,1] <- "XX"
+              mat[2:nrow(mat),1] <- d1.doses
+              mat[1,2:ncol(mat)] <- d2.doses
+              row.base <- col.base <- 2 
+              for (k in 1:nrow(o.coords)){
+                mat[which(mat[,1] %in% p1[o.coords[k,1],o.coords[k,2]]),
+                        which(mat[1,] %in% p2[o.coords[k,1],o.coords[k,2]])] <-
                   content[o.coords[k,1],o.coords[k,2]]
-                }
-          }})
+              }
+              mat -> combo.mat[[j]]
+              return(combo.mat)
+          }}) -> combo.mats
       }
     }
     
