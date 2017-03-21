@@ -185,7 +185,11 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
             mean(apply(dmso.coords.sub, 1, function(x)
               content[x[1],x[2]])) -> dmso.mean
             mat[nrow(mat),2] <- dmso.mean
-            mat -> combo.mat[[j]]
+            apply(mat[2:nrow(mat),2:ncol(mat)],2, function(y) as.numeric(as.character(y))) -> mat_n
+            mat_n/dmso.mean -> mat_n
+            rownames(mat_n) <- mat[2:nrow(mat),1]
+            colnames(mat_n) <- mat[1, 2:ncol(mat)]
+            mat_n -> combo.mat[[j]]
           }
           return(combo.mat)
         }) -> combo.mats
