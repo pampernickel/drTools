@@ -118,6 +118,8 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
     if (length(infoLines[[1]]) == 2){
       # case of one pair of combos per plate (can be with one or two
       # patients)
+      sapply(infoLines[[1]], function(x)
+        sapply(strsplit(contents[[1]][x], "\t"), function(y) y[1])) -> drug.names
       getPlate(infoLines, contents, i, 1) -> p1
       getPlate(infoLines, contents, i, 2) -> p2
       which(p1 != "", arr.ind = T) -> p1.ind
@@ -191,8 +193,10 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
             colnames(mat_n) <- mat[1, 2:ncol(mat)]
             mat_n -> combo.mat[[j]]
           }
+          names(combo.mat) <- rep(paste(drug.names, collapse="_"), length(combo.mat))
           return(combo.mat)
         }) -> combo.mats
+        names(combo.mats) <- res.files
       }
     }
   }
