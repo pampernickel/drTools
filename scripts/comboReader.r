@@ -204,17 +204,18 @@ calcCI <- function(combos){
   for (i in 1:length(cl)){
     cl[[i]] -> main  
     getComboProperties(cl, i) -> meta
-    
-    # trim single drug responses
-    main[-nrow(main),-1] -> main
     cbind(rownames(main), main) -> main
     colnames(main)[1] <- meta$drug2
     apply(main, 2, function(x) as.numeric(as.character(x))) -> main
     shapeA(as.data.frame(main), drug1 = meta$drug1, drug2 = meta$drug2) -> drMatrix
     as.numeric(IC50(drMatrix)[3]) -> f
-    cbind(fin.name, drug2, f) -> t
-    colnames(t) <- colnames(df)
-    rbind(df, t) -> df
+    #cbind(fin.name, drug2, f) -> t
+    #colnames(t) <- colnames(df)
+    #rbind(df, t) -> df
+    
+    dose1 <- drMatrix[,1]
+    dose2 <- drMatrix[,2]
+    
   }
 }
 
