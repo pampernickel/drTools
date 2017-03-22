@@ -4,6 +4,8 @@
 # Routines for reading and processing combination experiments
 #@...
 
+library(reshape2)
+
 readCombos <- function(dir, res.dir, mode=c("", "normalized")){
   # no.pat: number of patients per plate
   
@@ -118,10 +120,12 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
   return(combo.mats)
 }
 
-processCombos <- function(combos){
+processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
+  # prepare combos for visualization (double-plot)
   # flatten list, i.e. have all combo data frames in a single structure
   unlist(combos, recursive = FALSE) -> cl
   
+  all.combos <- list()
   for (i in 1:length(cl)){
     temp <- matrix(NA, nrow=0, ncol=4)
     colnames(temp) <- c("x", "y", "combo", "patient")
@@ -137,20 +141,34 @@ processCombos <- function(combos){
     drug1.doses <- as.numeric(rownames(cl[[i]]))
     drug2.doses <- as.numeric(colnames(cl[[i]]))
     
+    # as this is a double-axis plot, need to keep the x-axis uniform (i.e. just intervals, no
+    # actual doses, especially if the doses of drugs1 and 2 are not the same)
     drug1.doses <- drug1.doses[1:length(drug1.doses)-1]
     drug2.doses <- drug2.doses[2:length(drug2.doses)]
+    
+    d1.doses.proxy <- 1:length(drug1.doses)
+    d2.doses.proxy <- 1:length(drug2.doses)
+    if (length(which(diff(drug1.doses) < 0)) == length(drug1.doses)-1){
+      # drug1 doses are descending
+      d1.doses.proxy <- length(drug1.doses):1
+    }
+    
+    if (length(which(diff(drug2.doses) < 0)) == length(drug2.doses)-1){
+      # drug1 doses are descending
+      d2.doses.proxy <- length(drug2.doses):1
+    }
     
     main[nrow(main),2:ncol(main)] -> drug2.resp
     main[2:nrow(main)] -> drug1.resp
     
     main[c(2:nrow(main)),c(2:ncol(main))] -> resp.matrix
     
-    t <- cbind(drug1.doses, smooth(drug1.resp, kind = "3R"), rep(d1, length(drug1.resp)), 
+    t <- cbind(d1.doses.proxy, smooth(drug1.resp, kind = "3R"), rep(d1, length(drug1.resp)), 
                rep(pat, length(drug1.resp)))
     colnames(t) <- colnames(temp)
     rbind(temp, t) -> temp
     
-    t <- cbind(drug2.doses, smooth(drug2.resp, kind = "3R"), 
+    t <- cbind(d2.doses.proxy, smooth(drug2.resp, kind = "3R"), 
                rep(d2, length(drug2.resp)), 
                rep(pat, length(drug2.resp))) # replace test with var fin.name
     colnames(t) <- colnames(temp)
@@ -159,15 +177,44 @@ processCombos <- function(combos){
     # cross-section through drug 1
     for (k in 1:nrow(resp.matrix)){
       as.numeric(resp.matrix[k,]) -> combo.resp
-      t <- cbind(drug2.doses, smooth(combo.resp, kind = "3R"), 
-                 rep(paste(d1, d2, round(drug1.doses[k],2),sep="."), 
+      t <- cbind(d2.doses.proxy, smooth(combo.resp, kind = "3R"), 
+                 rep(paste(d1, d2, d1.doses.proxy[k],sep="."), 
                      length(combo.resp)), 
                  rep(pat, length(combo.resp)))
       colnames(t) <- c("x", "y", "combo", "patient")
       rbind(temp, t) -> temp
     }
+    
+    # TO DO: add additivity line; select from options
+    # Loewe additivity: effect of a drug if it were combined with itself ye = y1(x1+x2), x1 & 2 are doses
+    # HSA: min(y1, y2), i.e. highest monotherapy effect
+    # Bliss: ye=y1+y2-y1y2
+    additivity.line <- NA
+    if (additivity == "HSA"){
+      apply(rbind(smooth(drug1.resp),
+                  smooth(drug2.resp)), 2, function(x) min(x)) -> additivity.line
+    } else if (additivity == "Loewe"){
+      
+    } else if (additivity == "Bliss"){
+      
+    }
+    
+    temp -> all.combos[[i]]
   }
+  return(all.combos)
+}
+
+calcCI <- function(combos){
+  unlist(combos, recursive = FALSE) -> cl
+  unlist(strsplit(sapply(strsplit(names(cl)[i], "\\."), function(x) x[length(x)]), "_"))[1] -> d1
+  unlist(strsplit(sapply(strsplit(names(cl)[i], "\\."), function(x) x[length(x)]), "_"))[2] -> d2
   
-  # add additivity line
-  
+  for (i in 1:length(cl)){
+    cl[[i]] -> main  
+    shapeA(main, drug1 = d1, drug2 =d2) -> drMatrix
+    as.numeric(IC50(drMatrix)[3]) -> f
+    cbind(fin.name, drug2, f) -> t
+    colnames(t) <- colnames(df)
+    rbind(df, t) -> df
+  }
 }
