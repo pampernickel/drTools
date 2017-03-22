@@ -131,13 +131,8 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
     colnames(temp) <- c("x", "y", "combo", "patient")
     
     cl[[i]] -> main
-    unlist(strsplit(sapply(strsplit(names(cl)[i], "\\."), function(x) x[2]), "/")) -> pn
-    gsub("_cumul_1_v_1_2", "", pn) -> pn
-    paste(pn[length(pn)], i, sep="_") -> pat
-    
-    unlist(strsplit(sapply(strsplit(names(cl)[i], "\\."), function(x) x[length(x)]), "_"))[1] -> d1
-    unlist(strsplit(sapply(strsplit(names(cl)[i], "\\."), function(x) x[length(x)]), "_"))[2] -> d2
-    
+    getComboProperties(cl, i) -> meta
+
     drug1.doses <- as.numeric(rownames(cl[[i]]))
     drug2.doses <- as.numeric(colnames(cl[[i]]))
     
@@ -163,14 +158,14 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
     
     main[c(2:nrow(main)),c(2:ncol(main))] -> resp.matrix
     
-    t <- cbind(d1.doses.proxy, smooth(drug1.resp, kind = "3R"), rep(d1, length(drug1.resp)), 
-               rep(pat, length(drug1.resp)))
+    t <- cbind(d1.doses.proxy, smooth(drug1.resp, kind = "3R"), rep(meta$drug1, length(drug1.resp)), 
+               rep(meta$pat, length(drug1.resp)))
     colnames(t) <- colnames(temp)
     rbind(temp, t) -> temp
     
     t <- cbind(d2.doses.proxy, smooth(drug2.resp, kind = "3R"), 
-               rep(d2, length(drug2.resp)), 
-               rep(pat, length(drug2.resp))) # replace test with var fin.name
+               rep(meta$drug2, length(drug2.resp)), 
+               rep(meta$pat, length(drug2.resp))) # replace test with var fin.name
     colnames(t) <- colnames(temp)
     rbind(temp, t) -> temp
     
@@ -180,7 +175,7 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
       t <- cbind(d2.doses.proxy, smooth(combo.resp, kind = "3R"), 
                  rep(paste(d1, d2, d1.doses.proxy[k],sep="."), 
                      length(combo.resp)), 
-                 rep(pat, length(combo.resp)))
+                 rep(meta$pat, length(combo.resp)))
       colnames(t) <- c("x", "y", "combo", "patient")
       rbind(temp, t) -> temp
     }
@@ -206,15 +201,32 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
 
 calcCI <- function(combos){
   unlist(combos, recursive = FALSE) -> cl
-  unlist(strsplit(sapply(strsplit(names(cl)[i], "\\."), function(x) x[length(x)]), "_"))[1] -> d1
-  unlist(strsplit(sapply(strsplit(names(cl)[i], "\\."), function(x) x[length(x)]), "_"))[2] -> d2
+  
   
   for (i in 1:length(cl)){
     cl[[i]] -> main  
-    shapeA(main, drug1 = d1, drug2 =d2) -> drMatrix
+    getComboProperties(cl, i) -> meta
+    
+    # trim single drug responses
+    main[-nrow(main),-1] -> main
+    cbind(rownames(main), main) -> main
+    colnames(main)[1] <- meta$drug2
+    apply(main, 2, function(x) as.numeric(as.character(x))) -> main
+    shapeA(as.data.frame(main), drug1 = meta$drug1, drug2 = meta$drug2) -> drMatrix
     as.numeric(IC50(drMatrix)[3]) -> f
     cbind(fin.name, drug2, f) -> t
     colnames(t) <- colnames(df)
     rbind(df, t) -> df
   }
+}
+
+getComboProperties <- function(cl,i){
+  unlist(strsplit(sapply(strsplit(names(cl)[i], "\\."), function(x) x[length(x)]), "_"))[1] -> d1
+  unlist(strsplit(sapply(strsplit(names(cl)[i], "\\."), function(x) x[length(x)]), "_"))[2] -> d2
+  unlist(strsplit(sapply(strsplit(names(cl)[i], "\\."), function(x) x[2]), "/")) -> pn
+  gsub("_cumul_1_v_1_2", "", pn) -> pn
+  paste(pn[length(pn)], i, sep="_") -> pat
+  list(d1, d2, pat) -> meta
+  names(meta) <- c("drug1", "drug2", "pat")
+  return(meta)
 }
