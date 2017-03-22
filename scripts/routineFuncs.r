@@ -43,6 +43,7 @@ loadAllDependencies <- function(){
   source_https('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/plateReader.R')
   print("Loading I/O tools...")
   source_https('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/fitting.functions.R')
+  source_https('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/outputFuncs.r')
   print("Loading fitting tools...")
   source_https('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/analysis.Funcs.R')
   print("Loading analysis tools...")
