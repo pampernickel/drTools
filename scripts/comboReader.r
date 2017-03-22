@@ -215,8 +215,15 @@ calcCI <- function(combos){
     colnames(t) <- colnames(df)
     rbind(df, t) -> df
   }
+  as.data.frame(df) -> df
+  as.numeric(as.character(df$CI)) -> df$CI
+  
+  # check cases tending asymptotically to infinity or to 0
+  df$CI[which(df$CI > 3)] <- 3
+  df$CI[which(df$CI < 0.01)] <- 0.01
   return(df)
 }
+
 
 getComboProperties <- function(cl,i){
   unlist(strsplit(sapply(strsplit(names(cl)[i], "\\."), function(x) x[length(x)]), "_"))[1] -> d1
