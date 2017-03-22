@@ -192,6 +192,27 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
       # fit individual drug responses to approximate the effect of doubling the dose
       addFit(d1.doses, as.numeric(smooth(drug1.resp)), max(d1.doses)) -> f1
       addFit(d2.doses, as.numeric(smooth(drug2.resp)), max(d2.doses)) -> f2
+      ff <- extractMax(f2$max)
+      if (f1$logIC50 <= f2$logIC50){
+        extractMax(f1$max) -> ff
+      }
+      
+      max(c(d2.doses, d1.doses))/2^seq(1,10,by=1) -> sq
+      
+      # for each sq, check closest dose in fit
+      sapply(sq, function(x){
+        abs(ff$x-x) -> diff
+        which(diff < 5) -> ind
+        ff$x[which(diff %in% min(diff[ind]))][1] -> diff
+      }) -> vals
+      
+      sapply(sq*2, function(x){
+        abs(ff$x-x) -> diff
+        which(diff < 5) -> ind
+        ff$x[which(diff %in% min(diff[ind]))][1] -> diff
+      }) -> vals.1
+      ff$y[which(ff$x %in% vals.1)] -> additivity.line #x values for these will be vals, and not vals.1
+      
     } else if (additivity == "Bliss"){
       
     }
