@@ -9,8 +9,12 @@ start <- function(){
   #dir.create("./temp")
 }
 
-toFile <- function(ic50){
-  write.csv(ic50, paste(rd, "/raw_vals.csv", sep=""))
+toFile <- function(ic50, filename=""){
+  if (filename %in% ""){
+    write.csv(ic50, paste(rd, "/raw_vals.csv", sep=""))
+  } else {
+    write.csv(ic50, paste(rd, "/", filename, ".csv", sep=""))
+  }
 }
 
 
