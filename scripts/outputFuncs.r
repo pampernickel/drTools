@@ -7,6 +7,6 @@
 library(xtable)
 
 toTable <- function(cis){
-  xtable(cis, label = 'tab:cis', caption = 'Calculated combination indices') -> cis.tab
+  xtable(cis, label = 'tab:cis') -> cis.tab
   return(cis.tab)
 }
