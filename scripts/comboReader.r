@@ -105,7 +105,7 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
               content[x[1],x[2]])) -> dmso.mean
             mat[nrow(mat),2] <- dmso.mean
             apply(mat[2:nrow(mat),2:ncol(mat)],2, function(y) as.numeric(as.character(y))) -> mat_n
-            mat_n/dmso.mean -> mat_n
+            100*mat_n/dmso.mean -> mat_n
             rownames(mat_n) <- mat[2:nrow(mat),1]
             colnames(mat_n) <- mat[1, 2:ncol(mat)]
             mat_n -> combo.mat[[j]]
@@ -201,8 +201,6 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
 
 calcCI <- function(combos){
   unlist(combos, recursive = FALSE) -> cl
-  
-  
   for (i in 1:length(cl)){
     cl[[i]] -> main  
     getComboProperties(cl, i) -> meta
