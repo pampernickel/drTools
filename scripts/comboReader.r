@@ -201,6 +201,8 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
 
 calcCI <- function(combos){
   unlist(combos, recursive = FALSE) -> cl
+  df <- matrix(0, nrow=0, ncol=4)
+  colnames(df) <- c("patient", "drug1", "drug2", "CI")
   for (i in 1:length(cl)){
     cl[[i]] -> main  
     getComboProperties(cl, i) -> meta
@@ -209,14 +211,11 @@ calcCI <- function(combos){
     apply(main, 2, function(x) as.numeric(as.character(x))) -> main
     shapeA(as.data.frame(main), drug1 = meta$drug1, drug2 = meta$drug2) -> drMatrix
     as.numeric(IC50(drMatrix)[3]) -> f
-    #cbind(fin.name, drug2, f) -> t
-    #colnames(t) <- colnames(df)
-    #rbind(df, t) -> df
-    
-    dose1 <- drMatrix[,1]
-    dose2 <- drMatrix[,2]
-    
+    cbind(meta$pat, meta$drug1, meta$drug2, f) -> t
+    colnames(t) <- colnames(df)
+    rbind(df, t) -> df
   }
+  return(df)
 }
 
 getComboProperties <- function(cl,i){
