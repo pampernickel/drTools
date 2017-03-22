@@ -24,6 +24,7 @@ source_https <- function(url, ...) {
 }
 
 loadComboDependencies <- function(){
+  source_https("https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/comboReader.r")
   print("Loading scripts from xtmgah/DDCV...")
   source_https("https://raw.githubusercontent.com/xtmgah/DDCV/master/DDCV_function/IC50.R")
   source_https("https://raw.githubusercontent.com/xtmgah/DDCV/master/DDCV_function/isobologram.R")
@@ -34,7 +35,6 @@ loadComboDependencies <- function(){
 }
 
 loadAllDependencies <- function(){
-  
   print("Loading scripts from pampernickel/drTools...")
   source_https('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/plateReader.R')
   print("Loading I/O tools...")
@@ -46,7 +46,7 @@ loadAllDependencies <- function(){
   print("Loading visualization tools...")
   source_https('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/nomenclatureFuncs.r')
   print("Loading nomenclature tools...")
-  
+  loadComboDependencies()
   library(ggplot2)
   library(reshape2)
   print("Done.")
