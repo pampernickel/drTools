@@ -920,3 +920,14 @@ plotFit <- function(exp.res, drug.list){
     }
   }
 }
+
+comboHeatmap <- function(combos){
+  unlist(combos, recursive = FALSE) -> cl
+  # use par
+  par(mfrow=c(2,ceiling(length(cl)/2)))
+  lapply(1:length(cl), function(x){ 
+    round(as.numeric(rownames(cl[[x]])), 2) -> rownames(cl[[x]])
+    round(as.numeric(colnames(cl[[x]])), 2) -> colnames(cl[[x]])
+    aheatmap(cl[[x]], Rowv=NA, Colv=NA, main=names(cl)[x])
+  })
+}
