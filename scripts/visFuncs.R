@@ -928,6 +928,7 @@ comboHeatmap <- function(combos){
   lapply(1:length(cl), function(x){
     round(as.numeric(rownames(cl[[x]])), 2) -> rownames(cl[[x]])
     round(as.numeric(colnames(cl[[x]])), 2) -> colnames(cl[[x]])
+    cl[[x]][nrow(cl[[x]]),1] <- NA
     aheatmap(cl[[x]], Rowv=NA, Colv=NA, main=names(cl)[x])
   })
 }
