@@ -189,7 +189,9 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
       apply(rbind(smooth(drug1.resp),
                   smooth(drug2.resp)), 2, function(x) min(x)) -> additivity.line
     } else if (additivity == "Loewe"){
-      
+      # fit individual drug responses to approximate the effect of doubling the dose
+      addFit(d1.doses, as.numeric(smooth(drug1.resp)), max(d1.doses)) -> f1
+      addFit(d2.doses, as.numeric(smooth(drug2.resp)), max(d2.doses)) -> f2
     } else if (additivity == "Bliss"){
       
     }
@@ -223,7 +225,6 @@ calcCI <- function(combos){
   df$CI[which(df$CI < 0.01)] <- 0.01
   return(df)
 }
-
 
 getComboProperties <- function(cl,i){
   unlist(strsplit(sapply(strsplit(names(cl)[i], "\\."), function(x) x[length(x)]), "_"))[1] -> d1
