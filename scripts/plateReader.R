@@ -708,14 +708,14 @@ remove <- function(l, efile, mode=c("layout", "response")){
   # is enough to remove the whole row
   # in case the removal is for just one patient, and not for all the patients, there will be a separate column
   # that indicates the patient name
-  if (mode %in% "layout"){
+  if (mode == "layout"){
     # check if there are cases where efile$V6 == all
-    if (length(which(efile$V6 %in% "all")) == 0){
+    if (length(which(efile$V6 == "all")) == 0){
       stop("No drugs found that were marked for removal in all patients at the level of the layout. Use `response'
            mode instead.")  
     }
     removeFromLayout(l, efile) -> l
-  } else if (mode %in% "response"){
+  } else if (mode == "response"){
     if (length(which(efile$V6 %ni% "all")) == 0){
       stop("No drugs found that were marked for removal in a subset patients.")
     }
