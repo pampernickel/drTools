@@ -714,59 +714,73 @@ remove <- function(l, efile, mode=c("layout", "response")){
       stop("No drugs found that were marked for removal in all patients at the level of the layout. Use `response'
            mode instead.")  
     }
+    removeFromLayout(l, efile) -> l
+  } else if (mode %in% "response"){
+    if (length(which(efile$V6 %ni% "all")) == 0){
+      stop("No drugs found that were marked for removal in a subset patients.")
+    }
     
-    efile[which(efile$V6 %in% "all"),] -> efile
-    for (i in 1:nrow(efile)){
-      plate.no <- NA
-      if (!is.na(as.numeric(as.character(efile$V2[1])))){
-        as.numeric(as.character(efile$V2[i])) -> plate.no
-        which(names(l[[plate.no]]) %in% efile$V1[i]) -> d.ind
-      }
-      
-      efile[i,3] -> row
-      efile[i,4] -> col
-      sapply(l[[plate.no]][[d.ind]]$rows, function(x){
-        res <- F
-        if (is.list(x)){
-          ifelse(row %in% unlist(x), T, F) -> res
-        } else if (is.numeric(x)){
-          ifelse(row %in% x, T, F) -> res
-        }
-      }) -> r.check
-      
-      sapply(l[[plate.no]][[d.ind]]$cols, function(x){
-        res <- F
-        if (is.list(x)){
-          ifelse(col %in% unlist(x), T, F) -> res
-        } else if (is.numeric(x)){
-          ifelse(col %in% x, T, F) -> res
-        }
-      }) -> c.check
-      
-      intersect(which(r.check %in% T), which(c.check %in% T)) -> rep.ind
-      if (length(rep.ind) > 0){
-        if (efile$V5[i] %in% "f"){
-          l[[plate.no]][[d.ind]]$cols[-rep.ind] -> l[[plate.no]][[d.ind]]$cols
-          l[[plate.no]][[d.ind]]$rows[-rep.ind] -> l[[plate.no]][[d.ind]]$rows
-        } else if (efile$V5[i] %in% "p"){
-          if (length(l[[plate.no]][[d.ind]]$cols[[rep.ind]]) > 1){
-            # element to be removed is a column element            
-            l[[plate.no]][[d.ind]]$cols[[rep.ind]] -> cv
-            cv[which(cv %in% col)] <- NA
-            cv -> l[[plate.no]][[d.ind]]$cols[[rep.ind]]
-            
-          } else {
-            # element to be removed is a row element
-            l[[plate.no]][[d.ind]]$rows[[rep.ind]] -> rv
-            rv[which(rv %in% row)] <- NA
-            rv -> l[[plate.no]][[d.ind]]$rows[[rep.ind]]
-          }
-        }
-      }
-    } # end for
+    removeFromResponse(l, efile) -> l
   }
   
   return(l)
+}
+
+removeFromLayout <- function(l, efile){
+  efile[which(efile$V6 %in% "all"),] -> efile
+  for (i in 1:nrow(efile)){
+    plate.no <- NA
+    if (!is.na(as.numeric(as.character(efile$V2[1])))){
+      as.numeric(as.character(efile$V2[i])) -> plate.no
+      which(names(l[[plate.no]]) %in% efile$V1[i]) -> d.ind
+    }
+    
+    efile[i,3] -> row
+    efile[i,4] -> col
+    sapply(l[[plate.no]][[d.ind]]$rows, function(x){
+      res <- F
+      if (is.list(x)){
+        ifelse(row %in% unlist(x), T, F) -> res
+      } else if (is.numeric(x)){
+        ifelse(row %in% x, T, F) -> res
+      }
+    }) -> r.check
+    
+    sapply(l[[plate.no]][[d.ind]]$cols, function(x){
+      res <- F
+      if (is.list(x)){
+        ifelse(col %in% unlist(x), T, F) -> res
+      } else if (is.numeric(x)){
+        ifelse(col %in% x, T, F) -> res
+      }
+    }) -> c.check
+    
+    intersect(which(r.check %in% T), which(c.check %in% T)) -> rep.ind
+    if (length(rep.ind) > 0){
+      if (efile$V5[i] %in% "f"){
+        l[[plate.no]][[d.ind]]$cols[-rep.ind] -> l[[plate.no]][[d.ind]]$cols
+        l[[plate.no]][[d.ind]]$rows[-rep.ind] -> l[[plate.no]][[d.ind]]$rows
+      } else if (efile$V5[i] %in% "p"){
+        if (length(l[[plate.no]][[d.ind]]$cols[[rep.ind]]) > 1){
+          # element to be removed is a column element            
+          l[[plate.no]][[d.ind]]$cols[[rep.ind]] -> cv
+          cv[which(cv %in% col)] <- NA
+          cv -> l[[plate.no]][[d.ind]]$cols[[rep.ind]]
+          
+        } else {
+          # element to be removed is a row element
+          l[[plate.no]][[d.ind]]$rows[[rep.ind]] -> rv
+          rv[which(rv %in% row)] <- NA
+          rv -> l[[plate.no]][[d.ind]]$rows[[rep.ind]]
+        }
+      }
+    }
+  } # end for
+  return(l)
+}
+
+removeFromResponse <- function(l, efile){
+  
 }
 
 #@...
