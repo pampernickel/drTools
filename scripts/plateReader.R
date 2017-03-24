@@ -804,8 +804,9 @@ removeFromResponse <- function(l, efile){
       }
       df -> pat[[p.ind]]
     }
+    l[[pat.ind]] <- pat
   }
-  
+
   return(l)
 }
 
