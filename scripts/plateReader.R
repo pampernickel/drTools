@@ -730,7 +730,7 @@ removeFromLayout <- function(l, efile){
   efile[which(efile$V6 %in% "all"),] -> efile
   for (i in 1:nrow(efile)){
     plate.no <- NA
-    if (!is.na(as.numeric(as.character(efile$V2[1])))){
+    if (!is.na(as.numeric(as.character(efile$V2[i])))){
       as.numeric(as.character(efile$V2[i])) -> plate.no
       which(names(l[[plate.no]]) %in% efile$V1[i]) -> d.ind
     }
@@ -780,7 +780,33 @@ removeFromLayout <- function(l, efile){
 }
 
 removeFromResponse <- function(l, efile){
+  efile[which(efile$V6 %ni% "all"),] -> efile
+  for (i in 1:nrow(efile)){
+    which(names(l) %in% efile$V6[i]) -> pat.ind
+    l[[pat.ind]] -> pat
+    
+    if (!is.na(as.numeric(as.character(efile$V2[i])))){
+      as.numeric(as.character(efile$V2[i])) -> plate.no
+      # locate drug across the (redistributed) setup
+      lapply(pat, function(x) gsub("\\.", "-", 
+                                   colnames(x))) -> drugs
+      which(sapply(drugs, function(x) 
+        length(grep(as.character(efile$V1[i]), x))) > 0) -> p.ind
+      pat[[p.ind]] -> df
+      gsub("\\.", "-", colnames(df)) -> colnames(df)
+      
+      if (efile$V5[i] %in% "f"){
+        df[,-grep(as.character(efile$V1[i]), colnames(df))[efile$V3[i]]] -> df
+      } else if (efile$V5[i] %in% "p"){
+        df[,grep(as.character(efile$V1[i]), colnames(df))[efile$V3[i]]] -> resp
+        resp[efile$V4[i]] <- NA
+        resp -> df[,grep(as.character(efile$V1[i]), colnames(df))[efile$V3[i]]]
+      }
+      df -> pat[[p.ind]]
+    }
+  }
   
+  return(l)
 }
 
 #@...
