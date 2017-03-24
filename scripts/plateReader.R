@@ -695,29 +695,78 @@ groupResponses <- function(all.resp, unique.conc){
   return(all.df)
 }
 
-# ::: Functions to remove cases with quality control failures ::: #
-# start from layout?
-removeFromLayout <- function(layout, efile){
-  # layout is generated from the readFormat() function
+remove <- function(l, efile, mode=c("layout", "response")){
+  # This function can take two types of arguments: 
+  # l may be the layout file generated from the readFormat() function or
+  # the response file generated from the readExperiment() function
+  
   # efile is a user-provided file with the following information
   # Drug name, plate, row, column (give just one number each)
-  for (i in 1:nrow(efile)){
-    as.numeric(as.character(efile[i,2])) -> plate.no
-    which(names(layout[[plate.no]]) %in% efile[i,1]) -> d.ind
-    efile[i,3] -> row
-    efile[i,4] -> col
-    sapply(layout[[plate.no]][[d.ind]]$rows, function(x) 
-      ifelse(row %in% x, T, F)) -> r.check
-    sapply(layout[[plate.no]][[d.ind]]$cols, function(x) 
-      ifelse(col %in% x, T, F)) -> c.check
-    
-    intersect(which(r.check %in% T), which(c.check %in% T)) -> rep.ind
-    if (length(rep.ind) > 0){
-      layout[[plate.no]][[d.ind]]$cols[-rep.ind] -> layout[[plate.no]][[d.ind]]$cols
-      layout[[plate.no]][[d.ind]]$rows[-rep.ind] -> layout[[plate.no]][[d.ind]]$rows
+  # Option to remove point or full curve; this is indicated by a tag "f" or "p";
+  # in the case a single point is removed, the location of the point has to be specified (i.e. plate, row, column)
+  # in the case a full row or column is to be removed, specifying one set of unique coordinates (i.e. plate, row, single point on column)
+  # is enough to remove the whole row
+  # in case the removal is for just one patient, and not for all the patients, there will be a separate column
+  # that indicates the patient name
+  if (mode %in% "layout"){
+    # check if there are cases where efile$V6 == all
+    if (length(which(efile$V6 %in% "all")) == 0){
+      stop("No drugs found that were marked for removal in all patients at the level of the layout. Use `response'
+           mode instead.")  
     }
+    
+    efile[which(efile$V6 %in% "all"),] -> efile
+    for (i in 1:nrow(efile)){
+      plate.no <- NA
+      if (!is.na(as.numeric(as.character(efile$V2[1])))){
+        as.numeric(as.character(efile$V2[i])) -> plate.no
+        which(names(l[[plate.no]]) %in% efile$V1[i]) -> d.ind
+      }
+      
+      efile[i,3] -> row
+      efile[i,4] -> col
+      sapply(l[[plate.no]][[d.ind]]$rows, function(x){
+        res <- F
+        if (is.list(x)){
+          ifelse(row %in% unlist(x), T, F) -> res
+        } else if (is.numeric(x)){
+          ifelse(row %in% x, T, F) -> res
+        }
+      }) -> r.check
+      
+      sapply(l[[plate.no]][[d.ind]]$cols, function(x){
+        res <- F
+        if (is.list(x)){
+          ifelse(col %in% unlist(x), T, F) -> res
+        } else if (is.numeric(x)){
+          ifelse(col %in% x, T, F) -> res
+        }
+      }) -> c.check
+      
+      intersect(which(r.check %in% T), which(c.check %in% T)) -> rep.ind
+      if (length(rep.ind) > 0){
+        if (efile$V5[i] %in% "f"){
+          l[[plate.no]][[d.ind]]$cols[-rep.ind] -> l[[plate.no]][[d.ind]]$cols
+          l[[plate.no]][[d.ind]]$rows[-rep.ind] -> l[[plate.no]][[d.ind]]$rows
+        } else if (efile$V5[i] %in% "p"){
+          if (length(l[[plate.no]][[d.ind]]$cols[[rep.ind]]) > 1){
+            # element to be removed is a column element            
+            l[[plate.no]][[d.ind]]$cols[[rep.ind]] -> cv
+            cv[which(cv %in% col)] <- NA
+            cv -> l[[plate.no]][[d.ind]]$cols[[rep.ind]]
+            
+          } else {
+            # element to be removed is a row element
+            l[[plate.no]][[d.ind]]$rows[[rep.ind]] -> rv
+            rv[which(rv %in% row)] <- NA
+            rv -> l[[plate.no]][[d.ind]]$rows[[rep.ind]]
+          }
+        }
+      }
+    } # end for
   }
-  return(layout)
+  
+  return(l)
 }
 
 #@...
