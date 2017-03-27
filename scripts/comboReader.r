@@ -37,8 +37,8 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
       # patients)
       sapply(infoLines[[1]], function(x)
         sapply(strsplit(contents[[1]][x], "\t"), function(y) y[1])) -> drug.names
-      getPlate(infoLines, contents, i, 1) -> p1
-      getPlate(infoLines, contents, i, 2) -> p2
+      getPlate(infoLines, contents, 1, 1) -> p1
+      getPlate(infoLines, contents, 1, 2) -> p2
       which(p1 != "", arr.ind = T) -> p1.ind
       which(p2 != "", arr.ind = T) -> p2.ind
       
