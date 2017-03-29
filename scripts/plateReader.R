@@ -152,6 +152,50 @@ getPlate <- function(infoLines, contents, x, j){
   return(plate)
 }
 
+readMultiFeature <- function(path, toFile=T){
+  # check if path is a directory or a filepath
+  is.file <- F; is.csv <- T
+  if (length(grep(".txt", path)) > 0 | length(grep(".csv", path))){
+    is.file <- T
+    if (length(grep(".csv", path)) == 0){
+      is.csv <- F
+    }
+  }
+  
+  if (is.file && is.csv){
+    mf <- read.csv(path, stringsAsFactors = F)
+  }
+  
+  readmf(mf) -> all.mats
+  if (toFile && is.file){
+    unlist(strsplit(path, "\\/")) -> p
+    paste(c(p[1:length(p)-1], "expanded"), collapse="/") -> dir
+    dir.create(file.path(dir), showWarnings = FALSE)
+    for (i in 1:length(all.mats)){
+      write.csv(all.mats[[i]], 
+                file=paste(dir, "/", names(all.mats)[i], ".csv", sep=""))
+    }
+  }
+  return(all.mats)
+}
+
+readmf <- function(mf){
+  # mf is a data frame or a list of data frames from the multi-feature
+  # extraction protocol of CellProfiler
+  # convert into plate format
+  gsub(" ", "", mf$Row) -> mf$Row
+  range(as.numeric(as.factor(mf$Row))) -> rr; range(mf$Col) -> rc
+  
+  # create plate based on row x column coords
+  lapply(4:ncol(mf),function(x){
+    mf[,x] -> features
+    matrix(features, nrow=max(rr), ncol=max(rc)) -> mat
+    return(mat)
+  }) -> all.mats
+  names(all.mats) <- colnames(mf)[4:ncol(mf)]
+  return(all.mats)
+}
+
 getDoses <- function(plate, dups){
   if (dups == "i" | dups == "e"){
     which(apply(plate, 1, function(y)
@@ -708,12 +752,14 @@ remove <- function(l, efile, mode=c("layout", "response")){
   # is enough to remove the whole row
   # in case the removal is for just one patient, and not for all the patients, there will be a separate column
   # that indicates the patient name
+  l <- list()
   if (mode == "layout"){
     # check if there are cases where efile$V6 == all
     if (length(which(efile$V6 == "all")) == 0){
       stop("No drugs found that were marked for removal in all patients at the level of the layout. Use `response'
            mode instead.")  
     }
+    
     removeFromLayout(l, efile) -> l
   } else if (mode == "response"){
     if (length(which(efile$V6 %ni% "all")) == 0){
