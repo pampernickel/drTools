@@ -932,3 +932,12 @@ comboHeatmap <- function(combos){
     aheatmap(cl[[x]], Rowv=NA, Colv=NA, main=names(cl)[x])
   })
 }
+
+plotComparison <- function(df.sum, xlab, ylab){
+  # df.sum is of the form V1, V2 and labs (labels)
+  as.numeric(as.character(df.sum$V1)) -> df.sum$V1
+  as.numeric(as.character(df.sum$V2)) -> df.sum$V2
+  ggplot(df.sum, aes(x=V1, y=V2))+
+    geom_point(size=0.5)+facet_wrap(~labs)+
+    xlab(xlab)+ylab(ylab)
+}
