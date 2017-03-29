@@ -473,6 +473,13 @@ comparePlates <- function(p1, p2){
   df.sum <- NA
   if (is.list(p2)){
     lapply(p2, function(x){
+      if (nrow(p1) != nrow(x)){
+        t(p1) -> p1
+        if (nrow(p1) != nrow(x)){
+          stop("Plates do not have the same dimension.")
+        }
+      }
+      
       melt(p1) -> y
       melt(x) -> x
       cbind(x$value, y$value) -> cor.mat
