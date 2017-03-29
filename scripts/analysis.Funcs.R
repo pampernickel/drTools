@@ -1,6 +1,7 @@
 library(RColorBrewer)
 library(limma)
-
+library(reshape2)
+library(ggplot2)
 
 extractMax <- function(t){
   # function for retrieving x and y elements from a max
@@ -465,4 +466,25 @@ formatGSEA <- function(sub.list, param, drug.list){
   grep(param, colnames(df)) -> ind
   df[,ind] -> df
   rownames(df) <- drug.list
+}
+
+comparePlates <- function(p1, p2){
+  # compare a plate/list of plates 2 with a plate 1
+  df.sum <- NA
+  if (is.list(p2)){
+    lapply(p2, function(x){
+      melt(p1) -> y
+      melt(x) -> x
+      cbind(x$value, y$value) -> cor.mat
+      return(cor.mat)
+    }) -> cor.mats
+    names(cor.mats) <- names(p2)
+    df.sum <- do.call("rbind", cor.mats)
+    unlist(lapply(1:length(cor.mats), function(x) rep(names(cor.mats)[x], nrow(cor.mats[[x]])))) -> labs
+    cbind(df.sum, labs) -> df.sum
+    as.data.frame(df.sum) -> df.sum
+  } else {
+    
+  }
+  return(df.sum) 
 }
