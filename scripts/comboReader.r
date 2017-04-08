@@ -267,7 +267,7 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
       as.numeric(as.character(temp$x)) -> temp$x
       as.numeric(as.character(temp$y)) -> temp$y
       as.numeric(as.character(temp$additivity.line.fin)) -> temp$additivity.line.fin
-      cols <- colorRampPalette(brewer.pal(8, "RdBu"))(11)[11:1]
+      cols <- colorRampPalette(brewer.pal(8, "RdBu"))(ncol(resp.matrix)+2)[(ncol(resp.matrix)+2):1]
       temp$combo <- factor(temp$combo, levels=unique(temp$combo)) 
       ggplot(temp, aes(x=x, y=y, group = combo, colour = combo, 
                        ymin = 0, ymax = additivity.line.fin))+
