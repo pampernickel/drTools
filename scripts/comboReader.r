@@ -126,7 +126,85 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
       # is the drug that's used in combination with everything else
       sapply(plates, function(x) length(which(as.vector(x) %ni% ""))) -> cc
       which(cc %in% max(cc)) -> mp # master plate
-      plates[[mp]] -> mp; plates[-mp] -> plates; drug.names[mp] -> md; drug.names[-mp] -> od
+      plates[[mp]] -> mpl; plates[-mp] -> plates; drug.names[mp] -> md; drug.names[-mp] -> od
+      
+      # get coords for mp
+      which(mpl != "", arr.ind = T) -> p1.ind
+      
+      # then for each of the n other plates, check areas of overlap bet p1.ind and the nth
+      # plate, and create all.combos from these
+      lapply(1:length(plates), function(x){
+        plates[[x]] -> cp
+        which(cp != "", arr.ind = T) -> cp.ind
+        apply(p1.ind, 1, function(x) 
+          ifelse(x[1] %in% cp.ind[,1] && x[2] %in% cp.ind[,2], T, F)) -> o.1
+        apply(cp.ind, 1, function(x) 
+          ifelse(x[1] %in% p1.ind[,1] && x[2] %in% p1.ind[,2], T, F)) -> o.2
+        
+        # now find where the content are d1.only and d2.only; in the case of d1
+        # find the borders of o.2
+        cp.ind[which(o.2 %in% F),] -> d2.only
+        
+        p1.ind[which(o.1 %in% F),] -> d1.only
+        cp.ind[which(o.2 %in% T)[1],] -> tl
+        c(tl[1], br[2]) -> tr
+        
+        # then subtract one from both tl, tr
+        cbind(rep(c(tl[1]-1), length(tl[2]:tr[2])), 
+              tl[2]:tr[2]) -> temp
+        apply(d1.only, 1, function(x) 
+          ifelse(x[1] %in% temp[,1] && x[2] %in% temp[,2], T, F)) -> d1.c
+        d1.only[which(d1.c %in% T),] -> d1.only
+        
+        lapply(res.files, function(y){
+          read.csv(y, header=F) -> content
+          t(content) -> content
+          combo.mat <- list()
+          
+          as.numeric(as.character(mpl[d1.only])) -> d1.doses
+          as.numeric(as.character(cp[d2.only])) -> d2.doses
+          mat <- matrix(NA, nrow=length(d1.doses)+2, ncol=length(d2.doses)+2)
+          mat[1,1] <- "XX"
+          mat[2:nrow(mat),1] <- c(d1.doses,0)
+          mat[1,2:ncol(mat)] <- c(0,d2.doses)
+          
+          for (k in start:lims[j]){
+            mat[which(mat[,1] %in% p1[o.coords[k,1],o.coords[k,2]]),
+                which(mat[1,] %in% p2[o.coords[k,1],o.coords[k,2]])] <-
+              content[o.coords[k,1],o.coords[k,2]]
+          }
+          start <- lims[j]+1
+          
+          # fill content for single drug treatment
+          c(nrow(d1.only)/length(unique(d1.only[,2])),
+            nrow(d1.only)) -> lims.1
+          mat[2:(nrow(mat)-1),2] <- as.numeric(content[d1.only[c(start.1:lims.1[j]),1],
+                                                       unique(d1.only[c(start.1:lims.1[j]),2])])
+          mat[nrow(mat), 3:ncol(mat)] <- as.numeric(content[unique(d2.only[c(start.1:lims.1[j]),1]),
+                                                            d2.only[c(start.1:lims.1[j]),2]])
+          start.1 <- lims.1[j]+1
+          
+          # then get all contents that are NOT part of o.coords, d1.only or d2.only,
+          # which correspond with the DMSO-containing wells; the value here would be in the 0,0, and
+          # used in the normalization of the plate
+          rbind(o.coords, d1.only, d2.only) -> all.coords
+          which(content != 0, arr.ind = T) -> plate.coords
+          plate.coords[which(apply(plate.coords, 1, function(x)
+            x[1] %in% all.coords[,1] && x[2] %in% all.coords[,2]) %in% F),] -> dmso.coords
+          dmso.coords[order(dmso.coords[,1]),] -> dmso.coords
+          
+          # split dmso.coords as well
+          dmso.coords[which(dmso.coords[,1] %in% unique(dmso.coords[,1])[j]),] -> dmso.coords.sub
+          mean(apply(dmso.coords.sub, 1, function(x)
+            content[x[1],x[2]])) -> dmso.mean
+          mat[nrow(mat),2] <- dmso.mean
+          apply(mat[2:nrow(mat),2:ncol(mat)],2, function(y) as.numeric(as.character(y))) -> mat_n
+          100*mat_n/dmso.mean -> mat_n
+          rownames(mat_n) <- mat[2:nrow(mat),1]
+          colnames(mat_n) <- mat[1, 2:ncol(mat)]
+        
+        })
+      })
     }
   }
   return(combo.mats)
