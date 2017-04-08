@@ -1104,6 +1104,6 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
       
     }
   }
-  p2 <- arrangeGrob(all.combos, ncol=ceiling(length(all.combos)/2), nrow=2)
+  p2 <- marrangeGrob(all.combos, ncol=ceiling(length(all.combos)/2), nrow=2)
   print(p2)
 }
