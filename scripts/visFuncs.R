@@ -926,7 +926,7 @@ plotFit <- function(exp.res, drug.list){
 comboHeatmap <- function(combos){
   unlist(combos, recursive = FALSE) -> cl
   sapply(strsplit(names(cl), "/"), function(x) x[length(x)]) -> nn
-  
+  gsub(".csv.", "_", nn) -> nn
   # use par
   par(mfrow=c(2,ceiling(length(cl)/2)))
   lapply(1:length(cl), function(x){
