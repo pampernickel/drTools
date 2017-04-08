@@ -947,6 +947,9 @@ plotComparison <- function(df.sum, xlab, ylab){
 processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
   # prepare combos for visualization (double-plot)
   # flatten list, i.e. have all combo data frames in a single structure
+  if (!is.loaded(gridExtra)) library(gridExtra)
+  if (!is.loaded(gtable)) library(gtable)
+  
   unlist(combos, recursive = FALSE) -> cl
   
   all.combos <- list()
@@ -1092,14 +1095,15 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
       as.numeric(as.character(temp$y)) -> temp$y
       as.numeric(as.character(temp$additivity.line.fin)) -> temp$additivity.line.fin
       cols <- colorRampPalette(brewer.pal(8, "RdBu"))(ncol(resp.matrix)+2)[(ncol(resp.matrix)+2):1]
-      temp$combo <- factor(temp$combo, levels=unique(temp$combo)) 
+      temp$combo <- factor(temp$combo, levels=unique(temp$combo))
+      max(temp$y)+25 -> maxy
       ggplot(temp, aes(x=x, y=y, group = combo, colour = combo, 
                        ymin = 0, ymax = additivity.line.fin))+
         geom_ribbon(alpha=0.05, color="grey", fill="grey")+
         geom_line(size=1)+
         scale_color_manual(values=c(cols[1], cols[length(cols)], cols[2:(length(cols)-1)]))+
         scale_x_log10()+
-        ylim(0, 200) -> all.combos[[i]]
+        ylim(0, maxy) -> all.combos[[i]]
     } else if (additivity == "Bliss"){
       
     }
