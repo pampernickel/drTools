@@ -158,7 +158,8 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
     
     main[c(2:nrow(main)),c(2:ncol(main))] -> resp.matrix
     
-    t <- cbind(d1.doses.proxy, smooth(drug1.resp, kind = "3R"), rep(meta$drug1, length(drug1.resp)), 
+    t <- cbind(d1.doses.proxy, smooth(drug1.resp, kind = "3R"), 
+               rep(meta$drug1, length(drug1.resp)), 
                rep(meta$pat, length(drug1.resp)))
     colnames(t) <- colnames(temp)
     rbind(temp, t) -> temp
@@ -170,10 +171,23 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
     rbind(temp, t) -> temp
     
     # cross-section through drug 1
+    if (nchar(meta$drug1) > 4){
+      d1 <- substr(meta$drug1, 1, 4)
+    } else {
+      d1 <- meta$drug1
+    }
+    
+    if (nchar(meta$drug2) > 4){
+      d2 <- substr(meta$drug2, 1, 4)
+    } else {
+      d2 <- meta$drug2
+    }
+    
     for (k in 1:nrow(resp.matrix)){
       as.numeric(resp.matrix[k,]) -> combo.resp
-      t <- cbind(d2.doses.proxy, smooth(combo.resp, kind = "3R"), 
-                 rep(paste(d1, d2, d1.doses.proxy[k],sep="."), 
+      t <- cbind(d2.doses.proxy, as.numeric(smooth(combo.resp, kind = "3R")), 
+                 rep(paste(round(drug1.doses[k],2), " ", d1, "; ",
+                           round(drug2.doses[k],2), " ", d2, sep=""), 
                      length(combo.resp)), 
                  rep(meta$pat, length(combo.resp)))
       colnames(t) <- c("x", "y", "combo", "patient")
@@ -190,14 +204,14 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
                   smooth(drug2.resp)), 2, function(x) min(x)) -> additivity.line
     } else if (additivity == "Loewe"){
       # fit individual drug responses to approximate the effect of doubling the dose
-      addFit(d1.doses, as.numeric(smooth(drug1.resp)), max(d1.doses)) -> f1
-      addFit(d2.doses, as.numeric(smooth(drug2.resp)), max(d2.doses)) -> f2
+      addFit(drug1.doses, as.numeric(smooth(drug1.resp)), max(drug1.doses)) -> f1
+      addFit(drug2.doses, as.numeric(smooth(drug2.resp)), max(drug2.doses)) -> f2
       ff <- extractMax(f2$max)
       if (f1$logIC50 <= f2$logIC50){
         extractMax(f1$max) -> ff
       }
       
-      max(c(d2.doses, d1.doses))/2^seq(1,10,by=1) -> sq
+      max(c(drug2.doses, drug1.doses))/2^seq(1,9,by=1) -> sq
       
       # for each sq, check closest dose in fit
       sapply(sq, function(x){
@@ -212,6 +226,36 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
         ff$x[which(diff %in% min(diff[ind]))][1] -> diff
       }) -> vals.1
       ff$y[which(ff$x %in% vals.1)] -> additivity.line #x values for these will be vals, and not vals.1
+      
+      # check temp$x for orientation of additivity line
+      rbind(seq(length(vals)-(length(vals)-1),nrow(temp),by=length(vals)),
+            seq(length(vals),nrow(temp),by=length(vals))) -> stops
+      additivity.line.fin <- rep(0, nrow(temp))
+      for (k in 1:ncol(stops)){
+        x <- stops[,k]
+        if ((isDescending(as.numeric(temp[c(x[1]:x[2]),1])) && isDescending(additivity.line)) ||
+            (!isDescending(as.numeric(temp[c(x[1]:x[2]),1])) && !isDescending(additivity.line))){
+          additivity.line.fin[c(x[1]:x[2])] <- additivity.line[length(additivity.line):1]
+        } else if ((!isDescending(as.numeric(temp[c(x[1]:x[2]),1])) && isDescending(additivity.line)) ||
+                   isDescending(as.numeric(temp[c(x[1]:x[2]),1])) && !isDescending(additivity.line)){
+          additivity.line.fin[c(x[1]:x[2])] <- additivity.line
+        }
+      }
+      
+      cbind(temp, additivity.line.fin) -> temp
+      as.data.frame(temp) -> temp
+      as.numeric(as.character(temp$x)) -> temp$x
+      as.numeric(as.character(temp$y)) -> temp$y
+      as.numeric(as.character(temp$additivity.line.fin)) -> temp$additivity.line.fin
+      cols <- colorRampPalette(brewer.pal(8, "RdBu"))(11)[11:1]
+      temp$combo <- factor(temp$combo, levels=unique(temp$combo)) 
+      ggplot(temp, aes(x=x, y=y, group = combo, colour = combo, 
+                       ymin = 0, ymax = additivity.line.fin))+
+        geom_ribbon(alpha=0.05, color="grey", fill="grey")+
+        geom_line(size=1)+
+        scale_color_manual(values=c(cols[1], cols[length(cols)], cols[2:(length(cols)-1)]))+
+        scale_x_log10()+
+        ylim(0, 200)
       
     } else if (additivity == "Bliss"){
       
@@ -256,4 +300,15 @@ getComboProperties <- function(cl,i){
   list(d1, d2, pat) -> meta
   names(meta) <- c("drug1", "drug2", "pat")
   return(meta)
+}
+
+# ::: synergyFinder
+calcSynergy <- function(responses){
+  if(!is.loaded("synergyfinder")) library(synergyfinder)
+  # responses is a list containing 
+  # various dose response matrices with the same
+  # drug pairs and concentration ranges
+  # the last element of the list is called drug.pairs;
+  # matrices are nested lists `dose.response.mats'
+  
 }
