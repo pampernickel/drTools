@@ -947,8 +947,7 @@ plotComparison <- function(df.sum, xlab, ylab){
 processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
   # prepare combos for visualization (double-plot)
   # flatten list, i.e. have all combo data frames in a single structure
-  if (!is.loaded(gridExtra)) library(gridExtra)
-  if (!is.loaded(gtable)) library(gtable)
+  if (!is.loaded("gridExtra")) library(gridExtra)
   
   unlist(combos, recursive = FALSE) -> cl
   
