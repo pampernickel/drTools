@@ -1,6 +1,14 @@
 `%ni%` <- Negate(`%in%`)
 library(RCurl)
 
+isDescending <- function(x){
+  res <- F
+  if (all(diff(x) >= 0) == F){
+    res <- T
+  }
+  return(res)
+}
+
 start <- function(){
   # start saving all results from a session in a single folder
   #file.path("./results", Sys.time()) ->> rd
@@ -16,7 +24,6 @@ toFile <- function(ic50, filename=""){
     write.csv(ic50, paste(rd, "/", filename, ".csv", sep=""))
   }
 }
-
 
 # https://www.r-bloggers.com/source_https-sourcing-an-r-script-from-github-over-https/
 source_https <- function(url, ...) {
