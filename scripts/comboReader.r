@@ -170,7 +170,7 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
     colnames(t) <- colnames(temp)
     rbind(temp, t) -> temp
     
-    # cross-section through drug 1
+    # drug names
     if (nchar(meta$drug1) > 4){
       d1 <- substr(meta$drug1, 1, 4)
     } else {
@@ -183,21 +183,11 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
       d2 <- meta$drug2
     }
     
-    for (k in 1:nrow(resp.matrix)){
-      as.numeric(resp.matrix[k,]) -> combo.resp
-      t <- cbind(d2.doses.proxy, as.numeric(smooth(combo.resp, kind = "3R")), 
-                 rep(paste(round(drug1.doses[k],2), " ", d1, "; ",
-                           round(drug2.doses[k],2), " ", d2, sep=""), 
-                     length(combo.resp)), 
-                 rep(meta$pat, length(combo.resp)))
-      colnames(t) <- c("x", "y", "combo", "patient")
-      rbind(temp, t) -> temp
-    }
-    
     # TO DO: add additivity line; select from options
     # Loewe additivity: effect of a drug if it were combined with itself ye = y1(x1+x2), x1 & 2 are doses
     # HSA: min(y1, y2), i.e. highest monotherapy effect
     # Bliss: ye=y1+y2-y1y2
+    
     additivity.line <- NA
     if (additivity == "HSA"){
       apply(rbind(smooth(drug1.resp),
@@ -206,12 +196,42 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
       # fit individual drug responses to approximate the effect of doubling the dose
       addFit(drug1.doses, as.numeric(smooth(drug1.resp)), max(drug1.doses)) -> f1
       addFit(drug2.doses, as.numeric(smooth(drug2.resp)), max(drug2.doses)) -> f2
+      
+      # cross section based on drug with lower IC50 -- or do a default cross section
+      # through drug2 if the dr is with respect to drug1
       ff <- extractMax(f2$max)
       if (f1$logIC50 <= f2$logIC50){
         extractMax(f1$max) -> ff
+        # choose cross-sections based on the more active drug:
+        # cross-section through columns
+        for (k in 1:ncol(resp.matrix)){
+          as.numeric(resp.matrix[,k]) -> combo.resp
+          t <- cbind(d1.doses.proxy, as.numeric(smooth(combo.resp, kind = "3R")), 
+                     rep(paste(round(drug2.doses[k],2), " ", d2, "; ",
+                               round(drug1.doses[k],2), " ", d1, sep=""), 
+                         length(combo.resp)), 
+                     rep(meta$pat, length(combo.resp)))
+          colnames(t) <- c("x", "y", "combo", "patient")
+          rbind(temp, t) -> temp
+        }
+      } else {
+        # choose cross-sections based on the more active drug:
+        # cross-section through rows
+        for (k in 1:nrow(resp.matrix)){
+          as.numeric(resp.matrix[k,]) -> combo.resp
+          t <- cbind(d2.doses.proxy, as.numeric(smooth(combo.resp, kind = "3R")), 
+                     rep(paste(round(drug1.doses[k],2), " ", d1, "; ",
+                               round(drug2.doses[k],2), " ", d2, sep=""), 
+                         length(combo.resp)), 
+                     rep(meta$pat, length(combo.resp)))
+          colnames(t) <- c("x", "y", "combo", "patient")
+          rbind(temp, t) -> temp
+        }
       }
       
       max(c(drug2.doses, drug1.doses))/2^seq(1,9,by=1) -> sq
+      
+      
       
       # for each sq, check closest dose in fit
       sapply(sq, function(x){
