@@ -1020,8 +1020,8 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
                   smooth(drug2.resp)), 2, function(x) min(x)) -> additivity.line
     } else if (additivity == "Loewe"){
       # fit individual drug responses to approximate the effect of doubling the dose
-      addFit(drug1.doses, as.numeric(smooth(drug1.resp)), max(drug1.doses)) -> f1
-      addFit(drug2.doses, as.numeric(smooth(drug2.resp)), max(drug2.doses)) -> f2
+      suppressMessages(addFit(drug1.doses, as.numeric(smooth(drug1.resp)), max(drug1.doses))) -> f1
+      suppressMessages(addFit(drug2.doses, as.numeric(smooth(drug2.resp)), max(drug2.doses))) -> f2
       
       # cross section based on drug with lower IC50 -- or do a default cross section
       # through drug2 if the dr is with respect to drug1
