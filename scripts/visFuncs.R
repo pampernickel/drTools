@@ -822,6 +822,8 @@ visualizeControls <- function(controls){
 }
 
 plotFit <- function(exp.res, drug.list){
+  if (!is.loaded(gridExtra)) library(gridExtra)
+  
   for (i in 1:length(exp.res$res)){
     lapply(exp.res$res[[i]]$max,
            function(x) processMaxCurves(x)) -> resp
@@ -1102,5 +1104,6 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
       
     }
   }
-  return(all.combos)
+  p2 <- arrangeGrob(all.combos, ncol=ceiling(length(all.combos)/2), nrow=2)
+  print(p2)
 }
