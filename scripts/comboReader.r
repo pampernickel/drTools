@@ -115,6 +115,18 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
         }) -> combo.mats
         names(combo.mats) <- res.files
       }
+    } else {
+      # multiple combos per plate
+      # infoLines, meta, contents
+      sapply(infoLines[[1]], function(x)
+        sapply(strsplit(contents[[1]][x], "\t"), function(y) y[1])) -> drug.names
+      lapply(1:length(drug.names), function(x) getPlate(infoLines, contents, 1, x)) -> plates
+      
+      # check areas of overlaps between various plates; plate that overlaps with all other plates
+      # is the drug that's used in combination with everything else
+      sapply(plates, function(x) length(which(as.vector(x) %ni% ""))) -> cc
+      which(cc %in% max(cc)) -> mp # master plate
+      plates[[mp]] -> mp; plates[-mp] -> plates; drug.names[mp] -> md; drug.names[-mp] -> od
     }
   }
   return(combo.mats)
