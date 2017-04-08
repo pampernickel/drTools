@@ -275,13 +275,10 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
         geom_line(size=1)+
         scale_color_manual(values=c(cols[1], cols[length(cols)], cols[2:(length(cols)-1)]))+
         scale_x_log10()+
-        ylim(0, 200)
-      
+        ylim(0, 200) -> all.combos[[i]]
     } else if (additivity == "Bliss"){
       
     }
-    
-    temp -> all.combos[[i]]
   }
   return(all.combos)
 }
