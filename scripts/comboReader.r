@@ -134,35 +134,33 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
       
       # then for each of the n other plates, check areas of overlap bet p1.ind and the nth
       # plate, and create all.combos from these
-      lapply(1:length(plates), function(x){
-        plates[[x]] -> cp
-        which(cp != "", arr.ind = T) -> cp.ind
-        apply(p1.ind, 1, function(x) 
-          ifelse(x[1] %in% cp.ind[,1] && x[2] %in% cp.ind[,2], T, F)) -> o.1
-        apply(cp.ind, 1, function(x) 
-          ifelse(x[1] %in% p1.ind[,1] && x[2] %in% p1.ind[,2], T, F)) -> o.2
-        cp.ind[which(o.2 %in% T),] -> o.coords
-        
-        # now find where the content are d1.only and d2.only; in the case of d1
-        # find the borders of o.2
-        cp.ind[which(o.2 %in% F),] -> d2.only
-        
-        p1.ind[which(o.1 %in% F),] -> d1.only
-        cp.ind[which(o.2 %in% T)[1],] -> tl
-        cp.ind[which(o.2 %in% T)[length(which(o.2 %in% T))],] -> br
-        c(tl[1], br[2]) -> tr
-        
-        # then subtract one from both tl, tr
-        cbind(rep(c(tl[1]-1), length(tl[2]:tr[2])), 
-              tl[2]:tr[2]) -> temp
-        apply(d1.only, 1, function(x) 
-          ifelse(x[1] %in% temp[,1] && x[2] %in% temp[,2], T, F)) -> d1.c
-        d1.only[which(d1.c %in% T),] -> d1.only
-        
-        lapply(res.files, function(y){
-          read.csv(y, header=F) -> content
-          t(content) -> content
-          combo.mat <- list()
+      lapply(res.files, function(y){
+        read.csv(y, header=F) -> content
+        t(content) -> content
+        lapply(1:length(plates), function(x){
+          plates[[x]] -> cp
+          which(cp != "", arr.ind = T) -> cp.ind
+          apply(p1.ind, 1, function(x) 
+            ifelse(x[1] %in% cp.ind[,1] && x[2] %in% cp.ind[,2], T, F)) -> o.1
+          apply(cp.ind, 1, function(x) 
+            ifelse(x[1] %in% p1.ind[,1] && x[2] %in% p1.ind[,2], T, F)) -> o.2
+          cp.ind[which(o.2 %in% T),] -> o.coords
+          
+          # now find where the content are d1.only and d2.only; in the case of d1
+          # find the borders of o.2
+          cp.ind[which(o.2 %in% F),] -> d2.only
+          
+          p1.ind[which(o.1 %in% F),] -> d1.only
+          cp.ind[which(o.2 %in% T)[1],] -> tl
+          cp.ind[which(o.2 %in% T)[length(which(o.2 %in% T))],] -> br
+          c(tl[1], br[2]) -> tr
+          
+          # then subtract one from both tl, tr
+          cbind(rep(c(tl[1]-1), length(tl[2]:tr[2])), 
+                tl[2]:tr[2]) -> temp
+          apply(d1.only, 1, function(x) 
+            ifelse(x[1] %in% temp[,1] && x[2] %in% temp[,2], T, F)) -> d1.c
+          d1.only[which(d1.c %in% T),] -> d1.only
           
           as.numeric(as.character(mpl[d1.only])) -> d1.doses
           as.numeric(as.character(cp[d2.only])) -> d2.doses
@@ -189,11 +187,11 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
           colnames(mat_n) <- mat[1, 2:ncol(mat)]
           return(mat_n)
         }) -> res
-        names(res) <- sapply(strsplit(sapply(strsplit(res.files, "/"), 
-                                             function(x) x[length(x)]), "_"), function(y) y[1])
-        return(res)
+        paste(md, od, sep="_") -> names(res)  
       }) -> combo.mats
-      paste(md, od, sep="_") -> names(combo.mats)
+      names(combo.mats) <- sapply(strsplit(sapply(strsplit(res.files, "/"), 
+                                           function(x) x[length(x)]), "_"), function(y) y[1])
+      return(res)
     }
   }
   
