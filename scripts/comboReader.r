@@ -25,6 +25,7 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
     stop(paste("No files found in ", res.dir, ".", sep=""))
   }
   
+  combo.mats <- NA
   if (length(grep(".txt", files)) > 0 && mode=="normalized"){ # 
     lapply(files, function(x) suppressWarnings(readLines(x))) -> contents
     lapply(contents, function(x) c(grep("mM", x),grep("mL", x))) -> infoLines
@@ -140,6 +141,7 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
           ifelse(x[1] %in% cp.ind[,1] && x[2] %in% cp.ind[,2], T, F)) -> o.1
         apply(cp.ind, 1, function(x) 
           ifelse(x[1] %in% p1.ind[,1] && x[2] %in% p1.ind[,2], T, F)) -> o.2
+        cp.ind[which(o.2 %in% T),] -> o.coords
         
         # now find where the content are d1.only and d2.only; in the case of d1
         # find the borders of o.2
@@ -194,6 +196,7 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
       paste(md, od, sep="_") -> names(combo.mats)
     }
   }
+  
   return(combo.mats)
 }
 
