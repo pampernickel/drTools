@@ -184,9 +184,12 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
           100*mat_n/as.numeric(content[dmso[1],dmso[2]]) -> mat_n
           rownames(mat_n) <- mat[2:nrow(mat),1]
           colnames(mat_n) <- mat[1, 2:ncol(mat)]
-        
-        })
-      })
+          return(mat_n)
+        }) -> res
+        names(res) <- sapply(strsplit(sapply(strsplit(res.files, "/"), 
+                                             function(x) x[length(x)]), "_"), function(y) y[1])
+        return(res)
+      }) -> combo.mats
     }
   }
   return(combo.mats)
