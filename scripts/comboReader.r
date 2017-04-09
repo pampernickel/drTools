@@ -190,6 +190,7 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
                                              function(x) x[length(x)]), "_"), function(y) y[1])
         return(res)
       }) -> combo.mats
+      paste(md, od, sep="_") -> names(combo.mats)
     }
   }
   return(combo.mats)
