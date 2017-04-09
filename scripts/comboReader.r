@@ -147,6 +147,7 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
         
         p1.ind[which(o.1 %in% F),] -> d1.only
         cp.ind[which(o.2 %in% T)[1],] -> tl
+        cp.ind[which(o.2 %in% T)[length(which(o.2 %in% T))],] -> br
         c(tl[1], br[2]) -> tr
         
         # then subtract one from both tl, tr
