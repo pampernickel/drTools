@@ -188,10 +188,10 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
           return(mat_n)
         }) -> res
         paste(md, od, sep="_") -> names(res)  
+        return(res)
       }) -> combo.mats
       names(combo.mats) <- sapply(strsplit(sapply(strsplit(res.files, "/"), 
                                            function(x) x[length(x)]), "_"), function(y) y[1])
-      return(res)
     }
   }
   
