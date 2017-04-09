@@ -167,39 +167,21 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
           mat[1,1] <- "XX"
           mat[2:nrow(mat),1] <- c(d1.doses,0)
           mat[1,2:ncol(mat)] <- c(0,d2.doses)
-          
-          for (k in start:lims[j]){
-            mat[which(mat[,1] %in% p1[o.coords[k,1],o.coords[k,2]]),
-                which(mat[1,] %in% p2[o.coords[k,1],o.coords[k,2]])] <-
+          for (k in 1:nrow(o.coords)){
+            mat[which(mat[,1] %in% mpl[o.coords[k,1],o.coords[k,2]]),
+                which(mat[1,] %in% cp[o.coords[k,1],o.coords[k,2]])] <-
               content[o.coords[k,1],o.coords[k,2]]
           }
-          start <- lims[j]+1
           
           # fill content for single drug treatment
-          c(nrow(d1.only)/length(unique(d1.only[,2])),
-            nrow(d1.only)) -> lims.1
-          mat[2:(nrow(mat)-1),2] <- as.numeric(content[d1.only[c(start.1:lims.1[j]),1],
-                                                       unique(d1.only[c(start.1:lims.1[j]),2])])
-          mat[nrow(mat), 3:ncol(mat)] <- as.numeric(content[unique(d2.only[c(start.1:lims.1[j]),1]),
-                                                            d2.only[c(start.1:lims.1[j]),2]])
-          start.1 <- lims.1[j]+1
+          mat[2:(nrow(mat)-1),2] <- as.numeric(content[d1.only])
+          mat[nrow(mat), 3:ncol(mat)] <- as.numeric(content[d2.only])
           
-          # then get all contents that are NOT part of o.coords, d1.only or d2.only,
-          # which correspond with the DMSO-containing wells; the value here would be in the 0,0, and
-          # used in the normalization of the plate
-          rbind(o.coords, d1.only, d2.only) -> all.coords
-          which(content != 0, arr.ind = T) -> plate.coords
-          plate.coords[which(apply(plate.coords, 1, function(x)
-            x[1] %in% all.coords[,1] && x[2] %in% all.coords[,2]) %in% F),] -> dmso.coords
-          dmso.coords[order(dmso.coords[,1]),] -> dmso.coords
-          
-          # split dmso.coords as well
-          dmso.coords[which(dmso.coords[,1] %in% unique(dmso.coords[,1])[j]),] -> dmso.coords.sub
-          mean(apply(dmso.coords.sub, 1, function(x)
-            content[x[1],x[2]])) -> dmso.mean
-          mat[nrow(mat),2] <- dmso.mean
+          # then get the dmso-containing well
+          tl-1 -> dmso
+          content[dmso[1],dmso[2]] -> mat[which(mat[,1] %in% 0),which(mat[1,] %in% 0)]
           apply(mat[2:nrow(mat),2:ncol(mat)],2, function(y) as.numeric(as.character(y))) -> mat_n
-          100*mat_n/dmso.mean -> mat_n
+          100*mat_n/as.numeric(content[dmso[1],dmso[2]]) -> mat_n
           rownames(mat_n) <- mat[2:nrow(mat),1]
           colnames(mat_n) <- mat[1, 2:ncol(mat)]
         
