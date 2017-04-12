@@ -822,7 +822,7 @@ visualizeControls <- function(controls){
 }
 
 plotFit <- function(exp.res, drug.list){
-  if (!is.loaded(gridExtra)) library(gridExtra)
+  if (!is.loaded("gridExtra")) library(gridExtra)
   
   for (i in 1:length(exp.res$res)){
     lapply(exp.res$res[[i]]$max,
@@ -957,7 +957,7 @@ isDescending <- function(x){
 processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
   # prepare combos for visualization (double-plot)
   # flatten list, i.e. have all combo data frames in a single structure
-  #if (!is.loaded("gridExtra")) library(gridExtra)
+  if (!is.loaded("gridExtra")) library(gridExtra)
   
   unlist(combos, recursive = FALSE) -> cl
   
