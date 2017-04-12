@@ -63,7 +63,7 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
           
           length(unique(d1.only[,2])) -> no.combos
           c(nrow(o.coords)/no.combos, nrow(o.coords)) -> lims
-          start <- start.1 <- 1
+          start <- start.1 <- d.coord.s <- 1
           for (j in 1:no.combos){
             as.numeric(as.character(p1[d1.only[which(d1.only[,2] %in% 
                                                        unique(d1.only[,2])[j]),1],d1.only[j,2]])) -> d1.doses
@@ -98,10 +98,11 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
             which(content != 0, arr.ind = T) -> plate.coords
             plate.coords[which(apply(plate.coords, 1, function(x)
               x[1] %in% all.coords[,1] && x[2] %in% all.coords[,2]) %in% F),] -> dmso.coords
-            dmso.coords[order(dmso.coords[,1]),] -> dmso.coords
             
             # split dmso.coords as well
-            dmso.coords[which(dmso.coords[,1] %in% unique(dmso.coords[,1])[j]),] -> dmso.coords.sub
+            nrow(dmso.coords)/2 -> d.coords.e
+            dmso.coords[d.coord.s:d.coords.e,] -> dmso.coords.sub
+            d.coords.s <- d.coords.e+1
             mean(apply(dmso.coords.sub, 1, function(x)
               content[x[1],x[2]])) -> dmso.mean
             mat[nrow(mat),2] <- dmso.mean
