@@ -1112,3 +1112,11 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
   p2 <- marrangeGrob(all.combos, ncol=ceiling(length(all.combos)/2), nrow=2)
   print(p2)
 }
+
+isDescending <- function(x){
+  res <- F
+  if (all(diff(x) >= 0) == F){
+    res <- T
+  }
+  return(res)
+}
