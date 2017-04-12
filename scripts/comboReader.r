@@ -101,7 +101,7 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
             
             # split dmso.coords as well
             nrow(dmso.coords)/2 -> d.coords.e
-            dmso.coords[d.coords.s:(d.coord.s+d.coords.e),] -> dmso.coords.sub
+            dmso.coords[d.coords.s:(d.coords.s+d.coords.e),] -> dmso.coords.sub
             d.coords.s <- d.coords.e
             mean(apply(dmso.coords.sub, 1, function(x)
               content[x[1],x[2]])) -> dmso.mean
