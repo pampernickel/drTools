@@ -946,6 +946,15 @@ plotComparison <- function(df.sum, xlab, ylab){
     xlab(xlab)+ylab(ylab)
 }
 
+
+isDescending <- function(x){
+  res <- F
+  if (all(diff(x) >= 0) == F){
+    res <- T
+  }
+  return(res)
+}
+
 processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
   # prepare combos for visualization (double-plot)
   # flatten list, i.e. have all combo data frames in a single structure
@@ -1111,12 +1120,4 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
   }
   p2 <- marrangeGrob(all.combos, ncol=ceiling(length(all.combos)/2), nrow=2)
   print(p2)
-}
-
-isDescending <- function(x){
-  res <- F
-  if (all(diff(x) >= 0) == F){
-    res <- T
-  }
-  return(res)
 }
