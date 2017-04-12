@@ -946,7 +946,6 @@ plotComparison <- function(df.sum, xlab, ylab){
     xlab(xlab)+ylab(ylab)
 }
 
-
 isDescending <- function(x){
   res <- F
   if (all(diff(x) >= 0) == F){
@@ -958,7 +957,7 @@ isDescending <- function(x){
 processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
   # prepare combos for visualization (double-plot)
   # flatten list, i.e. have all combo data frames in a single structure
-  if (!is.loaded("gridExtra")) library(gridExtra)
+  #if (!is.loaded("gridExtra")) library(gridExtra)
   
   unlist(combos, recursive = FALSE) -> cl
   
