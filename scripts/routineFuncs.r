@@ -1,5 +1,6 @@
-`%ni%` <- Negate(`%in%`)
 library(RCurl)
+
+`%ni%` <- Negate(`%in%`)
 
 isDescending <- function(x){
   res <- F
