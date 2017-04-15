@@ -110,16 +110,38 @@ readXML <- function(files){
     y <- xmlToList(xmlRoot(xmlParse(x)))
     # y[[6]]$.attrs : "Tabular detail"
     names(y[[6]]$Table) -> fields
-    sapply(18:length(fields), function(z)
-      sapply(1:length(y[[6]]$Table[[z]]@.Data),
-             function(a) y[[6]]$Table[[z]]@.Data[[a]]$Data$text))
-    
     sapply(18:length(fields), function(z) unlist(y[[6]]$Table[[z]]@.Data)) -> t
     t[[1]] -> col.names
     as.character(col.names[which(names(col.names) %in% "Cell.Data.text")]) -> col.names
-    sapply(t[2:length(t)], function(z) 
+    sapply(t, function(z) 
       as.character(z[which(names(z) %in% "Cell.Data.text")])) -> content
-    # y[[6]]$Table[[498]]@.Data[[3]]$Data$text
+    sapply(t, function(z) 
+      as.character(z[which(names(z) %in% "Cell.Data..attrs.Type")])) -> dt # datatype
+    
+    
+    # col.names represents the typical number of columns; if the number of files == 1
+    # expect the field "Plate ID" to be blank
+    if (length(files) == 1){
+      ncols <- length(col.names)-1
+      # then use start time column to adjust the positions of content that do not have the same
+      # length as ncols
+      which(sapply(content[2:length(content)], function(z) length(z) == ncols) %in% F)+1 -> ind
+      which(sapply(content[2:length(content)], function(z) length(z) == ncols) %in% T)[2] -> ref
+      for (i in 1:length(ind)){
+        # adjust contents of ind to match dt[[ref]]
+        res <- rep(F, length(dt[[ind[i]]]))
+        for (j in 1:length(dt[[ind[i]]])){
+          if (dt[[ref]][j] == dt[[ind[i]]][j]){
+            res[j] <- T
+          }
+        }
+        c(content[[ind[i]]][1:(which(res %in% F)[1]-1)], "", 
+          content[[ind[i]]][which(res %in% F)]) -> content[[ind[i]]]
+      }
+    }
+    t(as.data.frame(content[2:length(content)])) -> df
+    rownames(df) <- 1:nrow(df)
+    colnames(df) <- col.names[2:length(col.names)]
   })  
 }
 
