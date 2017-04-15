@@ -143,6 +143,7 @@ readXML <- function(files){
     t(as.data.frame(content[2:length(content)])) -> df
     rownames(df) <- 1:nrow(df)
     colnames(df) <- col.names[2:length(col.names)]
+    as.data.frame(df) -> df
     return(df)
   }) -> df
   return(df)
