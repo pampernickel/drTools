@@ -13,7 +13,8 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
   unlist(strsplit(dir, "/")) -> dir.name
   
   c(list.files(path = dir, pattern = ".txt", recursive=TRUE, full.names = TRUE), 
-    list.files(path = dir, pattern = ".csv", recursive=TRUE, full.names = TRUE)) -> files  
+    list.files(path = dir, pattern = ".csv", recursive=TRUE, full.names = TRUE),
+    list.files(path = dir, pattern = ".xml", recursive=TRUE, full.names = TRUE)) -> files  
   c(list.files(path = res.dir, pattern = ".txt", recursive=TRUE, full.names = TRUE), 
     list.files(path = res.dir, pattern = ".csv", recursive=TRUE, full.names = TRUE)) -> res.files
   
@@ -26,7 +27,10 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
   }
   
   combo.mats <- NA
-  if (length(grep(".txt", files)) > 0 && mode=="normalized"){ # 
+  if (length(grep(".xml", files)) > 0){
+    # pass to an xml reader internally
+    readXML(files) -> layout
+  } else if (length(grep(".txt", files)) > 0 && mode=="normalized"){ # 
     lapply(files, function(x) suppressWarnings(readLines(x))) -> contents
     lapply(contents, function(x) c(grep("mM", x),grep("mL", x))) -> infoLines
     lapply(infoLines, function(x) sort(x)) -> infoLines
