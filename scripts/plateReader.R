@@ -121,6 +121,7 @@ readXML <- function(files){
     
     # col.names represents the typical number of columns; if the number of files == 1
     # expect the field "Plate ID" to be blank
+    df <- NA
     if (length(files) == 1){
       ncols <- length(col.names)-1
       # then use start time column to adjust the positions of content that do not have the same
@@ -142,7 +143,9 @@ readXML <- function(files){
     t(as.data.frame(content[2:length(content)])) -> df
     rownames(df) <- 1:nrow(df)
     colnames(df) <- col.names[2:length(col.names)]
-  })  
+    return(df)
+  }) -> df
+  return(df)
 }
 
 getFiles <- function(dir){
