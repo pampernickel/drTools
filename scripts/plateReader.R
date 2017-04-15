@@ -89,6 +89,40 @@ readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   return(meta1)
 }
 
+getNode <- function(x, tag){
+  # get year of publication
+  # 'tag' is an xml tag, e.g. 
+  getNodeSet(x, tag) -> ret
+  if (class(ret) %in% "XMLNodeSet" &&
+      length(ret) > 0){
+    sapply(ret, function(y) xmlValue(y)) -> ret
+  } else {
+    ret <- NA
+  }
+  return(ret)
+}
+
+
+readXML <- function(files){
+  if (!is.loaded("XML")) require(XML)
+  
+  lapply(files, function(x){
+    y <- xmlToList(xmlRoot(xmlParse(x)))
+    # y[[6]]$.attrs : "Tabular detail"
+    names(y[[6]]$Table) -> fields
+    sapply(18:length(fields), function(z)
+      sapply(1:length(y[[6]]$Table[[z]]@.Data),
+             function(a) y[[6]]$Table[[z]]@.Data[[a]]$Data$text))
+    
+    sapply(18:length(fields), function(z) unlist(y[[6]]$Table[[z]]@.Data)) -> t
+    t[[1]] -> col.names
+    as.character(col.names[which(names(col.names) %in% "Cell.Data.text")]) -> col.names
+    sapply(t[2:length(t)], function(z) 
+      as.character(z[which(names(z) %in% "Cell.Data.text")])) -> content
+    # y[[6]]$Table[[498]]@.Data[[3]]$Data$text
+  })  
+}
+
 getFiles <- function(dir){
   #print(paste("Checking directory ", dir, "...", sep=""))
   
