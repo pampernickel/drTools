@@ -4,7 +4,6 @@
 # Layout processing functions
 #@...
 
-
 readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   # function that returns a list of length n, where
   # n corresponds to the number of drugs on the plate + one slot for the control
@@ -108,45 +107,59 @@ readXML <- function(files){
   
   lapply(files, function(x){
     y <- xmlToList(xmlRoot(xmlParse(x)))
-    # y[[6]]$.attrs : "Tabular detail"
-    names(y[[6]]$Table) -> fields
-    sapply(18:length(fields), function(z) unlist(y[[6]]$Table[[z]]@.Data)) -> t
-    t[[1]] -> col.names
-    as.character(col.names[which(names(col.names) %in% "Cell.Data.text")]) -> col.names
-    sapply(t, function(z) 
-      as.character(z[which(names(z) %in% "Cell.Data.text")])) -> content
-    sapply(t, function(z) 
-      as.character(z[which(names(z) %in% "Cell.Data..attrs.Type")])) -> dt # datatype
     
+    # Dispensed conc. table; parse composite
+    names(y[[7]]$Table) -> fields
+    sapply(26:length(fields), function(z) unlist(y[[7]]$Table[[z]]@.Data)) -> t
     
-    # col.names represents the typical number of columns; if the number of files == 1
-    # expect the field "Plate ID" to be blank
-    df <- NA
-    if (length(files) == 1){
-      ncols <- length(col.names)-1
-      # then use start time column to adjust the positions of content that do not have the same
-      # length as ncols
-      which(sapply(content[2:length(content)], function(z) length(z) == ncols) %in% F)+1 -> ind
-      which(sapply(content[2:length(content)], function(z) length(z) == ncols) %in% T)[2] -> ref
-      for (i in 1:length(ind)){
-        # adjust contents of ind to match dt[[ref]]
-        res <- rep(F, length(dt[[ind[i]]]))
-        for (j in 1:length(dt[[ind[i]]])){
-          if (dt[[ref]][j] == dt[[ind[i]]][j]){
-            res[j] <- T
-          }
-        }
-        c(content[[ind[i]]][1:(which(res %in% F)[1]-1)], "", 
-          content[[ind[i]]][which(res %in% F)]) -> content[[ind[i]]]
-      }
-    }
-    t(as.data.frame(content[2:length(content)])) -> df
-    rownames(df) <- 1:nrow(df)
-    colnames(df) <- col.names[2:length(col.names)]
-    as.data.frame(df) -> df
+    # get everything with two fluids mark
+    which(sapply(t, function(x) length(which(names(x) %in% "Cell.Data.text"))) == 1) -> breaks
+    breaks[which(diff(breaks) %in% max(diff(breaks)))]+1 -> s
+    breaks[which(diff(breaks) %in% max(diff(breaks)))+1]-1 -> e
+    t[s:e] -> cells
+    getCoords(cells) -> coords
+    
     return(df)
   }) -> df
   return(df)
+}
+
+getCoords <- function(cells){
+  # 'cells' is a list of xml contents from the dispensed conc. tab from the TECAN
+  # drug printer
+  lapply(cells, function(x) x[which(names(x) %in% "Cell.Data.text")]) -> contents
+  sapply(contents, function(x) match(x[1], LETTERS)) -> rows
+  sapply(cells, function(x) as.numeric(x[which(names(x) %in% "Cell..attrs.Index")])) -> cols
+  lapply(cols, function(x){
+    # split at point where diff 
+    list(x[1:which(diff(x) > 1)],
+         x[(which(diff(x) > 1)+1):length(x)])
+  }) -> cols
+  
+  # get fluid locs
+  which(sapply(cells, function(x) 
+    length(grep("Fluids", x))) != 0) -> lf
+  sapply(contents, function(x) 
+    as.numeric(x[which(!is.na(as.numeric(x)))])) -> doses
+  sapply(doses[lf], function(x) 
+    lapply(x, function(y) y[1])) -> s1.doses # sets of drug 1 doses for x patients on a plate
+  
+  # drug 2
+  doses[[setdiff(1:length(cells), lf)[1]]] -> d2
+  doses[[setdiff(1:length(cells), lf)[2]]] -> d3
+  
+  if (length(unique(d3)) == 1){
+    setdiff(1:length(cells), lf)[2] -> dmso.row
+    d2.fin <- d2
+  } else {
+    setdiff(1:length(cells), lf)[1] -> dmso.row
+    d2.fin <- d3
+  }
+  
+  lapply(1:length(cols[[1]]), function(y) 
+      as.numeric(d2.fin[1:(length(cols[[1]][[y]])-1)])) -> d2.all
+    
+  
 }
 
 getFiles <- function(dir){
