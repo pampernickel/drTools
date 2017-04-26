@@ -118,10 +118,9 @@ readXML <- function(files){
     breaks[which(diff(breaks) %in% max(diff(breaks)))+1]-1 -> e
     t[s:e] -> cells
     getCoords(cells) -> coords
-    
-    return(df)
-  }) -> df
-  return(df)
+    return(coords)
+  }) -> coords
+  return(coords)
 }
 
 getCoords <- function(cells){
@@ -131,9 +130,9 @@ getCoords <- function(cells){
   sapply(contents, function(x) match(x[1], LETTERS)) -> rows
   sapply(cells, function(x) as.numeric(x[which(names(x) %in% "Cell..attrs.Index")])) -> cols
   lapply(cols, function(x){
-    # split at point where diff 
-    list(x[1:which(diff(x) > 1)],
-         x[(which(diff(x) > 1)+1):length(x)])
+    # split at point where diff: might be different in gamze type of combos
+    list(x[1:which(diff(x) > 1)]-1,
+         x[(which(diff(x) > 1)+1):length(x)]-1)
   }) -> cols
   
   # get fluid locs
@@ -141,8 +140,8 @@ getCoords <- function(cells){
     length(grep("Fluids", x))) != 0) -> lf
   sapply(contents, function(x) 
     as.numeric(x[which(!is.na(as.numeric(x)))])) -> doses
-  sapply(doses[lf], function(x) 
-    lapply(x, function(y) y[1])) -> s1.doses # sets of drug 1 doses for x patients on a plate
+  t(sapply(doses[lf], function(x) 
+    sapply(x, function(y) y[1]))) -> s1.doses # sets of drug 1 doses for x patients on a plate
   
   # drug 2
   doses[[setdiff(1:length(cells), lf)[1]]] -> d2
@@ -158,8 +157,13 @@ getCoords <- function(cells){
   
   lapply(1:length(cols[[1]]), function(y) 
       as.numeric(d2.fin[1:(length(cols[[1]][[y]])-1)])) -> d2.all
-    
-  
+  rows[dmso.row] -> dmso.row
+  rows[which(rows %ni% dmso.row)] -> rows
+  #lapply(1:length(cols[[1]]), function(y) 
+  #  as.numeric(doses[[dmso.row]][1:(length(cols[[1]][[y]])-1)])) -> dmso.all
+  list(rows, cols, dmso.row, s1.doses, d2.all) -> res
+  names(res) <- c("rows", "columns", "dmso.row", "d1.mat", "d2.list")
+  return(res)
 }
 
 getFiles <- function(dir){
