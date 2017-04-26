@@ -29,7 +29,8 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
   combo.mats <- NA
   if (length(grep(".xml", files)) > 0){
     # pass to an xml reader internally
-    readXML(files) -> layout
+    readXML(files) -> coords
+    readFile(coords, res.files) -> combo.mats
   } else if (length(grep(".txt", files)) > 0 && mode=="normalized"){ # 
     lapply(files, function(x) suppressWarnings(readLines(x))) -> contents
     lapply(contents, function(x) c(grep("mM", x),grep("mL", x))) -> infoLines
@@ -202,6 +203,39 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
   }
   
   return(combo.mats)
+}
+
+readFile <- function(coords, res.files){
+  t(read.csv(res.files, header=F)) -> f
+  # create mat based on d2.list, coords[[i]]$d1.mat[,i]
+  df <- list()
+  for (i in 1:length(coords)){
+    df.sub <- matrix(0, nrow=(length(coords[[i]]$rows)),
+                     ncol=(length(coords[[i]]$columns[[i]][[1]])))
+    for (j in 1:length(coords[[i]]$columns[[1]])){
+      f[coords[[i]]$rows,coords[[i]]$columns[[i]][[j]]] -> df.sub
+      f[coords[[i]]$dmso.row,coords[[i]]$columns[[i]][[j]]] -> dmsos
+      
+      # append rownames as doses and columns
+      if (isDescending(coords[[i]]$d1.mat[,i])){
+       c(coords[[i]]$d1.mat[,i], 0) -> rn 
+      } else {
+        c(0, coords[[i]]$d1.mat[,i]) -> rn 
+      }
+      
+      if (isDescending(coords[[i]]$d2.list[[j]])){
+        c(coords[[i]]$d2.list[[j]], 0) -> cn 
+      } else {
+        c(0, coords[[i]]$d2.list[[j]]) -> cn 
+      }
+      
+      rn -> rownames(df.sub)
+      cn -> colnames(df.sub)
+      df.sub/mean(dmsos) -> df.sub
+      df.sub -> df[[j]]
+    }
+  }
+  return(df)
 }
 
 calcCI <- function(combos){
