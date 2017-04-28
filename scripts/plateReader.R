@@ -108,61 +108,89 @@ readXML <- function(files){
   lapply(files, function(x){
     y <- xmlToList(xmlRoot(xmlParse(x)))
     
-    # Dispensed conc. table; parse composite
-    names(y[[7]]$Table) -> fields
-    sapply(26:length(fields), function(z) unlist(y[[7]]$Table[[z]]@.Data)) -> t
+    # Revert to parsing Tabular detail table
+    names(y[[6]]$Table) -> fields
+    sapply(which(fields %in% "Row")[1]:length(fields), function(z) 
+      unlist(y[[6]]$Table[[z]]@.Data)) -> t
+      
+    t[[1]] -> col.names
+    as.character(col.names[which(names(col.names) %in% "Cell.Data.text")]) -> col.names
+    sapply(t, function(z) 
+      as.character(z[which(names(z) %in% "Cell.Data.text")])) -> content  
+    sapply(t, function(z) 
+      as.character(z[which(names(z) %in% "Cell.Data..attrs.Type")])) -> dt
+    unique(unlist(sapply(content, function(x) length(x)))) -> cc
     
-    # get everything with two fluids mark
-    which(sapply(t, function(x) length(which(names(x) %in% "Cell.Data.text"))) == 1) -> breaks
-    breaks[which(diff(breaks) %in% max(diff(breaks)))]+1 -> s
-    breaks[which(diff(breaks) %in% max(diff(breaks)))+1]-1 -> e
-    t[s:e] -> cells
-    getCoords(cells) -> coords
+    # general case where plates do not have a plateID:
+    # Use start time column to adjust the positions of content that do not have the same
+    # length as ncols
+    ncols <- length(col.names)-1
+    which(sapply(content[2:length(content)], function(z) length(z) == ncols) %in% F)+1 -> ind
+    if (length(ind) > 0){
+      which(sapply(content[2:length(content)], function(z) length(z) == ncols) %in% T)[2] -> ref
+      for (i in 1:length(ind)){
+        # adjust contents of ind to match dt[[ref]]
+        res <- rep(F, length(dt[[ind[i]]]))
+        for (j in 1:length(dt[[ind[i]]])){
+          if (dt[[ref]][j] == dt[[ind[i]]][j]){
+            res[j] <- T
+          }
+        }
+        c(content[[ind[i]]][1:(which(res %in% F)[1]-1)], "", 
+          content[[ind[i]]][which(res %in% F)]) -> content[[ind[i]]]
+      }
+      t(as.data.frame(content[2:length(content)])) -> df
+    } else {
+      do.call("rbind.data.frame", content[2:length(content)]) -> df
+    }
+    colnames(df) <- col.names[2:length(col.names)]
+    
+    getCoords(df) -> coords
+    # # Dispensed conc. table; parse composite
+    # names(y[[7]]$Table) -> fields
+    # sapply(26:length(fields), function(z) unlist(y[[7]]$Table[[z]]@.Data)) -> t
+    # 
+    # # get everything with two fluids mark
+    # which(sapply(t, function(x) length(which(names(x) %in% "Cell.Data.text"))) == 1) -> breaks
+    # breaks[which(diff(breaks) %in% max(diff(breaks)))]+1 -> s
+    # breaks[which(diff(breaks) %in% max(diff(breaks)))+1]-1 -> e
+    # t[s:e] -> cells
+    # getCoords(cells) -> coords
     return(coords)
   }) -> coords
   return(coords)
 }
 
-getCoords <- function(cells){
-  # 'cells' is a list of xml contents from the dispensed conc. tab from the TECAN
-  # drug printer
-  lapply(cells, function(x) x[which(names(x) %in% "Cell.Data.text")]) -> contents
-  sapply(contents, function(x) match(x[1], LETTERS)) -> rows
-  sapply(cells, function(x) as.numeric(x[which(names(x) %in% "Cell..attrs.Index")])) -> cols
-  lapply(cols, function(x){
-    # split at point where diff: might be different in gamze type of combos
-    list(x[1:which(diff(x) > 1)]-1,
-         x[(which(diff(x) > 1)+1):length(x)]-1)
-  }) -> cols
-  
-  # get fluid locs
-  which(sapply(cells, function(x) 
-    length(grep("Fluids", x))) != 0) -> lf
-  sapply(contents, function(x) 
-    as.numeric(x[which(!is.na(as.numeric(x)))])) -> doses
-  t(sapply(doses[lf], function(x) 
-    sapply(x, function(y) y[1]))) -> s1.doses # sets of drug 1 doses for x patients on a plate
-  
-  # drug 2
-  doses[[setdiff(1:length(cells), lf)[1]]] -> d2
-  doses[[setdiff(1:length(cells), lf)[2]]] -> d3
-  
-  if (length(unique(d3)) == 1){
-    setdiff(1:length(cells), lf)[2] -> dmso.row
-    d2.fin <- d2
-  } else {
-    setdiff(1:length(cells), lf)[1] -> dmso.row
-    d2.fin <- d3
-  }
-  
-  lapply(1:length(cols[[1]]), function(y) 
-      as.numeric(d2.fin[1:(length(cols[[1]][[y]])-1)])) -> d2.all
-  rows[dmso.row] -> dmso.row
-  rows[which(rows %ni% dmso.row)] -> rows
-  #lapply(1:length(cols[[1]]), function(y) 
-  #  as.numeric(doses[[dmso.row]][1:(length(cols[[1]][[y]])-1)])) -> dmso.all
-  list(rows, cols, dmso.row, s1.doses, d2.all) -> res
-  names(res) <- c("rows", "columns", "dmso.row", "d1.mat", "d2.list")
+getCoords <- function(df){
+  # 'df' is a parsed version of the "tabular detail" table of
+  # the TECAN xml file
+  lapply(unique(df$Plate), function(x){
+    df[which(df$Plate %in% x),] -> sub
+    
+    # identify drugs
+    names(table(sub$`Fluid name`))[which(table(sub$`Fluid name`) > 0)] -> drugs
+    
+    # get DMSO coords
+    sub$`Dispensed\nrow`[which(sub$`Fluid name` %in% "DMSO")] -> drow
+    sub$`Dispensed\ncol`[which(sub$`Fluid name` %in% "DMSO")] -> dcol
+    
+    # then identify cells in the plate that have more than one fluid
+    sub[which(sub$`Dispensed\nwell` %in% 
+            sub$`Dispensed\nwell`[which(duplicated(sub$`Dispensed\nwell`))]),] -> combocoords
+    
+    # figure out combos, then get coords for these combos separately
+    names(table(combocoords$`Fluid name`))[which(table(combocoords$`Fluid name`) > 0)] -> all.drugs
+    if (mod(length(all.drugs), 2) > 0){
+      # odd combo, where one drug is used more than once; find drug used more than once
+      md <- names(table(combocoords$`Fluid name`))[which(table(combocoords$`Fluid name`) %in% 
+                                                     max(table(combocoords$`Fluid name`)))]
+      od <- setdiff(all.drugs, md)
+    } else if (mod(length(all.drugs), 2) == 0) {
+      # even combo
+      
+    }
+  }) -> res
+  names(res) <- unique(df$Plate)
   return(res)
 }
 
