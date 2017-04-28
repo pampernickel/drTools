@@ -185,6 +185,26 @@ getCoords <- function(df){
       md <- names(table(combocoords$`Fluid name`))[which(table(combocoords$`Fluid name`) %in% 
                                                      max(table(combocoords$`Fluid name`)))]
       od <- setdiff(all.drugs, md)
+      cbind(rep(md, length(od)), od) -> combos
+      colnames(combos) <- c("drug1", "drug2")
+      
+      # get single drug coords and borders between multiple combos on a single plate
+      
+      apply(combos, 1, function(y){
+        d1c <- which(sub$`Fluid name` %in% y[1])
+        d2c <- which(sub$`Fluid name` %in% y[2])
+        
+        # check closest coords of d1 to d2
+        sub[c(d2c, d1c[which(d1c %in% c(d2c+1, d2c-1))]),] -> full.coords
+        min(as.character(full.coords$`Dispensed\nwell`)) -> lhc
+        max(as.character(full.coords$`Dispensed\nwell`)) -> rhc
+        as.numeric(as.character(full.coords$`Dispensed\nrow`)) -> full.coords$`Dispensed\nrow`
+        as.numeric(as.character(full.coords$`Dispensed\ncol`)) -> full.coords$`Dispensed\ncol`
+        rows <- c(full.coords$`Dispensed\nrow`[which(full.coords$`Dispensed\nwell` %in% lhc)]:
+                  full.coords$`Dispensed\nrow`[which(full.coords$`Dispensed\nwell` %in% rhc)])
+        cols <- c(full.coords$`Dispensed\ncol`[which(full.coords$`Dispensed\nwell` %in% lhc)]:
+                  full.coords$`Dispensed\ncol`[which(full.coords$`Dispensed\nwell` %in% rhc)])
+      })      
     } else if (mod(length(all.drugs), 2) == 0) {
       # even combo
       
