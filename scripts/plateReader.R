@@ -174,16 +174,19 @@ getCoords <- function(df){
     as.numeric(as.character(sub$`Dispensed\nrow`[which(sub$`Fluid name` %in% "DMSO")])) -> drow
     as.numeric(as.character(sub$`Dispensed\ncol`[which(sub$`Fluid name` %in% "DMSO")])) -> dcol
     
-    # then identify cells in the plate that have more than one fluid
-    sub[which(sub$`Dispensed\nwell` %in% 
-            sub$`Dispensed\nwell`[which(duplicated(sub$`Dispensed\nwell`))]),] -> combocoords
-    
+    # iterate through sub and determine if it contains a single drug or a combination
+    sapply(unique(sub$`Dispensed\nwell`), function(y) 
+      paste(sub$`Fluid name`[which(sub$`Dispensed\nwell` %in% y)], collapse="_")) -> conts
+    #sub[which(sub$`Dispensed\nwell` %in% 
+    #        sub$`Dispensed\nwell`[which(duplicated(sub$`Dispensed\nwell`))]),] -> combocoords
+
     # figure out combos, then get coords for these combos separately
-    names(table(combocoords$`Fluid name`))[which(table(combocoords$`Fluid name`) > 0)] -> all.drugs
+    names(table(sub$`Fluid name`))[which(table(sub$`Fluid name`) > 0)] -> all.drugs
+    all.drugs[which(all.drugs %ni% "DMSO")] -> all.drugs
     if (mod(length(all.drugs), 2) > 0){
       # odd combo, where one drug is used more than once; find drug used more than once
-      md <- names(table(combocoords$`Fluid name`))[which(table(combocoords$`Fluid name`) %in% 
-                                                     max(table(combocoords$`Fluid name`)))]
+      md <- names(table(sub$`Fluid name`))[which(table(sub$`Fluid name`) %in% 
+                                                     max(table(sub$`Fluid name`)))]
       od <- setdiff(all.drugs, md)
       cbind(rep(md, length(od)), od) -> combos
       colnames(combos) <- c("drug1", "drug2")
@@ -199,8 +202,10 @@ getCoords <- function(df){
                       which(sub$`Fluid name` %in% y)),] -> full.coords
         as.numeric(as.character(full.coords$`Dispensed\nrow`)) -> full.coords$`Dispensed\nrow`
         as.numeric(as.character(full.coords$`Dispensed\ncol`)) -> full.coords$`Dispensed\ncol`
+        
         min(as.character(full.coords$`Dispensed\nwell`)) -> lhc
         max(as.character(full.coords$`Dispensed\nwell`)) -> rhc
+        
         rows <- c(unique(full.coords$`Dispensed\nrow`[which(full.coords$`Dispensed\nwell` %in% lhc)]):
                     unique(full.coords$`Dispensed\nrow`[which(full.coords$`Dispensed\nwell` %in% rhc)]))
         cols <- c(unique(full.coords$`Dispensed\ncol`[which(full.coords$`Dispensed\nwell` %in% lhc)]):
