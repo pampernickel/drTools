@@ -204,6 +204,16 @@ getCoords <- function(df){
                   full.coords$`Dispensed\nrow`[which(full.coords$`Dispensed\nwell` %in% rhc)])
         cols <- c(full.coords$`Dispensed\ncol`[which(full.coords$`Dispensed\nwell` %in% lhc)]:
                   full.coords$`Dispensed\ncol`[which(full.coords$`Dispensed\nwell` %in% rhc)])
+        # combo1[rows,cols]: all contents, including single-drug combos in this setup
+        
+        # find single drug coordinates
+        intersect(which(sub$`Dispensed\nwell` %ni% 
+                sub$`Dispensed\nwell`[which(duplicated(sub$`Dispensed\nwell`))]),
+                which(sub$`Fluid name` %in% y))-> sds
+        # sub$`Dispensed\nwell`[sds]
+        sub$`Dispensed\nrow`[sds]
+        sub$`Dispensed\ncol`[sds]
+        
       })      
     } else if (mod(length(all.drugs), 2) == 0) {
       # even combo
