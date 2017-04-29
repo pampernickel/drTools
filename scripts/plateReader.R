@@ -276,6 +276,15 @@ getCoords <- function(df){
   # are in different columns in the same row (possible for the single- or multiple-
   # patient case) or in different rows in the same column (possible for the single- or multiple-
   # patient case)
+  if (length(unique(drow)) == 1){
+    
+  } else if (length(unique(dcol)) == 1){
+    if (length(drow) == length(d1doses)){
+      
+    } else {
+      
+    }
+  }
   
   res <- list(list(rows, cols), list(drow, dcol), 
               list(d1r, d1c), list(d2r, d2c), as.character(y[1]), as.character(y[2]),
@@ -288,7 +297,6 @@ getCoords <- function(df){
 
 getFiles <- function(dir){
   #print(paste("Checking directory ", dir, "...", sep=""))
-  
   #list.files(path=dir, full.names=T) -> f
   c(list.files(path = dir, pattern = ".txt", recursive=TRUE, full.names = TRUE), 
     list.files(path = dir, pattern = ".csv", recursive=TRUE, full.names = TRUE)) -> files
