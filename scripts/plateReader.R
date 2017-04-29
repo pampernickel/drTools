@@ -209,7 +209,7 @@ getCoords <- function(df){
       
       # get single drug coords and borders between multiple combos on a single plate
       apply(combos, 1, function(y){
-        .getCoords(sub, y, drow, dcol) -> res
+        .getCoords(sub, y, drow, dcol, mod(length(all.drugs))) -> res
       }) -> res
       names(res) <- apply(combos, 1, function(y) paste(y, collapse="_"))
     } else if (mod(length(all.drugs), 2) == 0) {
@@ -218,7 +218,7 @@ getCoords <- function(df){
       # to figure out all combos
       strsplit(unique(conts[grep("_", conts)]), "_") -> all.c
       lapply(all.c, function(y){
-        .getCoords(sub, y, drow, dcol) -> res
+        .getCoords(sub, y, drow, dcol, mod(length(all.drugs))) -> res
       }) -> res
       names(res) <- apply(all.c, 1, function(y) paste(y, collapse="_"))
     }
@@ -228,7 +228,7 @@ getCoords <- function(df){
   return(res)
 }
 
-.getCoords <- function(sub, y, drow, dcol){
+.getCoords <- function(sub, y, drow, dcol, mode){
   cc <- unique(sub$`Dispensed\nwell`)[which(conts %in% c(paste(y, collapse="_"),
                                                          paste(y[2], y[1], sep="_")))]
   cc <- which(sub$`Dispensed\nwell` %in% cc)
@@ -244,11 +244,45 @@ getCoords <- function(df){
   min(as.character(full.coords$`Dispensed\nwell`)) -> lhc
   max(as.character(full.coords$`Dispensed\nwell`)) -> rhc
   
+  
   # then restrict full.coords futher to those within the lhc, rhc limits
   rows <- c(unique(full.coords$`Dispensed\nrow`[which(full.coords$`Dispensed\nwell` %in% lhc)]):
               unique(full.coords$`Dispensed\nrow`[which(full.coords$`Dispensed\nwell` %in% rhc)]))
   cols <- c(unique(full.coords$`Dispensed\ncol`[which(full.coords$`Dispensed\nwell` %in% lhc)]):
               unique(full.coords$`Dispensed\ncol`[which(full.coords$`Dispensed\nwell` %in% rhc)]))
+  
+  # check if there are breaks, i.e. cells where no fluid was dispensed within the area
+  # bound by lhc and rhc
+  gsub("[[:digit:]]","",lhc) -> sr
+  as.numeric(gsub("[[:alpha:]]","",lhc)) -> srn
+  gsub("[[:digit:]]","",rhc) -> er
+  as.numeric(gsub("[[:alpha:]]","",rhc)) -> ern
+  
+  # generate all intermediates and check if there are blank spaces
+  match(sr, LETTERS) -> srr
+  match(er, LETTERS) -> err
+  
+  LETTERS[srr:err] -> rlet
+  unlist(lapply(rlet, function(y) c(paste(y, "0", c(srn:ern)[which(c(srn:ern) < 10)], sep=""),
+                             paste(y, c(srn:ern)[which(c(srn:ern) >= 10)], sep="")))) -> cells
+  cells[which(cells %ni% full.coords$`Dispensed\nwell`)] -> breaks
+  
+  if (mode == 0){
+    # case of multiple patients for a single
+    # combination
+    if (length(cols) != length(rows) && 
+        (length(rows)/length(cols) <= 0.5 | 
+         length(cols)/length(rows) >= 2.5)){
+      # one drug dose is much longer than another drug dose
+      if (length(rows) > length(cols)){
+        
+      } else {
+        # diff(cols)
+      }
+    }
+  }
+  
+  
   
   full.coords[intersect(which(full.coords$`Dispensed\nrow` %in% rows),
                         which(full.coords$`Dispensed\ncol` %in% cols)),] -> full.coords
