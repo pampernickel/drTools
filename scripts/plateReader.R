@@ -177,9 +177,7 @@ getCoords <- function(df){
     # iterate through sub and determine if it contains a single drug or a combination
     sapply(unique(sub$`Dispensed\nwell`), function(y) 
       paste(sub$`Fluid name`[which(sub$`Dispensed\nwell` %in% y)], collapse="_")) -> conts
-    #sub[which(sub$`Dispensed\nwell` %in% 
-    #        sub$`Dispensed\nwell`[which(duplicated(sub$`Dispensed\nwell`))]),] -> combocoords
-
+    
     # figure out combos, then get coords for these combos separately
     names(table(sub$`Fluid name`))[which(table(sub$`Fluid name`) > 0)] -> all.drugs
     all.drugs[which(all.drugs %ni% "DMSO")] -> all.drugs
@@ -193,43 +191,42 @@ getCoords <- function(df){
       
       # get single drug coords and borders between multiple combos on a single plate
       apply(combos, 1, function(y){
+        cc <- unique(sub$`Dispensed\nwell`)[which(conts %in% c(paste(y, collapse="_"),
+                                                              paste(y[2], y[1], sep="_")))]
+        cc <- which(sub$`Dispensed\nwell` %in% cc)
         d1c <- which(sub$`Fluid name` %in% y[1])
         d2c <- which(sub$`Fluid name` %in% y[2])
         
         # check closest coords of d1 to d2; make sure that these are restricted to the
         # drugs in combos
-        sub[intersect(c(d2c, d1c[which(d1c %in% c(d2c+1, d2c-1))]),
-                      which(sub$`Fluid name` %in% y)),] -> full.coords
+        sub[unique(c(cc, d1c[which(d1c %in% c(cc-1,cc+1))], d2c)),] -> full.coords
         as.numeric(as.character(full.coords$`Dispensed\nrow`)) -> full.coords$`Dispensed\nrow`
         as.numeric(as.character(full.coords$`Dispensed\ncol`)) -> full.coords$`Dispensed\ncol`
         
         min(as.character(full.coords$`Dispensed\nwell`)) -> lhc
         max(as.character(full.coords$`Dispensed\nwell`)) -> rhc
         
+        # then restrict full.coords futher to those within the lhc, rhc limits
         rows <- c(unique(full.coords$`Dispensed\nrow`[which(full.coords$`Dispensed\nwell` %in% lhc)]):
                     unique(full.coords$`Dispensed\nrow`[which(full.coords$`Dispensed\nwell` %in% rhc)]))
         cols <- c(unique(full.coords$`Dispensed\ncol`[which(full.coords$`Dispensed\nwell` %in% lhc)]):
                     unique(full.coords$`Dispensed\ncol`[which(full.coords$`Dispensed\nwell` %in% rhc)]))
+        
+        full.coords[intersect(which(full.coords$`Dispensed\nrow` %in% rows),
+                  which(full.coords$`Dispensed\ncol` %in% cols)),] -> full.coords
         # combo1[rows,cols]: all contents, including single-drug combos in this setup
         
         # find single drug coordinates
-        intersect(which(sub$`Dispensed\nwell` %ni% 
-                sub$`Dispensed\nwell`[which(duplicated(sub$`Dispensed\nwell`))]),
-                which(sub$`Fluid name` %in% y))-> sds
-        full.coords$`Dispensed\nrow`[which(full.coords$`Dispensed\nwell` 
-                                           %in% sub$`Dispensed\nwell`[sds])] -> r
-        full.coords$`Dispensed\ncol`[which(full.coords$`Dispensed\nwell` %in% 
-                                             sub$`Dispensed\nwell`[sds])] -> c
-        full.coords$`Fluid name`[which(full.coords$`Dispensed\nwell` %in% 
-                                             sub$`Dispensed\nwell`[sds])] -> ds
+        sapply(unique(full.coords$`Dispensed\nwell`), function(y) 
+          paste(full.coords$`Fluid name`[which(full.coords$`Dispensed\nwell` %in% y)], 
+                collapse="_")) -> conts_sub
+        full.coords[which(full.coords$`Dispensed\nwell` %in% 
+                            unique(full.coords$`Dispensed\nwell`)[which(conts_sub %in% y)]),] -> sd.coords
         
-        r[which(r %in% names(table(r))[which(table(r) > 1)])] -> d2r
-        c[which(r %in% names(table(r))[which(table(r) > 1)])] -> d2c
-        # as.character(unique(ds[which(r %in% names(table(r))[which(table(r) > 1)])])) -> d2n
-        
-        r[which(c %in% names(table(c))[which(table(c) > 1)])] -> d1r
-        c[which(c %in% names(table(c))[which(table(c) > 1)])] -> d1c
-        # as.character(unique(ds[which(c %in% names(table(c))[which(table(c) > 1)])])) -> d1n
+        sd.coords$`Dispensed\nrow`[which(sd.coords$`Fluid name` %in% y[1])] -> d1r
+        sd.coords$`Dispensed\ncol`[which(sd.coords$`Fluid name` %in% y[1])] -> d1c
+        sd.coords$`Dispensed\nrow`[which(sd.coords$`Fluid name` %in% y[2])] -> d2r
+        sd.coords$`Dispensed\ncol`[which(sd.coords$`Fluid name` %in% y[2])] -> d2c
         
         res <- list(list(rows, cols), list(drow, dcol), 
                     list(d1r, d1c), list(d2r, d2c), as.character(y[1]), as.character(y[2]))
