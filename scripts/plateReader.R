@@ -279,9 +279,8 @@ getCoords <- function(df){
   if (length(unique(drow)) == 1){
     
   } else if (length(unique(dcol)) == 1){
-    if (length(drow) == length(d1doses)){
-      
-    } else {
+    if (length(drow) != length(d1doses)){
+      # case that indicates that there are two sets of combos
       
     }
   }
