@@ -267,6 +267,8 @@ getCoords <- function(df){
   sd.coords$`Dispensed\ncol`[which(sd.coords$`Fluid name` %in% y[2])] -> d2c
   
   # also get drug doses
+  as.numeric(as.character(sd.coords$`Dispensed conc.`[which(sd.coords$`Fluid name` %in% y[1])])) -> d1doses
+  as.numeric(as.character(sd.coords$`Dispensed conc.`[which(sd.coords$`Fluid name` %in% y[2])])) -> d2doses
   # sd.coords$`Dispensed conc.`
   
   # split dmso controls based on rows, cols; check case if the dmso is a single column
@@ -276,9 +278,11 @@ getCoords <- function(df){
   # patient case)
   
   res <- list(list(rows, cols), list(drow, dcol), 
-              list(d1r, d1c), list(d2r, d2c), as.character(y[1]), as.character(y[2]))
-  names(res) <- c("combo_coords", "dmso_coords", "d1c", "d2c", "drug1", "drug2")
+              list(d1r, d1c), list(d2r, d2c), as.character(y[1]), as.character(y[2]),
+              list(d1doses, d2doses))
+  names(res) <- c("combo_coords", "dmso_coords", "d1c", "d2c", "drug1", "drug2", "doses")
   names(res$combo_coords) <- names(res$dmso_coords) <- names(res$d1c) <- names(res$d2c) <- c("r","c")
+  names(res$doses) <- c("drug1", "drug2")
   return(res)
 }
 
