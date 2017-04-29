@@ -140,6 +140,7 @@ readXML <- function(files){
           content[[ind[i]]][which(res %in% F)]) -> content[[ind[i]]]
       }
       t(as.data.frame(content[2:length(content)])) -> df
+      as.data.frame(df) -> df
     } else {
       do.call("rbind.data.frame", content[2:length(content)]) -> df
     }
@@ -171,16 +172,33 @@ getCoords <- function(df){
     names(table(sub$`Fluid name`))[which(table(sub$`Fluid name`) > 0)] -> drugs
     
     # get DMSO coords
-    as.numeric(as.character(sub$`Dispensed\nrow`[which(sub$`Fluid name` %in% "DMSO")])) -> drow
-    as.numeric(as.character(sub$`Dispensed\ncol`[which(sub$`Fluid name` %in% "DMSO")])) -> dcol
+    as.numeric(as.character(sub$`Dispensed\nrow`[grep("DMSO", sub$`Fluid name`)])) -> drow
+    as.numeric(as.character(sub$`Dispensed\ncol`[grep("DMSO", sub$`Fluid name`)])) -> dcol
     
     # iterate through sub and determine if it contains a single drug or a combination
     sapply(unique(sub$`Dispensed\nwell`), function(y) 
       paste(sub$`Fluid name`[which(sub$`Dispensed\nwell` %in% y)], collapse="_")) -> conts
     
-    # figure out combos, then get coords for these combos separately
+    # figure out combos, then get coords for these combos separately; check if there are
+    # cases of the same drug in different dilutions
     names(table(sub$`Fluid name`))[which(table(sub$`Fluid name`) > 0)] -> all.drugs
-    all.drugs[which(all.drugs %ni% "DMSO")] -> all.drugs
+    combn(all.drugs, 2) -> dn
+    apply(dn, 2, function(x)
+      length(c(agrep(x[1], x[2]), agrep(x[2], x[1])))) -> matches
+    if (length(which(matches > 0))>0){
+      dn[which(nchar(dn[,which(matches > 0)]) %in% 
+              min(nchar(dn[,which(matches > 0)]))),which(matches > 0)] -> root
+      # replace everything that has a partial match with the root in sub
+      as.character(sub$`Fluid name`) -> sub$`Fluid name`
+      sub$`Fluid name`[grep(root, sub$`Fluid name`)] <- root
+    }
+    
+    # then finalize
+    names(table(sub$`Fluid name`))[which(table(sub$`Fluid name`) > 0)] -> all.drugs
+    all.drugs[setdiff(c(1:length(all.drugs)), 
+                        grep("DMSO", all.drugs))] -> all.drugs
+    sapply(unique(sub$`Dispensed\nwell`), function(y) 
+      paste(sub$`Fluid name`[which(sub$`Dispensed\nwell` %in% y)], collapse="_")) -> conts
     if (mod(length(all.drugs), 2) > 0){
       # odd combo, where one drug is used more than once; find drug used more than once
       md <- names(table(sub$`Fluid name`))[which(table(sub$`Fluid name`) %in% 
@@ -191,56 +209,76 @@ getCoords <- function(df){
       
       # get single drug coords and borders between multiple combos on a single plate
       apply(combos, 1, function(y){
-        cc <- unique(sub$`Dispensed\nwell`)[which(conts %in% c(paste(y, collapse="_"),
-                                                              paste(y[2], y[1], sep="_")))]
-        cc <- which(sub$`Dispensed\nwell` %in% cc)
-        d1c <- which(sub$`Fluid name` %in% y[1])
-        d2c <- which(sub$`Fluid name` %in% y[2])
-        
-        # check closest coords of d1 to d2; make sure that these are restricted to the
-        # drugs in combos
-        sub[unique(c(cc, d1c[which(d1c %in% c(cc-1,cc+1))], d2c)),] -> full.coords
-        as.numeric(as.character(full.coords$`Dispensed\nrow`)) -> full.coords$`Dispensed\nrow`
-        as.numeric(as.character(full.coords$`Dispensed\ncol`)) -> full.coords$`Dispensed\ncol`
-        
-        min(as.character(full.coords$`Dispensed\nwell`)) -> lhc
-        max(as.character(full.coords$`Dispensed\nwell`)) -> rhc
-        
-        # then restrict full.coords futher to those within the lhc, rhc limits
-        rows <- c(unique(full.coords$`Dispensed\nrow`[which(full.coords$`Dispensed\nwell` %in% lhc)]):
-                    unique(full.coords$`Dispensed\nrow`[which(full.coords$`Dispensed\nwell` %in% rhc)]))
-        cols <- c(unique(full.coords$`Dispensed\ncol`[which(full.coords$`Dispensed\nwell` %in% lhc)]):
-                    unique(full.coords$`Dispensed\ncol`[which(full.coords$`Dispensed\nwell` %in% rhc)]))
-        
-        full.coords[intersect(which(full.coords$`Dispensed\nrow` %in% rows),
-                  which(full.coords$`Dispensed\ncol` %in% cols)),] -> full.coords
-        # combo1[rows,cols]: all contents, including single-drug combos in this setup
-        
-        # find single drug coordinates
-        sapply(unique(full.coords$`Dispensed\nwell`), function(y) 
-          paste(full.coords$`Fluid name`[which(full.coords$`Dispensed\nwell` %in% y)], 
-                collapse="_")) -> conts_sub
-        full.coords[which(full.coords$`Dispensed\nwell` %in% 
-                            unique(full.coords$`Dispensed\nwell`)[which(conts_sub %in% y)]),] -> sd.coords
-        
-        sd.coords$`Dispensed\nrow`[which(sd.coords$`Fluid name` %in% y[1])] -> d1r
-        sd.coords$`Dispensed\ncol`[which(sd.coords$`Fluid name` %in% y[1])] -> d1c
-        sd.coords$`Dispensed\nrow`[which(sd.coords$`Fluid name` %in% y[2])] -> d2r
-        sd.coords$`Dispensed\ncol`[which(sd.coords$`Fluid name` %in% y[2])] -> d2c
-        
-        res <- list(list(rows, cols), list(drow, dcol), 
-                    list(d1r, d1c), list(d2r, d2c), as.character(y[1]), as.character(y[2]))
-        names(res) <- c("combo_coords", "dmso_coords", "d1c", "d2c", "drug1", "drug2")
-        names(res$combo_coords) <- names(res$dmso_coords) <- names(res$d1c) <- names(res$d2c) <- c("r","c")
-        return(res)
-      }) -> res    
-      names(res) <- apply(combos, 1, function(x) paste(x, collapse="_"))
+        .getCoords(sub, y, drow, dcol) -> res
+      }) -> res
+      names(res) <- apply(combos, 1, function(y) paste(y, collapse="_"))
     } else if (mod(length(all.drugs), 2) == 0) {
-
+      # even combo, case where each plate half has either the same combo (d1,d2 x2) or
+      # combos where none of the drugs are in common (d1,d2; d3,d4); use conts
+      # to figure out all combos
+      strsplit(unique(conts[grep("_", conts)]), "_") -> all.c
+      lapply(all.c, function(y){
+        .getCoords(sub, y, drow, dcol) -> res
+      }) -> res
+      names(res) <- apply(all.c, 1, function(y) paste(y, collapse="_"))
     }
     return(res)
   }) -> res
   names(res) <- unique(df$Plate)
+  return(res)
+}
+
+.getCoords <- function(sub, y, drow, dcol){
+  cc <- unique(sub$`Dispensed\nwell`)[which(conts %in% c(paste(y, collapse="_"),
+                                                         paste(y[2], y[1], sep="_")))]
+  cc <- which(sub$`Dispensed\nwell` %in% cc)
+  d1c <- which(sub$`Fluid name` %in% y[1])
+  d2c <- which(sub$`Fluid name` %in% y[2])
+  
+  # check closest coords of d1 to d2; make sure that these are restricted to the
+  # drugs in combos
+  sub[unique(c(cc, d1c[which(d1c %in% c(cc-1,cc+1))], d2c)),] -> full.coords
+  as.numeric(as.character(full.coords$`Dispensed\nrow`)) -> full.coords$`Dispensed\nrow`
+  as.numeric(as.character(full.coords$`Dispensed\ncol`)) -> full.coords$`Dispensed\ncol`
+  
+  min(as.character(full.coords$`Dispensed\nwell`)) -> lhc
+  max(as.character(full.coords$`Dispensed\nwell`)) -> rhc
+  
+  # then restrict full.coords futher to those within the lhc, rhc limits
+  rows <- c(unique(full.coords$`Dispensed\nrow`[which(full.coords$`Dispensed\nwell` %in% lhc)]):
+              unique(full.coords$`Dispensed\nrow`[which(full.coords$`Dispensed\nwell` %in% rhc)]))
+  cols <- c(unique(full.coords$`Dispensed\ncol`[which(full.coords$`Dispensed\nwell` %in% lhc)]):
+              unique(full.coords$`Dispensed\ncol`[which(full.coords$`Dispensed\nwell` %in% rhc)]))
+  
+  full.coords[intersect(which(full.coords$`Dispensed\nrow` %in% rows),
+                        which(full.coords$`Dispensed\ncol` %in% cols)),] -> full.coords
+  # combo1[rows,cols]: all contents, including single-drug combos in this setup
+  
+  # find single drug coordinates
+  sapply(unique(full.coords$`Dispensed\nwell`), function(y) 
+    paste(full.coords$`Fluid name`[which(full.coords$`Dispensed\nwell` %in% y)], 
+          collapse="_")) -> conts_sub
+  full.coords[which(full.coords$`Dispensed\nwell` %in% 
+                      unique(full.coords$`Dispensed\nwell`)[which(conts_sub %in% y)]),] -> sd.coords
+  
+  sd.coords$`Dispensed\nrow`[which(sd.coords$`Fluid name` %in% y[1])] -> d1r
+  sd.coords$`Dispensed\ncol`[which(sd.coords$`Fluid name` %in% y[1])] -> d1c
+  sd.coords$`Dispensed\nrow`[which(sd.coords$`Fluid name` %in% y[2])] -> d2r
+  sd.coords$`Dispensed\ncol`[which(sd.coords$`Fluid name` %in% y[2])] -> d2c
+  
+  # also get drug doses
+  # sd.coords$`Dispensed conc.`
+  
+  # split dmso controls based on rows, cols; check case if the dmso is a single column
+  # dmso, implying that the sample is the same throughout the plate; or if dmsos
+  # are in different columns in the same row (possible for the single- or multiple-
+  # patient case) or in different rows in the same column (possible for the single- or multiple-
+  # patient case)
+  
+  res <- list(list(rows, cols), list(drow, dcol), 
+              list(d1r, d1c), list(d2r, d2c), as.character(y[1]), as.character(y[2]))
+  names(res) <- c("combo_coords", "dmso_coords", "d1c", "d2c", "drug1", "drug2")
+  names(res$combo_coords) <- names(res$dmso_coords) <- names(res$d1c) <- names(res$d2c) <- c("r","c")
   return(res)
 }
 
