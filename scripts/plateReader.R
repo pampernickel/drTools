@@ -267,7 +267,7 @@ getCoords <- function(df){
                              paste(y, c(srn:ern)[which(c(srn:ern) >= 10)], sep="")))) -> cells
   cells[which(cells %ni% full.coords$`Dispensed\nwell`)] -> breaks
   
-  if (mode == 0){
+  if (mode == 0 && length(breaks) > 0){
     # case of multiple patients for a single
     # combination
     if (length(cols) != length(rows) && 
@@ -277,7 +277,13 @@ getCoords <- function(df){
       if (length(rows) > length(cols)){
         
       } else {
-        # diff(cols)
+        # get coordinates of breaks
+        match(gsub("[[:digit:]]","",breaks), LETTERS) -> mcr
+        as.numeric(gsub("[[:alpha:]]","",breaks)) -> mcc
+        setdiff(cols, as.numeric(names(table(mcc))[which(table(mcc) > 1)])) -> cols
+        which(diff(cols) %ni% 1) -> bp
+        cols[1:bp] -> c1s
+        cols[(bp+1):length(cols)] -> c2s
       }
     }
   }
