@@ -140,11 +140,14 @@ readXML <- function(files){
       as.character(z[which(names(z) %in% "Cell.Data.text")])) -> content  
     sapply(t, function(z) 
       as.character(z[which(names(z) %in% "Cell.Data..attrs.Type")])) -> dt
-    unique(unlist(sapply(content, function(x) length(x)))) -> cc
+    unique(unlist(sapply(content, function(z) length(z)))) -> cc
     
     # general case where plates do not have a plateID:
     # Use start time column to adjust the positions of content that do not have the same
     # length as ncols
+    
+    # trim newlines
+    content[which(sapply(content, function(z) length(z)) > 0)] -> content
     ncols <- length(col.names)-1
     which(sapply(content[2:length(content)], function(z) length(z) == ncols) %in% F)+1 -> ind
     if (length(ind) > 0){
