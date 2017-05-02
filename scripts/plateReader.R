@@ -106,15 +106,36 @@ readXML <- function(files){
   if (!is.loaded("XML")) require(XML)
   
   lapply(files, function(x){
+    match <- F
     y <- xmlToList(xmlRoot(xmlParse(x)))
     
     # Revert to parsing Tabular detail table
-    names(y[[6]]$Table) -> fields
+    y[which(names(y) %in% "Worksheet")] -> y
+    # find the right sheet (make this flexible, just in case the correct sheet is not
+    # always on the same index)
+    sapply(1:length(y), function(z){
+      names(y[[z]]$Table) -> fields
+      if ("Row" %in% fields){
+        sapply(which(fields %in% "Row")[1]:length(fields), function(a) 
+          unlist(y[[z]]$Table[[a]]@.Data)) -> t
+        
+        t[[1]] -> col.names
+        as.character(col.names[which(names(col.names) %in% "Cell.Data.text")]) -> col.names
+        if (length(grep("Dispensed\nwell", col.names))== 1 &&
+            length(grep("Start time", col.names)) == 1){
+          match <- T
+        }
+      }
+    }) -> sheetind
+    which(sapply(sheetind, function(z) length(which(z %in% T))) == 1) -> sheetind
+    names(y[[sheetind]]$Table) -> fields
     sapply(which(fields %in% "Row")[1]:length(fields), function(z) 
-      unlist(y[[6]]$Table[[z]]@.Data)) -> t
+      unlist(y[[sheetind]]$Table[[z]]@.Data)) -> t
       
     t[[1]] -> col.names
     as.character(col.names[which(names(col.names) %in% "Cell.Data.text")]) -> col.names
+    
+    
     sapply(t, function(z) 
       as.character(z[which(names(z) %in% "Cell.Data.text")])) -> content  
     sapply(t, function(z) 
@@ -209,7 +230,7 @@ getCoords <- function(df){
       
       # get single drug coords and borders between multiple combos on a single plate
       apply(combos, 1, function(y){
-        .getCoords(sub, y, drow, dcol, mod(length(all.drugs))) -> res
+        .getCoords(sub, y, conts, drow, dcol, mod(length(all.drugs), 2)) -> res
       }) -> res
       names(res) <- apply(combos, 1, function(y) paste(y, collapse="_"))
     } else if (mod(length(all.drugs), 2) == 0) {
@@ -218,7 +239,7 @@ getCoords <- function(df){
       # to figure out all combos
       strsplit(unique(conts[grep("_", conts)]), "_") -> all.c
       lapply(all.c, function(y){
-        .getCoords(sub, y, drow, dcol, mod(length(all.drugs))) -> res
+        .getCoords(sub, y, conts, drow, dcol, mod(length(all.drugs), 2)) -> res
       }) -> res
       names(res) <- apply(all.c, 1, function(y) paste(y, collapse="_"))
     }
@@ -228,7 +249,7 @@ getCoords <- function(df){
   return(res)
 }
 
-.getCoords <- function(sub, y, drow, dcol, mode){
+.getCoords <- function(sub, y, conts, drow, dcol, mode){
   cc <- unique(sub$`Dispensed\nwell`)[which(conts %in% c(paste(y, collapse="_"),
                                                          paste(y[2], y[1], sep="_")))]
   cc <- which(sub$`Dispensed\nwell` %in% cc)
@@ -253,42 +274,46 @@ getCoords <- function(df){
   
   # check if there are breaks, i.e. cells where no fluid was dispensed within the area
   # bound by lhc and rhc
-  gsub("[[:digit:]]","",lhc) -> sr
-  as.numeric(gsub("[[:alpha:]]","",lhc)) -> srn
-  gsub("[[:digit:]]","",rhc) -> er
-  as.numeric(gsub("[[:alpha:]]","",rhc)) -> ern
-  
-  # generate all intermediates and check if there are blank spaces
-  match(sr, LETTERS) -> srr
-  match(er, LETTERS) -> err
-  
-  LETTERS[srr:err] -> rlet
-  unlist(lapply(rlet, function(y) c(paste(y, "0", c(srn:ern)[which(c(srn:ern) < 10)], sep=""),
-                             paste(y, c(srn:ern)[which(c(srn:ern) >= 10)], sep="")))) -> cells
-  cells[which(cells %ni% full.coords$`Dispensed\nwell`)] -> breaks
-  
-  if (mode == 0 && length(breaks) > 0){
-    # case of multiple patients for a single
-    # combination
-    if (length(cols) != length(rows) && 
-        (length(rows)/length(cols) <= 0.5 | 
-         length(cols)/length(rows) >= 2.5)){
-      # one drug dose is much longer than another drug dose
-      if (length(rows) > length(cols)){
-        
-      } else {
-        # get coordinates of breaks
-        match(gsub("[[:digit:]]","",breaks), LETTERS) -> mcr
-        as.numeric(gsub("[[:alpha:]]","",breaks)) -> mcc
-        setdiff(cols, as.numeric(names(table(mcc))[which(table(mcc) > 1)])) -> cols
-        which(diff(cols) %ni% 1) -> bp
-        cols[1:bp] -> c1s
-        cols[(bp+1):length(cols)] -> c2s
+  if (mode != 0){
+    gsub("[[:digit:]]","",lhc) -> sr
+    as.numeric(gsub("[[:alpha:]]","",lhc)) -> srn
+    gsub("[[:digit:]]","",rhc) -> er
+    as.numeric(gsub("[[:alpha:]]","",rhc)) -> ern
+    
+    # generate all intermediates and check if there are blank spaces
+    match(sr, LETTERS) -> srr
+    match(er, LETTERS) -> err
+    
+    LETTERS[srr:err] -> rlet
+    unlist(lapply(rlet, function(y) c(paste(y, "0", c(srn:ern)[which(c(srn:ern) < 10)], sep=""),
+                               paste(y, c(srn:ern)[which(c(srn:ern) >= 10)], sep="")))) -> cells
+    cells[which(cells %ni% full.coords$`Dispensed\nwell`)] -> breaks
+    
+    if (length(breaks) > 0){
+      # case of multiple patients for a single
+      # combination
+      if (length(cols) != length(rows) && 
+          (length(rows)/length(cols) <= 0.5 | 
+           length(cols)/length(rows) >= 2.5)){
+        # one drug dose is much longer than another drug dose
+        if (length(rows) > length(cols)){
+          
+        } else {
+          # get coordinates of breaks, use this to break dmsos
+          match(gsub("[[:digit:]]","",breaks), LETTERS) -> mcr
+          as.numeric(gsub("[[:alpha:]]","",breaks)) -> mcc
+          setdiff(cols, as.numeric(names(table(mcc))[which(table(mcc) > 1)])) -> cols
+          which(diff(cols) %ni% 1) -> bp
+          
+          # check if dmso coords also have to be broken down
+          # dcol[which(dcol %in% unique(mcc))]
+          cols[1:bp] -> c1s
+          cols[(bp+1):length(cols)] -> c2s
+          
+        }
       }
     }
   }
-  
-  
   
   full.coords[intersect(which(full.coords$`Dispensed\nrow` %in% rows),
                         which(full.coords$`Dispensed\ncol` %in% cols)),] -> full.coords
