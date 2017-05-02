@@ -320,7 +320,6 @@ getCoords <- function(df){
   
   full.coords[intersect(which(full.coords$`Dispensed\nrow` %in% rows),
                         which(full.coords$`Dispensed\ncol` %in% cols)),] -> full.coords
-  # combo1[rows,cols]: all contents, including single-drug combos in this setup
   
   # find single drug coordinates
   sapply(unique(full.coords$`Dispensed\nwell`), function(y) 
@@ -333,6 +332,26 @@ getCoords <- function(df){
   sd.coords$`Dispensed\ncol`[which(sd.coords$`Fluid name` %in% y[1])] -> d1c
   sd.coords$`Dispensed\nrow`[which(sd.coords$`Fluid name` %in% y[2])] -> d2r
   sd.coords$`Dispensed\ncol`[which(sd.coords$`Fluid name` %in% y[2])] -> d2c
+  
+  # check if the the single drug coordinates have to be broken down
+  if (mode == 0){
+    if (length(d1r) == 2*length(unique(d1r)) &&
+        length(unique(d1c)) == 2 &&
+        length(unique(d2r)) ==1){
+      # case where one drug is on two columns and the second drug is on one row
+      unique(d1c) -> ac
+      d1r[order(d1c)] -> d1r.f
+      d1c[order(d1c)] -> d1c.f
+      
+      # get discontinuity in d1c.f
+      which(diff(d1c.f) != 0) -> bp
+      d1r.f[1:bp] -> d1r1
+      d1r.f[(bp+1):length(d1r.f)] -> d1r2
+      d1c.f[1:bp] -> d1c1
+      d1c.f[(bp+1):length(d1c.f)] -> d1c2
+      
+    }
+  }
   
   # also get drug doses
   as.numeric(as.character(sd.coords$`Dispensed conc.`[which(sd.coords$`Fluid name` %in% y[1])])) -> d1doses
