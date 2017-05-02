@@ -277,7 +277,7 @@ getCoords <- function(df){
   
   # check if there are breaks, i.e. cells where no fluid was dispensed within the area
   # bound by lhc and rhc
-  if (mode != 0){
+  if (mode == 0){
     gsub("[[:digit:]]","",lhc) -> sr
     as.numeric(gsub("[[:alpha:]]","",lhc)) -> srn
     gsub("[[:digit:]]","",rhc) -> er
