@@ -169,18 +169,7 @@ readXML <- function(files){
       do.call("rbind.data.frame", content[2:length(content)]) -> df
     }
     colnames(df) <- col.names[2:length(col.names)]
-    
     getCoords(df) -> coords
-    # # Dispensed conc. table; parse composite
-    # names(y[[7]]$Table) -> fields
-    # sapply(26:length(fields), function(z) unlist(y[[7]]$Table[[z]]@.Data)) -> t
-    # 
-    # # get everything with two fluids mark
-    # which(sapply(t, function(x) length(which(names(x) %in% "Cell.Data.text"))) == 1) -> breaks
-    # breaks[which(diff(breaks) %in% max(diff(breaks)))]+1 -> s
-    # breaks[which(diff(breaks) %in% max(diff(breaks)))+1]-1 -> e
-    # t[s:e] -> cells
-    # getCoords(cells) -> coords
     return(coords)
   }) -> coords
   return(coords)
@@ -349,14 +338,21 @@ getCoords <- function(df){
       d1r.f[(bp+1):length(d1r.f)] -> d1r2
       d1c.f[1:bp] -> d1c1
       d1c.f[(bp+1):length(d1c.f)] -> d1c2
-      
+      d2r[1:bp] -> d2r1
+      d2r[(bp+1):length(d2r)] -> d2r2
+      d2c[1:bp] -> d2c1
+      d2c[(bp+1):length(d2c)] -> d2c2
     }
   }
   
   # also get drug doses
   as.numeric(as.character(sd.coords$`Dispensed conc.`[which(sd.coords$`Fluid name` %in% y[1])])) -> d1doses
   as.numeric(as.character(sd.coords$`Dispensed conc.`[which(sd.coords$`Fluid name` %in% y[2])])) -> d2doses
-  # sd.coords$`Dispensed conc.`
+  
+  if (mode == 0){
+    # as.numeric(as.character(sd.coords$`Dispensed conc.`[which(sd.coords$`Fluid name` %in% y[1])])) -> d1doses
+    # as.numeric(as.character(sd.coords$`Dispensed conc.`[which(sd.coords$`Fluid name` %in% y[2])])) -> d2doses
+  }
   
   # split dmso controls based on rows, cols; check case if the dmso is a single column
   # dmso, implying that the sample is the same throughout the plate; or if dmsos
