@@ -301,7 +301,6 @@ getCoords <- function(df){
           # dcol[which(dcol %in% unique(mcc))]
           cols[1:bp] -> c1s
           cols[(bp+1):length(cols)] -> c2s
-          
         }
       }
     }
@@ -367,8 +366,6 @@ getCoords <- function(df){
   if (mode == 0){
     unique(d1doses) -> d1doses
     unique(d2doses) -> d2doses
-    
-    
   }
   
   if (mode > 0){
@@ -380,11 +377,30 @@ getCoords <- function(df){
     names(res$doses) <- c("drug1", "drug2")
     
   } else if (mode == 0){
-    l1 <- list(list(d1r1, d1c1), list(drow1, dcol1), 
-      list(d1r1, d1c1), list(d2r1, d2c2), as.character(y[1]), as.character(y[2]),
-      list(d1doses, d2doses))
+    # finally, for full combo coords, look at column and row extent of split rows/columns
+    # and use these for delimiting the coords of interest
+    max(unique(c(d1r1, d2r1))) -> lrhr1 # lower right hand row, set 1
+    max(unique(c(d1c1, d2c1))) -> lrhc1
+    min(unique(c(d1r1, d2r1))) -> ulhr1 # upper left hand column
+    min(unique(c(d1c1, d2c1))) -> ulhc1 # upper left hand column
+    
+    max(unique(c(d1r2, d2r2))) -> lrhr2 # lower right hand row, set 2
+    max(unique(c(d1c2, d2c2))) -> lrhc2
+    min(unique(c(d1r2, d2r2))) -> ulhr2 # upper left hand column
+    min(unique(c(d1c2, d2c2))) -> ulhc2 
+    
+    l1 <- list(list(c(ulhr1:lrhr1), c(ulhc1:lrhr2)), list(drow1, dcol1), list(d1r1, d1c1),
+               list(d2r1, d2c1), as.character(y[1]), as.character(y[2]),
+               list(d1doses, d2doses))
+    l2 <- list(list(c(ulhr2:lrhr2), c(ulhc2:lrhc2)), list(drow2, dcol2), list(d1r2, d1c2), 
+               list(d2r2, d2c2), as.character(y[1]), as.character(y[2]),
+               list(d1doses, d2doses))
+    names(l2) <- names(l1) <- c("combo_coords", "dmso_coords", "d1c", "d2c", "drug1", "drug2", "doses")
+    names(l1$combo_coords) <- names(l1$dmso_coords) <- names(l1$d1c) <- names(l1$d2c) <- c("r","c")
+    names(l2$combo_coords) <- names(l2$dmso_coords) <- names(l2$d1c) <- names(l2$d2c) <- c("r","c")
     res <- list(l1, l2)
     names(res) <- rep(paste(y, collapse="_"), 2)
+    list(res) -> res
   }
   
   return(res)
