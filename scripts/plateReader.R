@@ -342,6 +342,19 @@ getCoords <- function(df){
       d2r[(bp+1):length(d2r)] -> d2r2
       d2c[1:bp] -> d2c1
       d2c[(bp+1):length(d2c)] -> d2c2
+      
+      # then check if the discontinuity applies to the dmsos; find
+      # discontinuity
+      if (length(which(diff(drow) > 1))){
+        
+      } else if (length(which(diff(dcol) > 1))){
+        # discontinuity in columns
+        bp <- which(diff(dcol) > 1)
+        drow[1:bp] -> drow1
+        drow[(bp+1):length(drow)] -> drow2
+        dcol[1:bp] -> dcol1
+        dcol[(bp+1):length(dcol)] -> dcol2
+      }
     }
   }
   
@@ -349,31 +362,31 @@ getCoords <- function(df){
   as.numeric(as.character(sd.coords$`Dispensed conc.`[which(sd.coords$`Fluid name` %in% y[1])])) -> d1doses
   as.numeric(as.character(sd.coords$`Dispensed conc.`[which(sd.coords$`Fluid name` %in% y[2])])) -> d2doses
   
+  # split dmso controls based on rows, cols; also set final plate coordinates,
+  # i.e. combo.coords$r, combo.coords$c
   if (mode == 0){
-    # as.numeric(as.character(sd.coords$`Dispensed conc.`[which(sd.coords$`Fluid name` %in% y[1])])) -> d1doses
-    # as.numeric(as.character(sd.coords$`Dispensed conc.`[which(sd.coords$`Fluid name` %in% y[2])])) -> d2doses
-  }
-  
-  # split dmso controls based on rows, cols; check case if the dmso is a single column
-  # dmso, implying that the sample is the same throughout the plate; or if dmsos
-  # are in different columns in the same row (possible for the single- or multiple-
-  # patient case) or in different rows in the same column (possible for the single- or multiple-
-  # patient case)
-  if (length(unique(drow)) == 1){
+    unique(d1doses) -> d1doses
+    unique(d2doses) -> d2doses
     
-  } else if (length(unique(dcol)) == 1){
-    if (length(drow) != length(d1doses)){
-      # case that indicates that there are two sets of combos
-      
-    }
+    
   }
   
-  res <- list(list(rows, cols), list(drow, dcol), 
-              list(d1r, d1c), list(d2r, d2c), as.character(y[1]), as.character(y[2]),
-              list(d1doses, d2doses))
-  names(res) <- c("combo_coords", "dmso_coords", "d1c", "d2c", "drug1", "drug2", "doses")
-  names(res$combo_coords) <- names(res$dmso_coords) <- names(res$d1c) <- names(res$d2c) <- c("r","c")
-  names(res$doses) <- c("drug1", "drug2")
+  if (mode > 0){
+    res <- list(list(rows, cols), list(drow, dcol), 
+                list(d1r, d1c), list(d2r, d2c), as.character(y[1]), as.character(y[2]),
+                list(d1doses, d2doses))
+    names(res) <- c("combo_coords", "dmso_coords", "d1c", "d2c", "drug1", "drug2", "doses")
+    names(res$combo_coords) <- names(res$dmso_coords) <- names(res$d1c) <- names(res$d2c) <- c("r","c")
+    names(res$doses) <- c("drug1", "drug2")
+    
+  } else if (mode == 0){
+    l1 <- list(list(d1r1, d1c1), list(drow1, dcol1), 
+      list(d1r1, d1c1), list(d2r1, d2c2), as.character(y[1]), as.character(y[2]),
+      list(d1doses, d2doses))
+    res <- list(l1, l2)
+    names(res) <- rep(paste(y, collapse="_"), 2)
+  }
+  
   return(res)
 }
 
