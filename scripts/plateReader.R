@@ -311,7 +311,6 @@ getCoords <- function(df){
               cols[1:which(cols %in% bp)] -> c1s
               cols[(which(cols %in% bp)+1):length(cols)] -> c2s
             }
-            
           }
         }
       }
@@ -361,10 +360,20 @@ getCoords <- function(df){
       } else if (length(which(diff(dcol) > 1))){
         # discontinuity in columns
         bp <- which(diff(dcol) > 1)
-        drow[1:bp] -> drow1
-        drow[(bp+1):length(drow)] -> drow2
-        dcol[1:bp] -> dcol1
-        dcol[(bp+1):length(dcol)] -> dcol2
+        if (length(bp) > 0){
+          drow[1:bp] -> drow1
+          drow[(bp+1):length(drow)] -> drow2
+          dcol[1:bp] -> dcol1
+          dcol[(bp+1):length(dcol)] -> dcol2
+        } else {
+          if (length(drow) %% 2 == 0){
+            length(drow)/2 -> bp
+            drow[1:bp] -> drow1
+            drow[(bp+1):length(drow)] -> drow2
+            dcol[1:bp] -> dcol1
+            dcol[(bp+1):length(dcol)] -> dcol2
+          }
+        }
       }
     }
   }
@@ -373,8 +382,6 @@ getCoords <- function(df){
   as.numeric(as.character(sd.coords$`Dispensed conc.`[which(sd.coords$`Fluid name` %in% y[1])])) -> d1doses
   as.numeric(as.character(sd.coords$`Dispensed conc.`[which(sd.coords$`Fluid name` %in% y[2])])) -> d2doses
   
-  # split dmso controls based on rows, cols; also set final plate coordinates,
-  # i.e. combo.coords$r, combo.coords$c
   if (mode == 0){
     unique(d1doses) -> d1doses
     unique(d2doses) -> d2doses
