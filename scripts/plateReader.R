@@ -200,7 +200,7 @@ getCoords <- function(df){
       length(c(agrep(x[1], x[2]), agrep(x[2], x[1])))) -> matches
     if (length(which(matches > 0))>0){
       dn[which(nchar(dn[,which(matches > 0)]) %in% 
-              min(nchar(dn[,which(matches > 0)]))),which(matches > 0)] -> root
+                 min(nchar(dn[,which(matches > 0)]))),which(matches > 0)] -> root
       # replace everything that has a partial match with the root in sub
       as.character(sub$`Fluid name`) -> sub$`Fluid name`
       sub$`Fluid name`[grep(root, sub$`Fluid name`)] <- root
@@ -299,8 +299,20 @@ getCoords <- function(df){
           
           # check if dmso coords also have to be broken down
           # dcol[which(dcol %in% unique(mcc))]
-          cols[1:bp] -> c1s
-          cols[(bp+1):length(cols)] -> c2s
+          if (length(bp) > 0){
+            cols[1:bp] -> c1s
+            cols[(bp+1):length(cols)] -> c2s
+          } else {
+            # case where there is no explicit break in the fluid pipetting; use breaks
+            # instead (mcc, mcr)
+            if (length(unique(mcc)) > 1 && length(unique(mcr))){ #column break
+              # use second column as break
+              unique(mcc)[which(unique(mcc) %in% max(unique(mcc)))]-1 -> bp
+              cols[1:which(cols %in% bp)] -> c1s
+              cols[(which(cols %in% bp)+1):length(cols)] -> c2s
+            }
+            
+          }
         }
       }
     }
