@@ -233,7 +233,12 @@ getCoords <- function(df){
       lapply(all.c, function(y){
         .getCoords(sub, y, conts, drow, dcol, length(all.drugs) %% 2) -> res
       }) -> res
-      names(res) <- apply(all.c, 1, function(y) paste(y, collapse="_"))
+      
+      if (is.data.frame(all.c)){
+        names(res) <- apply(all.c, 1, function(y) paste(y, collapse="_"))
+      } else if (is.list(all.c)){
+        names(res) <- sapply(all.c, function(y) paste(y, collapse="_"))
+      }
     }
     return(res)
   }) -> res
