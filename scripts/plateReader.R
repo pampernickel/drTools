@@ -212,7 +212,7 @@ getCoords <- function(df){
                         grep("DMSO", all.drugs))] -> all.drugs
     sapply(unique(sub$`Dispensed\nwell`), function(y) 
       paste(sub$`Fluid name`[which(sub$`Dispensed\nwell` %in% y)], collapse="_")) -> conts
-    if (mod(length(all.drugs), 2) > 0){
+    if (length(all.drugs) %% 2 > 0){
       # odd combo, where one drug is used more than once; find drug used more than once
       md <- names(table(sub$`Fluid name`))[which(table(sub$`Fluid name`) %in% 
                                                      max(table(sub$`Fluid name`)))]
@@ -222,16 +222,16 @@ getCoords <- function(df){
       
       # get single drug coords and borders between multiple combos on a single plate
       apply(combos, 1, function(y){
-        .getCoords(sub, y, conts, drow, dcol, mod(length(all.drugs), 2)) -> res
+        .getCoords(sub, y, conts, drow, dcol, length(all.drugs) %% 2) -> res
       }) -> res
       names(res) <- apply(combos, 1, function(y) paste(y, collapse="_"))
-    } else if (mod(length(all.drugs), 2) == 0) {
+    } else if (length(all.drugs) %% 2 == 0) {
       # even combo, case where each plate half has either the same combo (d1,d2 x2) or
       # combos where none of the drugs are in common (d1,d2; d3,d4); use conts
       # to figure out all combos
       strsplit(unique(conts[grep("_", conts)]), "_") -> all.c
       lapply(all.c, function(y){
-        .getCoords(sub, y, conts, drow, dcol, mod(length(all.drugs), 2)) -> res
+        .getCoords(sub, y, conts, drow, dcol, length(all.drugs) %% 2) -> res
       }) -> res
       names(res) <- apply(all.c, 1, function(y) paste(y, collapse="_"))
     }
@@ -404,6 +404,10 @@ getCoords <- function(df){
   }
   
   return(res)
+}
+
+.processFiles <- function(layout, dir){
+  # layout is from readXML
 }
 
 getFiles <- function(dir){
