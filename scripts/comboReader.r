@@ -266,6 +266,7 @@ readFileXML <- function(coords, res.files, dil.factor, singleLayout){
       combos -> all.combos[[j]]
     }
     names(all.combos) <- names(plates)
+    unlist(all.combos, recursive = F) -> all.combos
   } else {
     # check if length of layouts match length of res.files
     if (length(coords) == 1){
