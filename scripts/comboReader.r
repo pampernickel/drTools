@@ -6,9 +6,10 @@
 
 library(reshape2)
 
-readCombos <- function(dir, res.dir, mode=c("", "normalized")){
-  # no.pat: number of patients per plate
-  
+readCombos <- function(dir, res.dir, mode=c("", "normalized"), dil.factor=1,
+                       singleLayout=F){
+  # singleLayout: applicable to the XML case, where individual plates are detected
+  # this option 
   print(paste("Processing directory ", dir, "...", sep=""))
   unlist(strsplit(dir, "/")) -> dir.name
   
@@ -30,7 +31,10 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
   if (length(grep(".xml", files)) > 0){
     # pass to an xml reader internally
     readXML(files) -> coords
-    readFile(coords, res.files) -> combo.mats
+    readFileXML(coords, res.files, dil.factor, singleLayout) -> combo.mats
+    names(combo.mats) <- res.files
+    names(combo.mats) <- sapply(strsplit(sapply(strsplit(res.files, "/"), 
+                                function(x) x[length(x)]), "_"), function(y) y[1])
   } else if (length(grep(".txt", files)) > 0 && mode=="normalized"){ # 
     lapply(files, function(x) suppressWarnings(readLines(x))) -> contents
     lapply(contents, function(x) c(grep("mM", x),grep("mL", x))) -> infoLines
@@ -201,11 +205,81 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized")){
                                            function(x) x[length(x)]), "_"), function(y) y[1])
     }
   }
-  
   return(combo.mats)
 }
 
-readFile <- function(coords, res.files){
+readFileXML <- function(coords, res.files, dil.factor, singleLayout){
+  # create function to read a results file specified in res.files into
+  # all.combos format; the readFileXML function is based on the default
+  # where there is a one-to-one xml:result folder
+  layout <- NA
+  all.combos <- list()
+  if (singleLayout == T){
+    # case where only one of the layouts out of the coords file will be
+    # taken; otherwise, there would be one layout per plate, and there should
+    # be a concordance between the plate name and the layout (i.e. it's possible to match
+    # the plate names to the layout)
+    if (length(coords) == 1){
+      coords[[1]][[1]] -> layout
+    } else {
+      lapply(coords, function(x) x[[1]]) -> layout
+    }
+   
+    # go through res.files
+    lapply(res.files, function(x){
+      t(read.csv(x, header=F)) -> f  
+    }) -> plates
+    names(plates) <- res.files
+    gsub(".csv", "", sapply(strsplit(names(plates), "\\/"), function(x) x[length(x)])) -> names(plates)
+    for (j in 1:length(plates)){
+      plates[[j]] -> curr.plate
+      combos <- list()
+      for (i in 1:length(layout[[1]][[1]])){
+        layout[[1]][[1]][[i]] -> curr.layout
+        curr.plate[curr.layout$combo_coords$r,curr.layout$combo_coords$c] -> p
+       
+        # check orientation of drugs
+        if (length(unique(curr.layout$d1c$c)) == 1){
+          # d1 is on a single column; add 0,0
+          if (isDescending(curr.layout$doses[[1]])){
+            rownames(p) <- c(curr.layout$doses[[1]], 0)
+          } else if (!isDescending(curr.layout$doses[[1]])){
+            rownames(p) <- c(0, curr.layout$doses[[1]])
+          }
+          
+          if (isDescending(curr.layout$doses[[2]])){
+            colnames(p) <- c(curr.layout$doses[[2]], 0)
+          } else if (!isDescending(curr.layout$doses[[2]])){
+            colnames(p) <- c(0, curr.layout$doses[[2]])
+          }
+        }
+        
+        # normalize against dmsos
+        p[which(rownames(p) %in% 0),which(colnames(p) %in% 0)] -> zz # zero zero
+        mean(curr.plate[unique(curr.layout$dmso_coords$r),unique(curr.layout$dmso_coords$c)], na.rm=T) -> dmso.mean
+        if (zz/dmso.mean >= 1.25){
+          dmso.mean <- zz
+        }
+        p/dmso.mean -> combos[[i]]
+      }
+      names(combos) <- paste(curr.layout$drug1, curr.layout$drug2, 1:length(layout[[1]][[1]]), sep="_")
+      combos -> all.combos[[j]]
+    }
+    names(all.combos) <- names(plates)
+  } else {
+    # check if length of layouts match length of res.files
+    if (length(coords) == 1){
+      if (length(coords[[1]]) != length(res.files)){
+        stop("Number of results files not equal to number of plates detected in the .xml layout file.")
+      } else if (length(coords[[1]]) == length(res.files)) {
+        coords[[1]] -> layout
+      }
+    }
+  }
+  return(all.combos)
+}
+
+readFile <- function(coords, res.files, dil.factor){
   t(read.csv(res.files, header=F)) -> f
   # create mat based on d2.list, coords[[i]]$d1.mat[,i]
   df <- list()
@@ -229,12 +303,13 @@ readFile <- function(coords, res.files){
         c(0, coords[[i]]$d2.list[[j]]) -> cn 
       }
       
-      rn -> rownames(df.sub)
-      cn -> colnames(df.sub)
+      rn/dil.factor -> rownames(df.sub)
+      cn/dil.factor -> colnames(df.sub)
       df.sub/mean(dmsos) -> df.sub
       df.sub -> df[[j]]
     }
   }
+  names(df) <- paste(res.files, c(1:length(df)), sep="_")
   return(df)
 }
 
