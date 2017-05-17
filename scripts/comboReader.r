@@ -230,7 +230,7 @@ readFileXML <- function(coords, res.files, dil.factor, singleLayout){
       t(read.csv(x, header=F)) -> f  
     }) -> plates
     names(plates) <- res.files
-    gsub(".csv", "", sapply(strsplit(names(plates), "\\/"), function(x) x[length(x)])) -> names(plates)
+    gsub("_", "-", gsub(".csv", "", sapply(strsplit(names(plates), "\\/"), function(x) x[length(x)]))) -> names(plates)
     for (j in 1:length(plates)){
       plates[[j]] -> curr.plate
       combos <- list()
@@ -280,10 +280,12 @@ readFileXML <- function(coords, res.files, dil.factor, singleLayout){
       combos -> all.combos[[j]]
     }
     names(all.combos) <- names(plates)
+    
     # get all combo names
     paste(names(all.combos), sapply(all.combos, function(x) names(x)), sep="_") -> fin.nn
     unlist(all.combos, recursive = F) -> all.combos
     names(all.combos) <- fin.nn
+    all.combos[which(sapply(all.combos, function(x) ifelse(is.matrix(x), T, F)) %in% T)] -> all.combos
   } else {
     # check if length of layouts match length of res.files
     if (length(coords) == 1){
