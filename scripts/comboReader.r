@@ -238,37 +238,43 @@ readFileXML <- function(coords, res.files, dil.factor, singleLayout){
         layout[[1]][[1]][[i]] -> curr.layout
         curr.plate[curr.layout$combo_coords$r,curr.layout$combo_coords$c] -> p
        
-        # check orientation of drugs
-        if (length(unique(curr.layout$d1c$c)) == 1){
-          # d1 is on a single column; add 0,0
-          if (isDescending(curr.layout$doses[[1]])){
-            rownames(p) <- c(curr.layout$doses[[1]], 0)
-          } else if (!isDescending(curr.layout$doses[[1]])){
-            rownames(p) <- c(0, curr.layout$doses[[1]])
+        # check if the plate is not a blank
+        if (length(unique(as.vector(p))) > 1){
+          # check orientation of drugs
+          if (length(unique(curr.layout$d1c$c)) == 1){
+            # d1 is on a single column; add 0,0
+            if (isDescending(curr.layout$doses[[1]])){
+              rownames(p) <- c(curr.layout$doses[[1]], 0)
+            } else if (!isDescending(curr.layout$doses[[1]])){
+              rownames(p) <- c(0, curr.layout$doses[[1]])
+            }
+            
+            if (isDescending(curr.layout$doses[[2]])){
+              colnames(p) <- c(curr.layout$doses[[2]], 0)
+            } else if (!isDescending(curr.layout$doses[[2]])){
+              colnames(p) <- c(0, curr.layout$doses[[2]])
+            }
           }
           
-          if (isDescending(curr.layout$doses[[2]])){
-            colnames(p) <- c(curr.layout$doses[[2]], 0)
-          } else if (!isDescending(curr.layout$doses[[2]])){
-            colnames(p) <- c(0, curr.layout$doses[[2]])
+          # normalize against dmsos; also check if some dmsos have values = 0, which
+          # could be the case when dmso is dispensed, but there are not enough cells
+          # on the plate
+          p[which(rownames(p) %in% 0),which(colnames(p) %in% 0)] -> zz # zero zero
+          curr.plate[unique(curr.layout$dmso_coords$r),unique(curr.layout$dmso_coords$c)] -> dmsos
+          if (length(which(dmsos %in% 0)) > 0){
+            dmsos[-which(dmsos %in% 0)] -> dmsos
+            warning("Removed potentially blank DMSO wells.")
           }
+          
+          mean(dmsos, na.rm=T) -> dmso.mean
+          if (zz/dmso.mean >= 1.25){
+            dmso.mean <- zz
+          }
+          p/dmso.mean -> combos[[i]]
+        } else {
+          # blank plate
+          NA -> combos[[i]]
         }
-        
-        # normalize against dmsos; also check if some dmsos have values = 0, which
-        # could be the case when dmso is dispensed, but there are not enough cells
-        # on the plate
-        p[which(rownames(p) %in% 0),which(colnames(p) %in% 0)] -> zz # zero zero
-        curr.plate[unique(curr.layout$dmso_coords$r),unique(curr.layout$dmso_coords$c)] -> dmsos
-        if (length(which(dmsos %in% 0)) > 0){
-          dmsos[-which(dmsos %in% 0)] -> dmsos
-          warning("Removed potentially blank DMSO wells.")
-        }
-        
-        mean(dmsos, na.rm=T) -> dmso.mean
-        if (zz/dmso.mean >= 1.25){
-          dmso.mean <- zz
-        }
-        p/dmso.mean -> combos[[i]]
       }
       names(combos) <- paste(curr.layout$drug1, curr.layout$drug2, 1:length(layout[[1]][[1]]), sep=".")
       combos -> all.combos[[j]]
@@ -335,6 +341,7 @@ calcCI <- function(combos){
   df <- matrix(0, nrow=0, ncol=4)
   colnames(df) <- c("patient", "drug1", "drug2", "CI")
   for (i in 1:length(cl)){
+    print(i)
     cl[[i]] -> main  
     getComboProperties(cl, i) -> meta
     cbind(rownames(main), main) -> main
@@ -356,6 +363,7 @@ calcCI <- function(combos){
 }
 
 getComboProperties <- function(cl,i){
+  # based on brice's combos
   unlist(strsplit(sapply(strsplit(names(cl)[i], "\\."), function(x) x[length(x)]), "_"))[1] -> d1
   unlist(strsplit(sapply(strsplit(names(cl)[i], "\\."), function(x) x[length(x)]), "_"))[2] -> d2
   unlist(strsplit(sapply(strsplit(names(cl)[i], "\\."), function(x) x[2]), "/")) -> pn
