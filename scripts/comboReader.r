@@ -254,9 +254,18 @@ readFileXML <- function(coords, res.files, dil.factor, singleLayout){
           }
         }
         
-        # normalize against dmsos
+        # normalize against dmsos; also check if some dmsos have values = 0, which
+        # could be the case when dmso is dispensed, but there are not enough cells
+        # on the plate
         p[which(rownames(p) %in% 0),which(colnames(p) %in% 0)] -> zz # zero zero
-        mean(curr.plate[unique(curr.layout$dmso_coords$r),unique(curr.layout$dmso_coords$c)], na.rm=T) -> dmso.mean
+        curr.plate[unique(curr.layout$dmso_coords$r),unique(curr.layout$dmso_coords$c)] -> dmsos
+        if (length(which(dmsos %in% 0)) > 0){
+          dmsos[-which(dmsos %in% 0)] -> dmsos
+          warning("Removed potentially blank DMSO wells.")
+        }
+        
+        mean(dmsos, na.rm=T) -> dmso.mean
+        
         if (zz/dmso.mean >= 1.25){
           dmso.mean <- zz
         }
@@ -266,7 +275,9 @@ readFileXML <- function(coords, res.files, dil.factor, singleLayout){
       combos -> all.combos[[j]]
     }
     names(all.combos) <- names(plates)
+    # names(all.combos)
     unlist(all.combos, recursive = F) -> all.combos
+    
   } else {
     # check if length of layouts match length of res.files
     if (length(coords) == 1){
@@ -315,7 +326,12 @@ readFile <- function(coords, res.files, dil.factor){
 }
 
 calcCI <- function(combos){
-  unlist(combos, recursive = FALSE) -> cl
+  if (is.list(combos[[1]])){
+    unlist(combos, recursive = FALSE) -> cl
+  } else {
+    combos -> cl
+  }
+  
   df <- matrix(0, nrow=0, ncol=4)
   colnames(df) <- c("patient", "drug1", "drug2", "CI")
   for (i in 1:length(cl)){
