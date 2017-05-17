@@ -265,7 +265,6 @@ readFileXML <- function(coords, res.files, dil.factor, singleLayout){
         }
         
         mean(dmsos, na.rm=T) -> dmso.mean
-        
         if (zz/dmso.mean >= 1.25){
           dmso.mean <- zz
         }
