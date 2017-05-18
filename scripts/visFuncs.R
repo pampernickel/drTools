@@ -934,7 +934,7 @@ comboHeatmap <- function(combos){
   # use par, depending on length of cl -- do an expansion for every
   # six samples
   if (length(cl) > 14){
-    floor(length(cl)/6) -> ncol
+    ceiling(length(cl)/6) -> ncol
     par(mfrow=c(6,ncol))
     lapply(1:length(cl), function(x){
       round(as.numeric(rownames(cl[[x]])), 2) -> rownames(cl[[x]])
