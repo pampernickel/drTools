@@ -32,9 +32,6 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized"), dil.factor=1,
     # pass to an xml reader internally
     readXML(files) -> coords
     readFileXML(coords, res.files, dil.factor, singleLayout) -> combo.mats
-    names(combo.mats) <- res.files
-    names(combo.mats) <- sapply(strsplit(sapply(strsplit(res.files, "/"), 
-                                function(x) x[length(x)]), "_"), function(y) y[1])
   } else if (length(grep(".txt", files)) > 0 && mode=="normalized"){ # 
     lapply(files, function(x) suppressWarnings(readLines(x))) -> contents
     lapply(contents, function(x) c(grep("mM", x),grep("mL", x))) -> infoLines
@@ -126,6 +123,9 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized"), dil.factor=1,
           return(combo.mat)
         }) -> combo.mats
         names(combo.mats) <- res.files
+        paste(names(combo.mats), sapply(combo.mats, function(x) names(x)), sep=":") -> nn
+        unlist(combo.mats, recursive=F) -> combo.mats
+        names(combo.mats) <- nn
       }
     } else {
       # multiple combos per plate
@@ -282,7 +282,7 @@ readFileXML <- function(coords, res.files, dil.factor, singleLayout){
     names(all.combos) <- names(plates)
     
     # get all combo names
-    paste(names(all.combos), sapply(all.combos, function(x) names(x)), sep="_") -> fin.nn
+    paste(names(all.combos), sapply(all.combos, function(x) names(x)), sep=":") -> fin.nn
     unlist(all.combos, recursive = F) -> all.combos
     names(all.combos) <- fin.nn
     all.combos[which(sapply(all.combos, function(x) ifelse(is.matrix(x), T, F)) %in% T)] -> all.combos
@@ -343,7 +343,7 @@ calcCI <- function(combos){
   df <- matrix(0, nrow=0, ncol=4)
   colnames(df) <- c("patient", "drug1", "drug2", "CI")
   for (i in 1:length(cl)){
-    print(i)
+    # print(i)
     cl[[i]] -> main  
     getComboProperties(cl, i) -> meta
     cbind(rownames(main), main) -> main
@@ -366,9 +366,10 @@ calcCI <- function(combos){
 
 getComboProperties <- function(cl,i){
   # based on brice's combos
-  unlist(strsplit(sapply(strsplit(names(cl)[i], "\\."), function(x) x[length(x)]), "_"))[1] -> d1
-  unlist(strsplit(sapply(strsplit(names(cl)[i], "\\."), function(x) x[length(x)]), "_"))[2] -> d2
-  unlist(strsplit(sapply(strsplit(names(cl)[i], "\\."), function(x) x[2]), "/")) -> pn
+  unlist(strsplit(sapply(strsplit(names(cl)[i], "\\:"), function(x) x[length(x)]), "_"))[1] -> d1
+  unlist(strsplit(sapply(strsplit(names(cl)[i], "\\:"), function(x) x[length(x)]), "_"))[2] -> d2
+  unlist(strsplit(sapply(strsplit(names(cl)[i], "\\:"), function(x) x[1]), "/")) -> d
+  d[length(d)] -> pn
   gsub("_cumul_1_v_1_2", "", pn) -> pn
   paste(pn[length(pn)], i, sep="_") -> pat
   list(d1, d2, pat) -> meta
