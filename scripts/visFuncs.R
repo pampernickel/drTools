@@ -931,14 +931,26 @@ comboHeatmap <- function(combos){
   }
   sapply(strsplit(names(cl), "/"), function(x) x[length(x)]) -> nn
   gsub(".csv.", "_", nn) -> nn
-  # use par
-  par(mfrow=c(2,ceiling(length(cl)/2)))
-  lapply(1:length(cl), function(x){
-    round(as.numeric(rownames(cl[[x]])), 2) -> rownames(cl[[x]])
-    round(as.numeric(colnames(cl[[x]])), 2) -> colnames(cl[[x]])
-    cl[[x]][nrow(cl[[x]]),1] <- NA
-    aheatmap(cl[[x]], Rowv=NA, Colv=NA, main=nn[x])
-  })
+  # use par, depending on length of cl -- do an expansion for every
+  # six samples
+  if (length(cl) > 14){
+    floor(length(cl)/6) -> ncol
+    par(mfrow=c(6,ncol))
+    lapply(1:length(cl), function(x){
+      round(as.numeric(rownames(cl[[x]])), 2) -> rownames(cl[[x]])
+      round(as.numeric(colnames(cl[[x]])), 2) -> colnames(cl[[x]])
+      cl[[x]][nrow(cl[[x]]),1] <- NA
+      aheatmap(cl[[x]], Rowv=NA, Colv=NA, main=nn[x])
+    })
+  } else {
+    par(mfrow=c(2,ceiling(length(cl)/2)))
+    lapply(1:length(cl), function(x){
+      round(as.numeric(rownames(cl[[x]])), 2) -> rownames(cl[[x]])
+      round(as.numeric(colnames(cl[[x]])), 2) -> colnames(cl[[x]])
+      cl[[x]][nrow(cl[[x]]),1] <- NA
+      aheatmap(cl[[x]], Rowv=NA, Colv=NA, main=nn[x])
+    })
+  }
 }
 
 plotComparison <- function(df.sum, xlab, ylab){
