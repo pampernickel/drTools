@@ -276,7 +276,7 @@ readFileXML <- function(coords, res.files, dil.factor, singleLayout){
           NA -> combos[[i]]
         }
       }
-      names(combos) <- paste(curr.layout$drug1, curr.layout$drug2, 1:length(layout[[1]][[1]]), sep=".")
+      names(combos) <- paste(curr.layout$drug1, curr.layout$drug2, 1:length(layout[[1]][[1]]), sep="_")
       combos -> all.combos[[j]]
     }
     names(all.combos) <- names(plates)
