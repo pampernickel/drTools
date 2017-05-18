@@ -371,6 +371,7 @@ getComboProperties <- function(cl,i){
   unlist(strsplit(sapply(strsplit(names(cl)[i], "\\:"), function(x) x[1]), "/")) -> d
   d[length(d)] -> pn
   gsub("_cumul_1_v_1_2", "", pn) -> pn
+  gsub("-cumul-1-v-1-2", "", pn) -> pn
   paste(pn[length(pn)], i, sep="_") -> pat
   list(d1, d2, pat) -> meta
   names(meta) <- c("drug1", "drug2", "pat")
