@@ -282,7 +282,6 @@ readFileXML <- function(coords, res.files, dil.factor, singleLayout){
     names(all.combos) <- names(plates)
     
     # get all combo names
-    paste(names(all.combos), sapply(all.combos, function(x) names(x)), sep=":") -> fin.nn
     unlist(all.combos, recursive = F) -> all.combos
     names(all.combos) <- fin.nn
     all.combos[which(sapply(all.combos, function(x) ifelse(is.matrix(x), T, F)) %in% T)] -> all.combos
@@ -342,8 +341,8 @@ calcCI <- function(combos){
   
   df <- matrix(0, nrow=0, ncol=4)
   colnames(df) <- c("patient", "drug1", "drug2", "CI")
-  for (i in 1:length(cl)){
-    # print(i)
+  for (i in 7:length(cl)){
+    print(i)
     cl[[i]] -> main  
     getComboProperties(cl, i) -> meta
     cbind(rownames(main), main) -> main
@@ -362,6 +361,11 @@ calcCI <- function(combos){
   df$CI[which(df$CI > 3)] <- 3
   df$CI[which(df$CI < 0.01)] <- 0.01
   return(df)
+}
+
+checkCombos <- function(all.combos){
+  # go through combos and check if some might have fitting issues
+  # specifically, check for cases where contents for single drugs are missing
 }
 
 getComboProperties <- function(cl,i){
