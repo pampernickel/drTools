@@ -283,7 +283,6 @@ readFileXML <- function(coords, res.files, dil.factor, singleLayout){
     
     # get all combo names
     unlist(all.combos, recursive = F) -> all.combos
-    names(all.combos) <- fin.nn
     all.combos[which(sapply(all.combos, function(x) ifelse(is.matrix(x), T, F)) %in% T)] -> all.combos
   } else {
     # check if length of layouts match length of res.files
@@ -341,7 +340,7 @@ calcCI <- function(combos){
   
   df <- matrix(0, nrow=0, ncol=4)
   colnames(df) <- c("patient", "drug1", "drug2", "CI")
-  for (i in 7:length(cl)){
+  for (i in 1:length(cl)){
     print(i)
     cl[[i]] -> main  
     getComboProperties(cl, i) -> meta
