@@ -340,7 +340,7 @@ calcCI <- function(combos){
   
   df <- matrix(0, nrow=0, ncol=4)
   colnames(df) <- c("patient", "drug1", "drug2", "CI")
-  for (i in 1:length(cl)){
+  for (i in 7:length(cl)){
     print(i)
     cl[[i]] -> main  
     getComboProperties(cl, i) -> meta
@@ -365,6 +365,21 @@ calcCI <- function(combos){
 checkCombos <- function(all.combos){
   # go through combos and check if some might have fitting issues
   # specifically, check for cases where contents for single drugs are missing
+  checkMissingDrugs(all.combos) -> cl
+}
+
+checkMissingDrugs <- function(all.combos){
+  which(sapply(all.combos, function(x){
+    ifelse(length(unique(x[,which(colnames(x) %in% 0)])) == 1 &&
+             unique(x[,which(colnames(x) %in% 0)]) == 0, T, F)
+    }) %in% T) -> rm.ind1
+  which(sapply(all.combos, function(x){
+    ifelse(length(unique(as.vector(x[which(rownames(x) %in% 0),]))) == 1 &&
+             unique(as.vector(x[which(rownames(x) %in% 0),])) == 0, T, F)
+  }) %in% T) -> rm.ind2
+  setdiff(1:length(all.combos), unique(c(rm.ind1, rm.ind2))) -> ind
+  all.combos[ind] -> all.combos
+  return(all.combos)
 }
 
 getComboProperties <- function(cl,i){
