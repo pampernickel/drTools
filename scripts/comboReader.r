@@ -5,8 +5,9 @@
 #@...
 
 library(reshape2)
+library(limma)
 
-readCombos <- function(dir, res.dir, mode=c("", "normalized"), dil.factor=1,
+readCombos <- function(dir, res.dir, mode=c("", "normalized"), df1=1, df2=1,
                        singleLayout=F){
   # singleLayout: applicable to the XML case, where individual plates are detected
   # this option 
@@ -31,7 +32,7 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized"), dil.factor=1,
   if (length(grep(".xml", files)) > 0){
     # pass to an xml reader internally
     readXML(files) -> coords
-    readFileXML(coords, res.files, dil.factor, singleLayout) -> combo.mats
+    readFileXML(coords, res.files, df1, df2, singleLayout) -> combo.mats
   } else if (length(grep(".txt", files)) > 0 && mode=="normalized"){ # 
     lapply(files, function(x) suppressWarnings(readLines(x))) -> contents
     lapply(contents, function(x) c(grep("mM", x),grep("mL", x))) -> infoLines
@@ -208,10 +209,11 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized"), dil.factor=1,
   return(combo.mats)
 }
 
-readFileXML <- function(coords, res.files, dil.factor, singleLayout){
+readFileXML <- function(coords, res.files, df1, df2, singleLayout){
   # create function to read a results file specified in res.files into
   # all.combos format; the readFileXML function is based on the default
   # where there is a one-to-one xml:result folder
+  # df1, df2 are different dilution factors for single drugs
   layout <- NA
   all.combos <- list()
   if (singleLayout == T){
@@ -231,6 +233,7 @@ readFileXML <- function(coords, res.files, dil.factor, singleLayout){
     }) -> plates
     names(plates) <- res.files
     gsub("_", "-", gsub(".csv", "", sapply(strsplit(names(plates), "\\/"), function(x) x[length(x)]))) -> names(plates)
+    
     for (j in 1:length(plates)){
       plates[[j]] -> curr.plate
       combos <- list()
@@ -365,7 +368,23 @@ calcCI <- function(combos){
 checkCombos <- function(all.combos){
   # go through combos and check if some might have fitting issues
   # specifically, check for cases where contents for single drugs are missing
-  checkMissingDrugs(all.combos) -> cl
+  length(all.combos) -> n
+  names(all.combos) -> nn
+  checkMissingDrugs(all.combos) -> all.combos
+  checkLowControls(all.combos) -> all.combos
+  checkSingleDrugs(all.combos) -> all.combos
+  checkDeadCells(all.combos) -> all.combos
+  if (length(all.combos) < n){
+    #warning(nn[which(nn %ni% names(all.combos))])
+    n-length(all.combos) -> rem
+    if (rem > 1){
+      warning(paste("A total of ", rem, " combinations have been removed.", sep=""))
+    } else {
+      warning("One combination has been removed.")
+    }
+  }
+  
+  return(all.combos)
 }
 
 checkMissingDrugs <- function(all.combos){
@@ -379,6 +398,57 @@ checkMissingDrugs <- function(all.combos){
   }) %in% T) -> rm.ind2
   setdiff(1:length(all.combos), unique(c(rm.ind1, rm.ind2))) -> ind
   all.combos[ind] -> all.combos
+  return(all.combos)
+}
+
+checkLowControls <- function(all.combos){
+  # checks cases where the DMSO has a lower value than most of the plate,
+  # including treated cases
+  all.combos[which(sapply(all.combos, function(x) ifelse(max(x) > 1.5, T, F)) %in% F)] -> all.combos
+  return(all.combos)
+}
+
+checkDeadCells <- function(all.combos){
+  which(sapply(all.combos, function(x){
+    res <- F
+    if (mean(x[-which(rownames(x) %in% 0),-which(rownames(x) %in% 0)]) < 0.1){
+      res <- T
+    }
+    return(res)
+  }) %in% F) -> ind
+  return(all.combos[ind])
+}
+
+checkSingleDrugs <- function(all.combos){
+  # check behavior of single drugs -- expected behavior is
+  # that the drug is completely inactive, in which as the dose response curve
+  # should be more-or-less flat, or in cases of partial activity, that
+  # the slopes between all pairs of points on the response curve should 
+  # not be going up too significantly
+  res <- rep(F, length(all.combos))
+  for (i in 1:length(all.combos)){
+    all.combos[[i]] -> curr.combo
+    as.numeric(curr.combo[,which(colnames(curr.combo) %in% 0)]) -> d1y
+    as.numeric(rownames(curr.combo)) -> d1x
+    
+    as.numeric(as.vector(curr.combo[which(rownames(curr.combo) %in% 0),])) -> d2y
+    as.numeric(colnames(curr.combo)) -> d2x
+    
+    # put d1y, d2y in descending order
+    if (isDescending(d1x)){
+      d1y[length(d1y):1] -> d1y
+    }
+    
+    if (isDescending(d2x)){
+      d2y[length(d2y):1] -> d2y
+    }
+    
+    if (length(which(getSlopes(d1y) <= 0)) < length(d1y)/2 ||
+        length(which(getSlopes(d2y) <= 0)) < length(d1y)/2){
+      res[i] <- T
+    }
+  }
+  all.combos[which(res %in% F)] -> all.combos
   return(all.combos)
 }
 
