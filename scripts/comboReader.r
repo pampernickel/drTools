@@ -31,8 +31,8 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized"), df1=1, df2=1,
   combo.mats <- NA
   if (length(grep(".xml", files)) > 0){
     # pass to an xml reader internally
-    readXML(files) -> coords
-    readFileXML(coords, res.files, df1, df2, singleLayout) -> combo.mats
+    readXML(files, df1, df2) -> coords
+    readFileXML(coords, res.files, singleLayout) -> combo.mats
   } else if (length(grep(".txt", files)) > 0 && mode=="normalized"){ # 
     lapply(files, function(x) suppressWarnings(readLines(x))) -> contents
     lapply(contents, function(x) c(grep("mM", x),grep("mL", x))) -> infoLines
@@ -209,7 +209,7 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized"), df1=1, df2=1,
   return(combo.mats)
 }
 
-readFileXML <- function(coords, res.files, df1, df2, singleLayout){
+readFileXML <- function(coords, res.files, singleLayout){
   # create function to read a results file specified in res.files into
   # all.combos format; the readFileXML function is based on the default
   # where there is a one-to-one xml:result folder
@@ -287,6 +287,8 @@ readFileXML <- function(coords, res.files, df1, df2, singleLayout){
     # get all combo names
     unlist(all.combos, recursive = F) -> all.combos
     all.combos[which(sapply(all.combos, function(x) ifelse(is.matrix(x), T, F)) %in% T)] -> all.combos
+    gsub("\\.", ":", names(all.combos)) -> names(all.combos)
+    checkCombos(all.combos)
   } else {
     # check if length of layouts match length of res.files
     if (length(coords) == 1){
@@ -343,7 +345,7 @@ calcCI <- function(combos){
   
   df <- matrix(0, nrow=0, ncol=4)
   colnames(df) <- c("patient", "drug1", "drug2", "CI")
-  for (i in 7:length(cl)){
+  for (i in i:length(cl)){
     print(i)
     cl[[i]] -> main  
     getComboProperties(cl, i) -> meta
@@ -383,7 +385,6 @@ checkCombos <- function(all.combos){
       warning("One combination has been removed.")
     }
   }
-  
   return(all.combos)
 }
 
