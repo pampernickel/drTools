@@ -102,7 +102,7 @@ getNode <- function(x, tag){
 }
 
 
-readXML <- function(files){
+readXML <- function(files, df1, df2){
   if (!is.loaded("XML")) require(XML)
   
   lapply(files, function(x){
@@ -134,7 +134,6 @@ readXML <- function(files){
       
     t[[1]] -> col.names
     as.character(col.names[which(names(col.names) %in% "Cell.Data.text")]) -> col.names
-    
     
     sapply(t, function(z) 
       as.character(z[which(names(z) %in% "Cell.Data.text")])) -> content  
@@ -169,13 +168,13 @@ readXML <- function(files){
       do.call("rbind.data.frame", content[2:length(content)]) -> df
     }
     colnames(df) <- col.names[2:length(col.names)]
-    getCoords(df) -> coords
+    getCoords(df, df1, df2) -> coords
     return(coords)
   }) -> coords
   return(coords)
 }
 
-getCoords <- function(df){
+getCoords <- function(df, df1, df2){
   # 'df' is a parsed version of the "tabular detail" table of
   # the TECAN xml file
   lapply(unique(df$Plate), function(x){
@@ -222,7 +221,7 @@ getCoords <- function(df){
       
       # get single drug coords and borders between multiple combos on a single plate
       apply(combos, 1, function(y){
-        .getCoords(sub, y, conts, drow, dcol, length(all.drugs) %% 2) -> res
+        .getCoords(sub, y, conts, drow, dcol, length(all.drugs) %% 2, df1, df2) -> res
       }) -> res
       names(res) <- apply(combos, 1, function(y) paste(y, collapse="_"))
     } else if (length(all.drugs) %% 2 == 0) {
@@ -231,7 +230,7 @@ getCoords <- function(df){
       # to figure out all combos
       strsplit(unique(conts[grep("_", conts)]), "_") -> all.c
       lapply(all.c, function(y){
-        .getCoords(sub, y, conts, drow, dcol, length(all.drugs) %% 2) -> res
+        .getCoords(sub, y, conts, drow, dcol, length(all.drugs) %% 2, df1, df2) -> res
       }) -> res
       
       if (is.data.frame(all.c)){
@@ -246,7 +245,7 @@ getCoords <- function(df){
   return(res)
 }
 
-.getCoords <- function(sub, y, conts, drow, dcol, mode){
+.getCoords <- function(sub, y, conts, drow, dcol, mode, df1, df2){
   cc <- unique(sub$`Dispensed\nwell`)[which(conts %in% c(paste(y, collapse="_"),
                                                          paste(y[2], y[1], sep="_")))]
   cc <- which(sub$`Dispensed\nwell` %in% cc)
@@ -392,6 +391,9 @@ getCoords <- function(df){
     unique(d2doses) -> d2doses
   }
   
+  d1doses/df1 -> d1doses
+  d2doses/df2 -> d2doses
+  
   if (mode > 0){
     res <- list(list(rows, cols), list(drow, dcol), 
                 list(d1r, d1c), list(d2r, d2c), as.character(y[1]), as.character(y[2]),
@@ -428,10 +430,6 @@ getCoords <- function(df){
   }
   
   return(res)
-}
-
-.processFiles <- function(layout, dir){
-  # layout is from readXML
 }
 
 getFiles <- function(dir){
