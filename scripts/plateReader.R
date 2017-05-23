@@ -221,7 +221,7 @@ getCoords <- function(df, df1, df2){
       
       # get single drug coords and borders between multiple combos on a single plate
       apply(combos, 1, function(y){
-        .getCoords(sub, y, conts, drow, dcol, length(all.drugs) %% 2, df1, df2) -> res
+        .getCoords(sub, y, conts, drow, dcol, (length(all.drugs) %% 2), df1, df2) -> res
       }) -> res
       names(res) <- apply(combos, 1, function(y) paste(y, collapse="_"))
     } else if (length(all.drugs) %% 2 == 0) {
@@ -230,7 +230,7 @@ getCoords <- function(df, df1, df2){
       # to figure out all combos
       strsplit(unique(conts[grep("_", conts)]), "_") -> all.c
       lapply(all.c, function(y){
-        .getCoords(sub, y, conts, drow, dcol, length(all.drugs) %% 2, df1, df2) -> res
+        .getCoords(sub, y, conts, drow, dcol, (length(all.drugs) %% 2), df1, df2) -> res
       }) -> res
       
       if (is.data.frame(all.c)){
