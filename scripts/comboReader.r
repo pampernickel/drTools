@@ -288,7 +288,7 @@ readFileXML <- function(coords, res.files, singleLayout){
     unlist(all.combos, recursive = F) -> all.combos
     all.combos[which(sapply(all.combos, function(x) ifelse(is.matrix(x), T, F)) %in% T)] -> all.combos
     gsub("\\.", ":", names(all.combos)) -> names(all.combos)
-    checkCombos(all.combos)
+    checkCombos(all.combos) -> all.combos
   } else {
     # check if length of layouts match length of res.files
     if (length(coords) == 1){
