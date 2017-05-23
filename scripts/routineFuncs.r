@@ -2,6 +2,14 @@ library(RCurl)
 
 `%ni%` <- Negate(`%in%`)
 
+getSlopes <- function(y.dat){
+  # get slopes for all pairs of points in a fit
+  rbind(y.dat[1:(length(y.dat)-1)], y.dat[2:length(y.dat)]) -> pts
+  slopes <- apply(pts, 2, 
+                  function(x) lm(c(x[1],x[2])~c(1,2))$coefficients[2])
+  return(slopes)
+}
+
 isDescending <- function(x){
   res <- F
   if (all(diff(x) >= 0) == F){
