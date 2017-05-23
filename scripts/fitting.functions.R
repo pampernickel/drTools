@@ -96,20 +96,17 @@ getResponseClass <- function(y.dat, x.dat, curr.exp=NA){
     order(x.dat) -> ind
     x.dat[ind] -> x.dat
     y.dat[ind] -> y.dat
-    rbind(y.dat[1:(length(y.dat)-1)], y.dat[2:length(y.dat)]) -> pts
-    slopes <- apply(pts, 2, 
-                    function(x) lm(c(x[1],x[2])~c(1,2))$coefficients[2])
+    getSlopes(y.dat) -> slopes.u
+    
     y.dat.u <- y.dat # unsmoothed y.dat
     smooth(y.dat) -> y.dat
-    rbind(y.dat[1:(length(y.dat)-1)], y.dat[2:length(y.dat)]) -> pts
-    slopes <- apply(pts, 2, 
-                    function(x) lm(c(x[1],x[2])~c(1,2))$coefficients[2])
+    getSlopes(y.dat) -> slopes
     slopes[c(floor((length(slopes)/2)):length(slopes))] -> last
     
     # lm(formula=y.dat~log10(x.dat), na.action = na.omit)$coefficients[2] < -0.07 &&
     #  mean(slopes) <= -0.1 
     if (mean(y.dat, na.rm=T) < 0.76 ||
-        length(which(slopes < 0)) == length(slopes) ||
+        length(which(slopes.u < 0)) == length(slopes.u) ||
         length(which(last < 0)) == length(last)){
       # --- added case where all slopes are downwards;
       # --- also included a check on the slope of the last two points
