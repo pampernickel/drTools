@@ -400,6 +400,24 @@ addFit <- function(x.dat, y.dat, max.x){
   return(res.loc)
 }
 
+respFromFunc <- function(x.dat, y.dat, new.x){
+  # creates y values given fit with x.dat, y.dat
+  new.y <- NA
+  exp.model <- drm(y.dat~x.dat, fct = LL.4(), na.action = na.omit, control=drmc(errorm = F))
+  if (exp.model$fit$convergence){
+    # form in drc:
+    # f(x) = c + (d − c)/(1 + exp(b(log(x) − log(e))))
+    
+    exp.model$fit$par -> params
+    params[1] -> b # -- Hill coeff
+    params[2] -> c # -- min
+    params[3] -> d # -- max
+    params[4] -> e # -- x_1/2
+    new.y <- (c + (d-c))/(1+exp(b*(log(new.x)-log(e))))
+  }
+  return(new.y)
+}
+
 getSlope <- function(ind, y.dat, x.dat){
   # -- check 
   if (length(which(is.na(y.dat[c(ind:(ind+1))])))== 0){
