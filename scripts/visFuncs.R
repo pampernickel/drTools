@@ -661,11 +661,12 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL, order="
   } else {
     man.col <- scale_colour_manual(values = fin.cols)
     df.o$variable <- factor(df.o$variable, levels = unique(df.o$variable[order(as.character(df.o$variable))]))
+    ndrugs <- length(unique(df.o$variable))
     ggplot(df.o, aes(x=value))+
       stat_density(aes(ymax = ..density..,  ymin = -..density..),
                    fill = "grey50", colour = "grey50",
                    geom = "ribbon", position = "identity", alpha=0.2)+
-      facet_wrap(~variable, nrow=1)+coord_flip()+
+      facet_wrap(~variable, nrow=ceiling(ndrugs/6))+coord_flip()+
       geom_jitter(data = df.o, 
                   aes(x=value, y=0), alpha=0.2, width=0.005)+
       geom_jitter(data = df.i, 
