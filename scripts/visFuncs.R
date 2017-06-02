@@ -494,7 +494,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   }
 }
 
-mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL, order=NULL){
+mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL, order="none"){
   # default: create dotplot of res.df results against assembled
   # poi: patient in assembled that the user wants to highlight
   # first, cap values, then convert into a matrix for uniform handling
