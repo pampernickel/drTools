@@ -974,11 +974,15 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
   # prepare combos for visualization (double-plot)
   # flatten list, i.e. have all combo data frames in a single structure
   # if (!is.loaded("gridExtra")) library(gridExtra)
-  
-  unlist(combos, recursive = FALSE) -> cl
+  if (is.list(combos[[1]])){
+    unlist(combos, recursive = FALSE) -> cl
+  } else {
+    combos -> cl
+  }
   
   all.combos <- list()
   for (i in 1:length(cl)){
+    #print(i)
     temp <- matrix(NA, nrow=0, ncol=4)
     colnames(temp) <- c("x", "y", "combo", "patient")
     
@@ -990,6 +994,7 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
     
     # as this is a double-axis plot, need to keep the x-axis uniform (i.e. just intervals, no
     # actual doses, especially if the doses of drugs1 and 2 are not the same)
+    # drug1: in rows; drug2 in columns by default
     drug1.doses <- drug1.doses[1:length(drug1.doses)-1]
     drug2.doses <- drug2.doses[2:length(drug2.doses)]
     
@@ -1009,6 +1014,13 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
     main[2:nrow(main)] -> drug1.resp
     
     main[c(2:nrow(main)),c(2:ncol(main))] -> resp.matrix
+    
+    # fit individual drug responses; use fits when calculating the additivity line 
+    suppressMessages(addFit(drug1.doses, as.numeric(smooth(drug1.resp)), max(drug1.doses))) -> f1
+    suppressMessages(addFit(drug2.doses, as.numeric(smooth(drug2.resp)), max(drug2.doses))) -> f2
+    
+    # choose nine points from the fit closest to the original doses
+    respFromFunc(drug1.doses, as.numeric(smooth(drug1.resp)), drug1.doses) -> drug1.resp.fit
     
     t <- cbind(d1.doses.proxy, smooth(drug1.resp, kind = "3R"), 
                rep(meta$drug1, length(drug1.resp)), 
@@ -1039,75 +1051,61 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
     # Loewe additivity: effect of a drug if it were combined with itself ye = y1(x1+x2), x1 & 2 are doses
     # HSA: min(y1, y2), i.e. highest monotherapy effect
     # Bliss: ye=y1+y2-y1y2
-    
     additivity.line <- NA
     if (additivity == "HSA"){
       apply(rbind(smooth(drug1.resp),
                   smooth(drug2.resp)), 2, function(x) min(x)) -> additivity.line
     } else if (additivity == "Loewe"){
-      # fit individual drug responses to approximate the effect of doubling the dose
-      suppressMessages(addFit(drug1.doses, as.numeric(smooth(drug1.resp)), max(drug1.doses))) -> f1
-      suppressMessages(addFit(drug2.doses, as.numeric(smooth(drug2.resp)), max(drug2.doses))) -> f2
-      
       # cross section based on drug with lower IC50 -- or do a default cross section
       # through drug2 if the dr is with respect to drug1
-      ff <- extractMax(f2$max)
+      # use fits (ff1, ff2) to approximate the effect of doubling the dose
+      ff <- extractMax(f2$max); sq <- vals <- NA
       if (f1$logIC50 <= f2$logIC50){
         extractMax(f1$max) -> ff
+
         # choose cross-sections based on the more active drug:
         # cross-section through columns
         for (k in 1:ncol(resp.matrix)){
           as.numeric(resp.matrix[,k]) -> combo.resp
-          t <- cbind(d1.doses.proxy, as.numeric(smooth(combo.resp, kind = "3R")), 
-                     rep(paste(round(drug2.doses[k],2), " ", d2, "; ",
-                               round(drug1.doses[k],2), " ", d1, sep=""), 
+          # removeOutliers(combo.resp, d1.doses.proxy) -> combo.resp
+          t <- cbind(d1.doses.proxy, combo.resp, 
+                     rep(paste(round(drug2.doses[k],2), d2, sep="_"), 
                          length(combo.resp)), 
                      rep(meta$pat, length(combo.resp)))
           colnames(t) <- c("x", "y", "combo", "patient")
           rbind(temp, t) -> temp
         }
+        
+        rbind(drug1.doses[1:(length(drug1.doses)-1)],
+              drug1.doses[2:length(drug1.doses)]) -> dd
+        mean(apply(dd, 2, function(x) x[1]/x[2])) -> dil # dil
+        drug1.doses[rev(order(drug1.doses))]+drug2.doses[rev(order(drug2.doses))] -> sq
+        respFromFunc(drug1.doses, as.numeric(smooth(drug1.resp)), sq) -> additivity.line
       } else {
         # choose cross-sections based on the more active drug:
         # cross-section through rows
         for (k in 1:nrow(resp.matrix)){
           as.numeric(resp.matrix[k,]) -> combo.resp
           t <- cbind(d2.doses.proxy, as.numeric(smooth(combo.resp, kind = "3R")), 
-                     rep(paste(round(drug1.doses[k],2), " ", d1, "; ",
-                               round(drug2.doses[k],2), " ", d2, sep=""), 
+                     rep(paste(round(drug1.doses[k],2), d1, sep="_"), 
                          length(combo.resp)), 
                      rep(meta$pat, length(combo.resp)))
           colnames(t) <- c("x", "y", "combo", "patient")
           rbind(temp, t) -> temp
         }
+        drug2.doses/(2^seq(1,9,by=1)) -> sq
       }
       
-      max(c(drug2.doses, drug1.doses))/2^seq(1,9,by=1) -> sq
-      
-      
-      
-      # for each sq, check closest dose in fit
-      sapply(sq, function(x){
-        abs(ff$x-x) -> diff
-        which(diff < 5) -> ind
-        ff$x[which(diff %in% min(diff[ind]))][1] -> diff
-      }) -> vals
-      
-      sapply(sq*2, function(x){
-        abs(ff$x-x) -> diff
-        which(diff < 5) -> ind
-        ff$x[which(diff %in% min(diff[ind]))][1] -> diff
-      }) -> vals.1
-      ff$y[which(ff$x %in% vals.1)] -> additivity.line #x values for these will be vals, and not vals.1
-      
       # check temp$x for orientation of additivity line
-      rbind(seq(length(vals)-(length(vals)-1),nrow(temp),by=length(vals)),
-            seq(length(vals),nrow(temp),by=length(vals))) -> stops
+      rbind(seq(length(sq)-(length(sq)-1),nrow(temp),by=length(sq)),
+            seq(length(sq),nrow(temp),by=length(sq))) -> stops
       additivity.line.fin <- rep(0, nrow(temp))
       for (k in 1:ncol(stops)){
         x <- stops[,k]
         if ((isDescending(as.numeric(temp[c(x[1]:x[2]),1])) && isDescending(additivity.line)) ||
             (!isDescending(as.numeric(temp[c(x[1]:x[2]),1])) && !isDescending(additivity.line))){
           additivity.line.fin[c(x[1]:x[2])] <- additivity.line[length(additivity.line):1]
+          #additivity.line.fin[c(x[1]:x[2])] <- additivity.line
         } else if ((!isDescending(as.numeric(temp[c(x[1]:x[2]),1])) && isDescending(additivity.line)) ||
                    isDescending(as.numeric(temp[c(x[1]:x[2]),1])) && !isDescending(additivity.line)){
           additivity.line.fin[c(x[1]:x[2])] <- additivity.line
@@ -1121,6 +1119,13 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
       as.numeric(as.character(temp$additivity.line.fin)) -> temp$additivity.line.fin
       cols <- colorRampPalette(brewer.pal(8, "RdBu"))(ncol(resp.matrix)+2)[(ncol(resp.matrix)+2):1]
       temp$combo <- factor(temp$combo, levels=unique(temp$combo))
+      
+      # check if values are already scaled to 100
+      if (max(temp$y, na.rm=T) <= 2){
+        temp$y*100 -> temp$y
+        temp$additivity.line.fin*100 -> temp$additivity.line.fin
+      }
+      
       max(temp$y)+25 -> maxy
       ggplot(temp, aes(x=x, y=y, group = combo, colour = combo, 
                        ymin = 0, ymax = additivity.line.fin))+
@@ -1133,6 +1138,76 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
       
     }
   }
-  p2 <- marrangeGrob(all.combos, ncol=ceiling(length(all.combos)/2), nrow=2)
+  if (length(all.combos) < 15){
+    p2 <- marrangeGrob(all.combos, ncol=ceiling(length(all.combos)/2), nrow=2)
+  } else {
+    p2 <- marrangeGrob(all.combos, ncol=ceiling(length(all.combos)/6), nrow=6)
+  }
   print(p2)
+}
+
+visDRspace <- function(combos){
+  if (is.list(combos[[1]])){
+    unlist(combos, recursive = FALSE) -> cl
+  } else {
+    combos -> cl
+  }
+  
+  for (i in i:length(cl)){
+    cl[[i]] -> main  
+    getComboProperties(cl, i) -> meta
+    cbind(rownames(main), main) -> main
+    colnames(main)[1] <- meta$drug2
+    apply(main, 2, function(x) as.numeric(as.character(x))) -> main
+    shapeA(as.data.frame(main), drug1 = meta$drug1, drug2 = meta$drug2) -> drMatrix
+    isobologram(drMatrix) -> p
+    print(p)
+  }
+}
+
+vis3D <- function(df){
+  df[,grep("ABT-199", colnames(df))] -> d2.x
+  df.1[,grep("ABT-199", colnames(df.1))] -> d2.y
+  df.2[,grep("ABT-199", colnames(df.1))] -> col
+  
+  as.numeric(sapply(col, function(x) return(ifelse(is.na(x), NA, min(as.numeric(strsplit(strsplit(as.character(x),";")[[1]][2], ",")[[1]])))))) -> d2.z
+  unique(c(which(is.na(d2.x)), which(is.na(d2.y)), which(is.na(d2.z)),
+           which(is.infinite(d2.x)), which(is.infinite(d2.y)), which(is.infinite(d2.z)),
+           intersect(which(d2.x > 3), which(d2.y < 1)))) -> ind.1
+  if (length(ind.1) > 0){
+    d2.x[-ind.1] -> d2.x
+    d2.y[-ind.1] -> d2.y
+    d2.z[-ind.1] -> d2.z
+  }
+  
+  x.sub <- as.numeric(unlist(lapply(coords, function(x) return(x[1,1]))))
+  y.sub <- as.numeric(unlist(lapply(coords, function(x) return(x[1,2]))))
+  z.sub <- as.numeric(unlist(lapply(coords, function(x) return(x[1,3]))))
+  z.sub[3] <- 0.02644939 # check where this is reset to NA
+  plot3d(c(log.auc[-ind],x.sub,d2.x),
+         c(log.ic50[-ind],y.sub,d2.y),
+         c(max.survival.v[-ind], z.sub,d2.z), 
+         col=c(rep("grey", length(max.survival.v[-ind])),
+               rep("red", length(z.sub)),
+               rep("goldenrod", length(d2.z))), type='s', 
+         size=c(rep(0.4, length(max.survival.v[-ind])),
+                rep(1.2, length(z.sub)),
+                rep(0.6, length(d2.z))), 
+         alpha=c(rep(0.4, length(max.survival.v[-ind])),
+                 rep(1.2, length(z.sub)),
+                 rep(1.0, length(d2.z))),
+         axes=F,xlab="",ylab="",zlab="")
+  bbox3d(color = c("lightgrey", "white"), alpha = 0.1, nticks=6)
+  grid3d(c("z"), lty=3)
+  axis3d(c("z++"), ticks=T, nticks=6)
+  cbind(x.sub,y.sub,z.sub) -> m
+  segments3d(matrix(t(cbind(m, m[,1:2], 0)), nc=3, byrow=TRUE), lwd=1.2, color="red")
+  y.1 <- matrix(0, nrow=4, ncol=4)
+  col.1 <- rep("grey", 16)
+  #rgl.postscript(file="3d.plot.rot.ps")
+  
+  surface3d(c(-2:1), c(-2,1), y.1, color=col.1, back="lines", alpha=0.6, axes=F, box=T, labels=FALSE, 
+            tick=FALSE)
+  
+  rgl.snapshot("3d.plot.rot.ABT.199.png")
 }
