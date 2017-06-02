@@ -631,6 +631,7 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL, order="
       brewer.pal(no.samples, "Spectral") -> fin.cols
     }
   }
+  
   if (order %in% "class"){
     man.col <- scale_colour_manual(values = fin.cols)
     ggplot(df.o, aes(x=value))+
@@ -655,10 +656,11 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL, order="
             panel.grid.major=element_blank(),
             panel.grid.minor=element_blank(),
             plot.background=element_blank(),
-            panel.margin = unit(0.0, "lines"))+
+            panel.spacing = unit(0.0, "lines"))+
       man.col+theme(legend.position="bottom")+xlim(min(assembled,na.rm=T)-0.05,4.75) -> p
   } else {
     man.col <- scale_colour_manual(values = fin.cols)
+    df.o$variable <- factor(df.o$variable, levels = unique(df.o$variable[order(as.character(df.o$variable))]))
     ggplot(df.o, aes(x=value))+
       stat_density(aes(ymax = ..density..,  ymin = -..density..),
                    fill = "grey50", colour = "grey50",
@@ -681,7 +683,7 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL, order="
             panel.grid.major=element_blank(),
             panel.grid.minor=element_blank(),
             plot.background=element_blank(),
-            panel.margin = unit(0.0, "lines"))+
+            panel.spacing = unit(0.0, "lines"))+
       man.col+theme(legend.position="bottom")+xlim(min(assembled,na.rm=T)-0.05,4.75) -> p
   }
   
