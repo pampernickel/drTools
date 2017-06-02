@@ -494,7 +494,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   }
 }
 
-mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL){
+mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL, order=NULL){
   # default: create dotplot of res.df results against assembled
   # poi: patient in assembled that the user wants to highlight
   # first, cap values, then convert into a matrix for uniform handling
@@ -606,65 +606,91 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL){
   }
   
   # order by drug class
-  sapply(df.o$variable, function(x) 
-    drug.list.all$classification[which(drug.list.all$final.name %in% x)]) -> dc
-  sapply(df.o$variable, function(x) 
-    drug.list.all$subclass[which(drug.list.all$final.name %in% x)]) -> dc2
-  cbind(df.o, dc, dc2) -> df.o
-  
-  sapply(df.i$variable, function(x) 
-    drug.list.all$classification[which(drug.list.all$final.name %in% x)]) -> dc
-  sapply(df.i$variable, function(x) 
-    drug.list.all$subclass[which(drug.list.all$final.name %in% x)]) -> dc2
-  cbind(df.i, dc, dc2) -> df.i
-  
-  length(unique(df.i$id)) -> no.samples
-  
-  fin.cols <- NA
-  if (no.samples == 1){
-   "red" -> fin.cols 
-  } else {
-    if (no.samples < 3){
-      brewer.pal(3, "Spectral") -> fin.cols
-      fin.cols[c(1:no.samples)] -> fin.cols
+  if (order %in% "class"){
+    sapply(df.o$variable, function(x) 
+      drug.list.all$classification[which(drug.list.all$final.name %in% x)]) -> dc
+    sapply(df.o$variable, function(x) 
+      drug.list.all$subclass[which(drug.list.all$final.name %in% x)]) -> dc2
+    cbind(df.o, dc, dc2) -> df.o
+    
+    sapply(df.i$variable, function(x) 
+      drug.list.all$classification[which(drug.list.all$final.name %in% x)]) -> dc
+    sapply(df.i$variable, function(x) 
+      drug.list.all$subclass[which(drug.list.all$final.name %in% x)]) -> dc2
+    cbind(df.i, dc, dc2) -> df.i
+    
+    length(unique(df.i$id)) -> no.samples
+    
+    fin.cols <- NA
+    if (no.samples == 1){
+     "red" -> fin.cols 
     } else {
-      brewer.pal(no.samples, "Spectral") -> fin.cols
+      if (no.samples < 3){
+        brewer.pal(3, "Spectral") -> fin.cols
+        fin.cols[c(1:no.samples)] -> fin.cols
+      } else {
+        brewer.pal(no.samples, "Spectral") -> fin.cols
+      }
     }
+    
+    man.col <- scale_colour_manual(values = fin.cols)
+    ggplot(df.o, aes(x=value))+
+      stat_density(aes(ymax = ..density..,  ymin = -..density..),
+                   fill = "grey50", colour = "grey50",
+                   geom = "ribbon", position = "identity", alpha=0.2)+
+      facet_wrap(~dc+variable)+coord_flip()+
+      geom_jitter(data = df.o, 
+                  aes(x=value, y=0), alpha=0.2, width=0.005)+
+      geom_jitter(data = df.i, 
+                  aes(x=value, y=0,shape=id,color=id), alpha=0.7, width=0.005,
+                  size=4.5)+
+      scale_y_continuous(breaks=c(-2, 0, 2))+theme_bw()+
+      theme(axis.text.x=element_blank(),
+            axis.ticks.x=element_blank(),
+            axis.title.x=element_blank(),
+            axis.title.y=element_blank(),
+            axis.text.y=element_text(size=14),
+            strip.text=element_text(size=11),
+            panel.background=element_blank(),
+            panel.border=element_blank(),
+            panel.grid.major=element_blank(),
+            panel.grid.minor=element_blank(),
+            plot.background=element_blank(),
+            panel.margin = unit(0.0, "lines"))+
+      man.col+theme(legend.position="bottom")+xlim(min(assembled,na.rm=T)-0.05,4.75) -> p
+  } else {
+    man.col <- scale_colour_manual(values = fin.cols)
+    ggplot(df.o, aes(x=value))+
+      stat_density(aes(ymax = ..density..,  ymin = -..density..),
+                   fill = "grey50", colour = "grey50",
+                   geom = "ribbon", position = "identity", alpha=0.2)+
+      facet_wrap(~variable, nrow=1)+coord_flip()+
+      geom_jitter(data = df.o, 
+                  aes(x=value, y=0), alpha=0.2, width=0.005)+
+      geom_jitter(data = df.i, 
+                  aes(x=value, y=0,shape=id,color=id), alpha=0.7, width=0.005,
+                  size=4.5)+
+      scale_y_continuous(breaks=c(-2, 0, 2))+theme_bw()+
+      theme(axis.text.x=element_blank(),
+            axis.ticks.x=element_blank(),
+            axis.title.x=element_blank(),
+            axis.title.y=element_blank(),
+            axis.text.y=element_text(size=14),
+            strip.text=element_text(size=11),
+            panel.background=element_blank(),
+            panel.border=element_blank(),
+            panel.grid.major=element_blank(),
+            panel.grid.minor=element_blank(),
+            plot.background=element_blank(),
+            panel.margin = unit(0.0, "lines"))+
+      man.col+theme(legend.position="bottom")+xlim(min(assembled,na.rm=T)-0.05,4.75) -> p
   }
   
-  man.col <- scale_colour_manual(values = fin.cols)
-  ggplot(df.o, aes(x=value))+
-    stat_density(aes(ymax = ..density..,  ymin = -..density..),
-                 fill = "grey50", colour = "grey50",
-                 geom = "ribbon", position = "identity", alpha=0.2)+
-    #facet_wrap(~variable, nrow=1)+coord_flip()+
-    facet_wrap(~dc+variable)+coord_flip()+
-    geom_jitter(data = df.o, 
-                aes(x=value, y=0), alpha=0.2, width=0.005)+
-    geom_jitter(data = df.i, 
-                aes(x=value, y=0,shape=id,color=id), alpha=0.7, width=0.005,
-                size=4.5)+
-    scale_y_continuous(breaks=c(-2, 0, 2))+theme_bw()+
-    theme(axis.text.x=element_blank(),
-          axis.ticks.x=element_blank(),
-          axis.title.x=element_blank(),
-          axis.title.y=element_blank(),
-          axis.text.y=element_text(size=14),
-          strip.text=element_text(size=11),
-          panel.background=element_blank(),
-          panel.border=element_blank(),
-          panel.grid.major=element_blank(),
-          panel.grid.minor=element_blank(),
-          plot.background=element_blank(),
-          panel.margin = unit(0.0, "lines"))+
-    man.col+theme(legend.position="bottom")+xlim(min(assembled,na.rm=T)-0.05,4.75) -> p
   ncol(assembled.sub)-1 -> ndrugs
-  
   dim <- 1000
   if (ndrugs > 20){
     ndrugs*22.5 -> dim
   }
-  
   #png(file=paste(rd, "/dotplot.png", sep=""), width=dim, height=dim)
   #png(file="dotplot.png", width=dim, height=dim)
   print(p)
