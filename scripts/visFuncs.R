@@ -1146,26 +1146,33 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
   print(p2)
 }
 
-visDRspace <- function(combos){
+visDRspace <- function(combos, mode=c('isobologram', 'heatmap', 'contour')){
   if (is.list(combos[[1]])){
     unlist(combos, recursive = FALSE) -> cl
   } else {
     combos -> cl
   }
   
-  for (i in i:length(cl)){
+  for (i in 1:length(cl)){
     cl[[i]] -> main  
     getComboProperties(cl, i) -> meta
     cbind(rownames(main), main) -> main
     colnames(main)[1] <- meta$drug2
     apply(main, 2, function(x) as.numeric(as.character(x))) -> main
     shapeA(as.data.frame(main), drug1 = meta$drug1, drug2 = meta$drug2) -> drMatrix
-    isobologram(drMatrix) -> p
+    if (mode == "isobologram"){
+      isobologram(drMatrix) -> p
+    } else if (mode == "heatmap"){
+      cIndex2(drMatrix) -> p
+    } else if (mode == "Contour"){
+      dContour(drMatrix) -> p
+    }
     print(p)
   }
 }
 
 vis3D <- function(df){
+  # needs to be fixed!!!
   df[,grep("ABT-199", colnames(df))] -> d2.x
   df.1[,grep("ABT-199", colnames(df.1))] -> d2.y
   df.2[,grep("ABT-199", colnames(df.1))] -> col
