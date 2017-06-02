@@ -606,33 +606,32 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL, order="
   }
   
   # order by drug class
-  if (order %in% "class"){
-    sapply(df.o$variable, function(x) 
-      drug.list.all$classification[which(drug.list.all$final.name %in% x)]) -> dc
-    sapply(df.o$variable, function(x) 
-      drug.list.all$subclass[which(drug.list.all$final.name %in% x)]) -> dc2
-    cbind(df.o, dc, dc2) -> df.o
+  sapply(df.o$variable, function(x) 
+    drug.list.all$classification[which(drug.list.all$final.name %in% x)]) -> dc
+  sapply(df.o$variable, function(x) 
+    drug.list.all$subclass[which(drug.list.all$final.name %in% x)]) -> dc2
+  cbind(df.o, dc, dc2) -> df.o
     
-    sapply(df.i$variable, function(x) 
-      drug.list.all$classification[which(drug.list.all$final.name %in% x)]) -> dc
-    sapply(df.i$variable, function(x) 
-      drug.list.all$subclass[which(drug.list.all$final.name %in% x)]) -> dc2
-    cbind(df.i, dc, dc2) -> df.i
+  sapply(df.i$variable, function(x) 
+    drug.list.all$classification[which(drug.list.all$final.name %in% x)]) -> dc
+  sapply(df.i$variable, function(x) 
+    drug.list.all$subclass[which(drug.list.all$final.name %in% x)]) -> dc2
+  cbind(df.i, dc, dc2) -> df.i
     
-    length(unique(df.i$id)) -> no.samples
+  length(unique(df.i$id)) -> no.samples
     
-    fin.cols <- NA
-    if (no.samples == 1){
-     "red" -> fin.cols 
+  fin.cols <- NA
+  if (no.samples == 1){
+   "red" -> fin.cols 
+  } else {
+    if (no.samples < 3){
+      brewer.pal(3, "Spectral") -> fin.cols
+      fin.cols[c(1:no.samples)] -> fin.cols
     } else {
-      if (no.samples < 3){
-        brewer.pal(3, "Spectral") -> fin.cols
-        fin.cols[c(1:no.samples)] -> fin.cols
-      } else {
-        brewer.pal(no.samples, "Spectral") -> fin.cols
-      }
+      brewer.pal(no.samples, "Spectral") -> fin.cols
     }
-    
+  }
+  if (order %in% "class"){
     man.col <- scale_colour_manual(values = fin.cols)
     ggplot(df.o, aes(x=value))+
       stat_density(aes(ymax = ..density..,  ymin = -..density..),
