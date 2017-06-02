@@ -1165,7 +1165,7 @@ visDRspace <- function(combos, mode=c('isobologram', 'heatmap', 'contour')){
     } else if (mode == "heatmap"){
       cIndex2(drMatrix) -> p
     } else if (mode == "Contour"){
-      dContour(drMatrix) -> p
+      dContour(drMatrix)
     }
     print(p)
   }
