@@ -345,8 +345,7 @@ calcCI <- function(combos){
   
   df <- matrix(0, nrow=0, ncol=4)
   colnames(df) <- c("patient", "drug1", "drug2", "CI")
-  for (i in i:length(cl)){
-    print(i)
+  for (i in 1:length(cl)){
     cl[[i]] -> main  
     getComboProperties(cl, i) -> meta
     cbind(rownames(main), main) -> main
