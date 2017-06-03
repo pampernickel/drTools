@@ -32,8 +32,8 @@ rankResponses <- function(res.df, assembled, topK=10, drug.list.all=NULL, poi=NU
     apply(csdata, 2, function(x) median(x, na.rm=T)) -> med
     med-poi -> diff
     rev(order(diff)) -> ord
-    cbind(colnames(csdata)[ord], round(diff[ord], 2), med[ord]) -> res
-    colnames(res) <- c("Drug", "Difference from median IC50", "Median IC50 (centered, scaled)")
+    cbind(colnames(csdata)[ord], round(diff[ord], 3), round(med[ord],3)) -> res
+    colnames(res) <- c("Drug", "Difference from\nmedian IC50", "Median IC50\n(centered, scaled)")
     if (nrow(res) > topK){
       res[1:topK,] -> res
     }
