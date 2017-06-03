@@ -209,6 +209,49 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized"), df1=1, df2=1,
   return(combo.mats)
 }
 
+parseContent <- function(curr.plate, curr.layout, combos, i){
+  # general-purpose content parsing function for combination experiments
+  curr.plate[curr.layout$combo_coords$r,curr.layout$combo_coords$c] -> p
+  # check if the plate is not a blank
+  if (length(unique(as.vector(p))) > 1){
+    # check orientation of drugs
+    if (length(unique(curr.layout$d1c$c)) == 1){
+      # d1 is on a single column; add 0,0
+      if (isDescending(curr.layout$doses[[1]])){
+        rownames(p) <- c(curr.layout$doses[[1]], 0)
+      } else if (!isDescending(curr.layout$doses[[1]])){
+        rownames(p) <- c(0, curr.layout$doses[[1]])
+      }
+      
+      if (isDescending(curr.layout$doses[[2]])){
+        colnames(p) <- c(curr.layout$doses[[2]], 0)
+      } else if (!isDescending(curr.layout$doses[[2]])){
+        colnames(p) <- c(0, curr.layout$doses[[2]])
+      }
+    }
+    
+    # normalize against dmsos; also check if some dmsos have values = 0, which
+    # could be the case when dmso is dispensed, but there are not enough cells
+    # on the plate
+    p[which(rownames(p) %in% 0),which(colnames(p) %in% 0)] -> zz # zero zero
+    curr.plate[unique(curr.layout$dmso_coords$r),unique(curr.layout$dmso_coords$c)] -> dmsos
+    if (length(which(dmsos %in% 0)) > 0){
+      dmsos[-which(dmsos %in% 0)] -> dmsos
+      warning("Removed potentially blank DMSO wells.")
+    }
+    
+    mean(dmsos, na.rm=T) -> dmso.mean
+    if (zz/dmso.mean >= 1.25){
+      dmso.mean <- zz
+    }
+    p/dmso.mean -> res
+  } else {
+    # blank plate
+    NA -> res
+  }
+  return(res)
+}
+
 readFileXML <- function(coords, res.files, singleLayout){
   # create function to read a results file specified in res.files into
   # all.combos format; the readFileXML function is based on the default
@@ -226,79 +269,59 @@ readFileXML <- function(coords, res.files, singleLayout){
     } else {
       lapply(coords, function(x) x[[1]]) -> layout
     }
-   
-    # go through res.files
-    lapply(res.files, function(x){
-      t(read.csv(x, header=F)) -> f  
-    }) -> plates
-    names(plates) <- res.files
-    gsub("_", "-", gsub(".csv", "", sapply(strsplit(names(plates), "\\/"), function(x) x[length(x)]))) -> names(plates)
-    
-    for (j in 1:length(plates)){
-      plates[[j]] -> curr.plate
-      combos <- list()
-      for (i in 1:length(layout[[1]][[1]])){
-        layout[[1]][[1]][[i]] -> curr.layout
-        curr.plate[curr.layout$combo_coords$r,curr.layout$combo_coords$c] -> p
-       
-        # check if the plate is not a blank
-        if (length(unique(as.vector(p))) > 1){
-          # check orientation of drugs
-          if (length(unique(curr.layout$d1c$c)) == 1){
-            # d1 is on a single column; add 0,0
-            if (isDescending(curr.layout$doses[[1]])){
-              rownames(p) <- c(curr.layout$doses[[1]], 0)
-            } else if (!isDescending(curr.layout$doses[[1]])){
-              rownames(p) <- c(0, curr.layout$doses[[1]])
-            }
-            
-            if (isDescending(curr.layout$doses[[2]])){
-              colnames(p) <- c(curr.layout$doses[[2]], 0)
-            } else if (!isDescending(curr.layout$doses[[2]])){
-              colnames(p) <- c(0, curr.layout$doses[[2]])
-            }
-          }
-          
-          # normalize against dmsos; also check if some dmsos have values = 0, which
-          # could be the case when dmso is dispensed, but there are not enough cells
-          # on the plate
-          p[which(rownames(p) %in% 0),which(colnames(p) %in% 0)] -> zz # zero zero
-          curr.plate[unique(curr.layout$dmso_coords$r),unique(curr.layout$dmso_coords$c)] -> dmsos
-          if (length(which(dmsos %in% 0)) > 0){
-            dmsos[-which(dmsos %in% 0)] -> dmsos
-            warning("Removed potentially blank DMSO wells.")
-          }
-          
-          mean(dmsos, na.rm=T) -> dmso.mean
-          if (zz/dmso.mean >= 1.25){
-            dmso.mean <- zz
-          }
-          p/dmso.mean -> combos[[i]]
-        } else {
-          # blank plate
-          NA -> combos[[i]]
-        }
-      }
-      names(combos) <- paste(curr.layout$drug1, curr.layout$drug2, 1:length(layout[[1]][[1]]), sep="_")
-      combos -> all.combos[[j]]
-    }
-    names(all.combos) <- names(plates)
-    
-    # get all combo names
-    unlist(all.combos, recursive = F) -> all.combos
-    all.combos[which(sapply(all.combos, function(x) ifelse(is.matrix(x), T, F)) %in% T)] -> all.combos
-    gsub("\\.", ":", names(all.combos)) -> names(all.combos)
-    checkCombos(all.combos) -> all.combos
   } else {
     # check if length of layouts match length of res.files
-    if (length(coords) == 1){
-      if (length(coords[[1]]) != length(res.files)){
-        stop("Number of results files not equal to number of plates detected in the .xml layout file.")
-      } else if (length(coords[[1]]) == length(res.files)) {
-        coords[[1]] -> layout
+    if (length(coords) != length(res.files)){
+      stop("Number of results files not equal to number of plates detected in the .xml layout file.")
+    } else if (length(coords) == length(res.files)) {
+      # check if there's a way to match the names of the coords files with the res.files
+      # find max matching names
+      gsub("_cumul_1_v_1_2.csv",
+           "", sapply(strsplit(res.files, "\\/"), function(y) y[length(y)])) -> pattern
+      gsub(".xml", "", sapply(strsplit(files, "\\/"), function(y) y[length(y)])) -> pattern2
+      as.numeric(unlist(sapply(pattern, function(y) 
+        agrep(y, pattern2, max.distance=0.4)))) -> ind.match
+      if (length(unique(ind.match)) != length(res.files)){
+        stop("Please rename your files so as to have a one-to-one match with the layouts. For example,
+             if your layout us called 'combo1 2017-06-02.xml', then call your result file `combo1_2017-06-02.csv`.")
+      } else {
+        lapply(coords, function(x) x[[1]]) -> layout
       }
     }
   }
+  
+  # go through res.files
+  lapply(res.files, function(x){
+    t(read.csv(x, header=F)) -> f  
+  }) -> plates
+  names(plates) <- res.files
+  gsub("_", "-", gsub(".csv", "", sapply(strsplit(names(plates), "\\/"), function(x) x[length(x)]))) -> names(plates)
+  
+  for (j in 1:length(plates)){
+    plates[[j]] -> curr.plate
+    combos <- list()
+    if (singleLayout==T){
+      for (i in 1:length(layout[[1]][[1]])){
+        layout[[1]][[1]][[i]] -> curr.layout
+        parseContent(curr.plate, curr.layout, combos, i) -> combos[[i]]
+      }
+    } else {
+      which(ind.match %in% j) -> ind
+      for (i in 1:length(layout[[ind]])){
+        layout[[ind]][[i]] -> curr.layout
+        parseContent(curr.plate, curr.layout, combos, i) -> combos[[i]]
+      }
+    }
+    names(combos) <- paste(curr.layout$drug1, curr.layout$drug2, 1:length(layout[[1]][[1]]), sep="_")
+    combos -> all.combos[[j]]
+  }
+  names(all.combos) <- names(plates)
+  
+  # get all combo names
+  unlist(all.combos, recursive = F) -> all.combos
+  all.combos[which(sapply(all.combos, function(x) ifelse(is.matrix(x), T, F)) %in% T)] -> all.combos
+  gsub("\\.", ":", names(all.combos)) -> names(all.combos)
+  checkCombos(all.combos) -> all.combos
   return(all.combos)
 }
 
