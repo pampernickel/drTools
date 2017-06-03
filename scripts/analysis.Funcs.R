@@ -29,12 +29,15 @@ rankResponses <- function(res.df, assembled, topK=10, drug.list.all=NULL, poi=NU
   csdata[-ind,] -> csdata
   
   if (length(ind) == 1){
-    apply(csdata, 2, function(x) median(x, na.rm=T))-poi -> diff
+    apply(csdata, 2, function(x) median(x, na.rm=T)) -> med
+    med-poi -> diff
     rev(order(diff)) -> ord
-    cbind(colnames(csdata)[ord], round(diff[ord], 2)) -> res
+    cbind(colnames(csdata)[ord], round(diff[ord], 2), med[ord]) -> res
+    colnames(res) <- c("Drug", "Difference from median IC50", "Median IC50 (centered, scaled)")
     if (nrow(res) > topK){
       res[1:topK,] -> res
     }
+    as.data.frame(res) -> res
   } else {
     apply(csdata, 2, function(x) median(x, na.rm=T)) -> med
     apply(poi, 1, function(x){
