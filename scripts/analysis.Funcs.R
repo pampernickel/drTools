@@ -14,6 +14,39 @@ extractMax <- function(t){
   return(fit.res)
 }
 
+rankResponses <- function(res.df, assembled, topK=10, drug.list.all=NULL, poi=NULL){
+  # given a dose response matrix for a given patient and dose response matrices
+  # for other patients, rank drugs from OTHER patients
+  .mapResponse(res.df, assembled, drug.list.all) -> assembled.sub
+  grep("POI", assembled.sub$id) -> ind
+  
+  # scale and center assembled sub
+  as.matrix(assembled.sub) -> assembled.sub
+  as.matrix(assembled.sub[,2:ncol(assembled.sub)]) -> mat
+  apply(mat, 2, function(x) as.numeric(as.character(x))) -> mat
+  scale(mat, center=T, scale=T) -> csdata
+  csdata[ind,] -> poi
+  csdata[-ind,] -> csdata
+  
+  if (length(ind) == 1){
+    apply(csdata, 2, function(x) median(x, na.rm=T))-poi -> diff
+    rev(order(diff)) -> ord
+    cbind(colnames(csdata)[ord], round(diff[ord], 2)) -> res
+    if (nrow(res) > topK){
+      res[1:topK,] -> res
+    }
+  } else {
+    apply(csdata, 2, function(x) median(x, na.rm=T)) -> med
+    apply(poi, 1, function(x){
+      med - x -> diff
+      rev(order(diff)) -> ord
+      cbind(colnames(csdata)[ord], round(diff[ord], 2)) -> res
+    }) -> res
+  }
+  
+  return(res)
+}
+
 formatResponseMatrices <- function(fits.1, fits.2){
   lapply(fits.1, function(x) as.data.frame(x)) -> fits.df.1
   lapply(fits.2, function(x) as.data.frame(x)) -> fits.df.2
