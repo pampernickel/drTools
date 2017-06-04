@@ -234,16 +234,22 @@ parseContent <- function(curr.plate, curr.layout, combos, i){
     # could be the case when dmso is dispensed, but there are not enough cells
     # on the plate
     p[which(rownames(p) %in% 0),which(colnames(p) %in% 0)] -> zz # zero zero
-    curr.plate[unique(curr.layout$dmso_coords$r),unique(curr.layout$dmso_coords$c)] -> dmsos
-    if (length(which(dmsos %in% 0)) > 0){
-      dmsos[-which(dmsos %in% 0)] -> dmsos
-      warning("Removed potentially blank DMSO wells.")
+    if (length(curr.layout$dmso_coords$r) > 0 &&
+        length(curr.layout$dmso_coords$c) > 0){
+      curr.plate[unique(curr.layout$dmso_coords$r),unique(curr.layout$dmso_coords$c)] -> dmsos
+      if (length(which(dmsos %in% 0)) > 0){
+        dmsos[-which(dmsos %in% 0)] -> dmsos
+        warning("Removed potentially blank DMSO wells.")
+      }
+      
+      mean(dmsos, na.rm=T) -> dmso.mean
+      if (zz/dmso.mean >= 1.25){
+        dmso.mean <- zz
+      }
+    } else {
+      zz <- dmso.mean 
     }
     
-    mean(dmsos, na.rm=T) -> dmso.mean
-    if (zz/dmso.mean >= 1.25){
-      dmso.mean <- zz
-    }
     p/dmso.mean -> res
   } else {
     # blank plate
