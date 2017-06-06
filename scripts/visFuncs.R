@@ -1121,11 +1121,18 @@ vis3D <- function(all.combos){
     install.packages("plot3D")
   }
   
+  
   names(all.combos) -> nn
   sapply(strsplit(nn, "\\/"), function(x) x[length(x)]) -> nn
   gsub(".csv", "", nn) -> nn
-  par(mfrow=c(2,4))
+  par(mfrow=c(ceiling(length(all.combos)/6),
+              ceiling(length(all.combos)/(ceiling(length(all.combos)/6)))))
   for (i in 1:length(all.combos)){
+    # check if there's a need to scale
+    if (mean(all.combos[[i]]) < 10){
+      all.combos[[i]]*100 -> all.combos[[i]]
+    }
+    
     persp3D(z = all.combos[[i]], x = 1:nrow(all.combos[[i]]), 
             #polygon3D(z = all.combos[[i]], x = 1:nrow(all.combos[[1]]), 
             y = 1:ncol(all.combos[[i]]), expand = 0.3, facets = T, 
