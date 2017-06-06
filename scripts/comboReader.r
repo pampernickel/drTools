@@ -433,7 +433,7 @@ checkMissingDrugs <- function(all.combos){
 checkLowControls <- function(all.combos){
   # checks cases where the DMSO has a lower value than most of the plate,
   # including treated cases
-  all.combos[which(sapply(all.combos, function(x) ifelse(max(x) > 1.8, T, F)) %in% F)] -> all.combos
+  all.combos[which(sapply(all.combos, function(x) ifelse(max(x) > 1.5, T, F)) %in% F)] -> all.combos
   return(all.combos)
 }
 
