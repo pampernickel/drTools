@@ -1113,50 +1113,19 @@ visDRspace <- function(combos, mode=c('isobologram', 'heatmap', 'contour')){
   }
 }
 
-vis3D <- function(df){
+vis3D <- function(all.combos){
   # needs to be fixed!!!
-  df[,grep("ABT-199", colnames(df))] -> d2.x
-  df.1[,grep("ABT-199", colnames(df.1))] -> d2.y
-  df.2[,grep("ABT-199", colnames(df.1))] -> col
-  
-  as.numeric(sapply(col, function(x) return(ifelse(is.na(x), NA, min(as.numeric(strsplit(strsplit(as.character(x),";")[[1]][2], ",")[[1]])))))) -> d2.z
-  unique(c(which(is.na(d2.x)), which(is.na(d2.y)), which(is.na(d2.z)),
-           which(is.infinite(d2.x)), which(is.infinite(d2.y)), which(is.infinite(d2.z)),
-           intersect(which(d2.x > 3), which(d2.y < 1)))) -> ind.1
-  if (length(ind.1) > 0){
-    d2.x[-ind.1] -> d2.x
-    d2.y[-ind.1] -> d2.y
-    d2.z[-ind.1] -> d2.z
+  names(all.combos) -> nn
+  sapply(strsplit(nn, "\\/"), function(x) x[length(x)]) -> nn
+  gsub(".csv", "", nn) -> nn
+  par(mfrow=c(2,4))
+  for (i in 1:length(all.combos)){
+    persp3D(z = all.combos[[i]], x = 1:nrow(all.combos[[i]]), 
+            #polygon3D(z = all.combos[[i]], x = 1:nrow(all.combos[[1]]), 
+            y = 1:ncol(all.combos[[i]]), expand = 0.3, facets = T, 
+            scale = FALSE, phi = 45, theta = 240,
+            clab = "% viability", colkey = list(side = 1, length = 0.5),
+            lighting = T, contour=F, alpha=0.6, col = ramp.col(col=colorRampPalette(rev(brewer.pal(10, "RdBu")))(20), n=100),
+            main=nn[i])
   }
-  
-  x.sub <- as.numeric(unlist(lapply(coords, function(x) return(x[1,1]))))
-  y.sub <- as.numeric(unlist(lapply(coords, function(x) return(x[1,2]))))
-  z.sub <- as.numeric(unlist(lapply(coords, function(x) return(x[1,3]))))
-  z.sub[3] <- 0.02644939 # check where this is reset to NA
-  plot3d(c(log.auc[-ind],x.sub,d2.x),
-         c(log.ic50[-ind],y.sub,d2.y),
-         c(max.survival.v[-ind], z.sub,d2.z), 
-         col=c(rep("grey", length(max.survival.v[-ind])),
-               rep("red", length(z.sub)),
-               rep("goldenrod", length(d2.z))), type='s', 
-         size=c(rep(0.4, length(max.survival.v[-ind])),
-                rep(1.2, length(z.sub)),
-                rep(0.6, length(d2.z))), 
-         alpha=c(rep(0.4, length(max.survival.v[-ind])),
-                 rep(1.2, length(z.sub)),
-                 rep(1.0, length(d2.z))),
-         axes=F,xlab="",ylab="",zlab="")
-  bbox3d(color = c("lightgrey", "white"), alpha = 0.1, nticks=6)
-  grid3d(c("z"), lty=3)
-  axis3d(c("z++"), ticks=T, nticks=6)
-  cbind(x.sub,y.sub,z.sub) -> m
-  segments3d(matrix(t(cbind(m, m[,1:2], 0)), nc=3, byrow=TRUE), lwd=1.2, color="red")
-  y.1 <- matrix(0, nrow=4, ncol=4)
-  col.1 <- rep("grey", 16)
-  #rgl.postscript(file="3d.plot.rot.ps")
-  
-  surface3d(c(-2:1), c(-2,1), y.1, color=col.1, back="lines", alpha=0.6, axes=F, box=T, labels=FALSE, 
-            tick=FALSE)
-  
-  rgl.snapshot("3d.plot.rot.ABT.199.png")
 }
