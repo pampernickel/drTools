@@ -1115,6 +1115,12 @@ visDRspace <- function(combos, mode=c('isobologram', 'heatmap', 'contour')){
 
 vis3D <- function(all.combos){
   # needs to be fixed!!!
+  if (require("plot3D",character.only = TRUE)){
+    require("plot3D")
+  } else {
+    install.packages("plot3D")
+  }
+  
   names(all.combos) -> nn
   sapply(strsplit(nn, "\\/"), function(x) x[length(x)]) -> nn
   gsub(".csv", "", nn) -> nn
