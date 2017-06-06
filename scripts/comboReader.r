@@ -32,7 +32,7 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized"), df1=1, df2=1,
   if (length(grep(".xml", files)) > 0){
     # pass to an xml reader internally
     readXML(files, df1, df2) -> coords
-    readFileXML(coords, res.files, singleLayout) -> combo.mats
+    readFileXML(coords, files, res.files, singleLayout) -> combo.mats
   } else if (length(grep(".txt", files)) > 0 && mode=="normalized"){ # 
     lapply(files, function(x) suppressWarnings(readLines(x))) -> contents
     lapply(contents, function(x) c(grep("mM", x),grep("mL", x))) -> infoLines
@@ -258,7 +258,7 @@ parseContent <- function(curr.plate, curr.layout, combos, i){
   return(res)
 }
 
-readFileXML <- function(coords, res.files, singleLayout){
+readFileXML <- function(coords, files, res.files, singleLayout){
   # create function to read a results file specified in res.files into
   # all.combos format; the readFileXML function is based on the default
   # where there is a one-to-one xml:result folder
