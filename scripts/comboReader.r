@@ -247,7 +247,7 @@ parseContent <- function(curr.plate, curr.layout, combos, i){
         dmso.mean <- zz
       }
     } else {
-      zz <- dmso.mean 
+      dmso.mean <- zz
     }
     
     p/dmso.mean -> res
@@ -403,7 +403,7 @@ checkCombos <- function(all.combos){
   checkMissingDrugs(all.combos) -> all.combos
   checkLowControls(all.combos) -> all.combos
   checkSingleDrugs(all.combos) -> all.combos
-  checkDeadCells(all.combos) -> all.combos
+  # checkDeadCells(all.combos) -> all.combos
   if (length(all.combos) < n){
     #warning(nn[which(nn %ni% names(all.combos))])
     n-length(all.combos) -> rem
@@ -433,7 +433,7 @@ checkMissingDrugs <- function(all.combos){
 checkLowControls <- function(all.combos){
   # checks cases where the DMSO has a lower value than most of the plate,
   # including treated cases
-  all.combos[which(sapply(all.combos, function(x) ifelse(max(x) > 1.5, T, F)) %in% F)] -> all.combos
+  all.combos[which(sapply(all.combos, function(x) ifelse(max(x) > 1.8, T, F)) %in% F)] -> all.combos
   return(all.combos)
 }
 
