@@ -403,7 +403,7 @@ checkCombos <- function(all.combos){
   checkMissingDrugs(all.combos) -> all.combos
   checkLowControls(all.combos) -> all.combos
   checkSingleDrugs(all.combos) -> all.combos
-  # checkDeadCells(all.combos) -> all.combos
+  checkDeadCells(all.combos) -> all.combos
   if (length(all.combos) < n){
     #warning(nn[which(nn %ni% names(all.combos))])
     n-length(all.combos) -> rem
