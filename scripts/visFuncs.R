@@ -1145,7 +1145,7 @@ vis3D <- function(all.combos){
 }
 
 createHeatmap <- function(ic50){
-  if (is.loaded("gplots")){
+  if (!is.loaded("gplots")){
     library("gplots")
     library("RColorBrewer")
   } 
