@@ -539,10 +539,10 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL, order="
    "red" -> fin.cols 
   } else {
     if (no.samples < 3){
-      brewer.pal(3, "Spectral") -> fin.cols
+      brewer.pal(3, "Paired") -> fin.cols
       fin.cols[c(1:no.samples)] -> fin.cols
     } else {
-      brewer.pal(no.samples, "Spectral") -> fin.cols
+      brewer.pal(no.samples, "Paired") -> fin.cols
     }
   }
   
@@ -557,6 +557,7 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL, order="
                   aes(x=value, y=0), alpha=0.2, width=0.005)+
       geom_jitter(data = df.i, 
                   aes(x=value, y=0,shape=id,color=id), alpha=0.7, width=0.005,
+                  height=0.01,
                   size=4.5)+
       scale_y_continuous(breaks=c(-2, 0, 2))+theme_bw()+
       theme(axis.text.x=element_blank(),
@@ -585,7 +586,7 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL, order="
                   aes(x=value, y=0), alpha=0.2, width=0.005)+
       geom_jitter(data = df.i, 
                   aes(x=value, y=0,shape=id,color=id), alpha=0.7, width=0.005,
-                  size=4.5)+
+                  height=0.01, size=4.5)+
       scale_y_continuous(breaks=c(-2, 0, 2))+theme_bw()+
       theme(axis.text.x=element_blank(),
             axis.ticks.x=element_blank(),
