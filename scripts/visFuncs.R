@@ -1151,7 +1151,7 @@ createHeatmap <- function(ic50, excl=""){
   } 
 
   my.colors <- colorRampPalette(colorRampPalette(brewer.pal(11,"RdBu")[-c(4,5,7,8)])(50))
-  if (excl %ni% ""){
+  if (excl %in% ""){
     ic50[which(rownames(ic50) %ni% excl),] -> ic50
   }
   
