@@ -1144,14 +1144,14 @@ vis3D <- function(all.combos){
   }
 }
 
-createHeatmap <- function(ic50, excl=NULL){
+createHeatmap <- function(ic50, excl=""){
   if (!is.loaded("gplots")){
     library("gplots")
     library("RColorBrewer")
   } 
 
   my.colors <- colorRampPalette(colorRampPalette(brewer.pal(11,"RdBu")[-c(4,5,7,8)])(50))
-  if (!is.null(excl)){
+  if (excl %ni% ""){
     ic50[which(rownames(ic50) %ni% excl),] -> ic50
   }
   
