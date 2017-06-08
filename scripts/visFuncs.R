@@ -922,9 +922,8 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
     combos -> cl
   }
   
-  all.combos <- list()
+  all.combos.fin <- list()
   for (i in 1:length(cl)){
-    #print(i)
     temp <- matrix(NA, nrow=0, ncol=4)
     colnames(temp) <- c("x", "y", "combo", "patient")
     
@@ -1075,15 +1074,15 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
         geom_line(size=1)+
         scale_color_manual(values=c(cols[1], cols[length(cols)], cols[2:(length(cols)-1)]))+
         scale_x_log10()+
-        ylim(0, maxy) -> all.combos[[i]]
+        ylim(0, maxy) -> all.combos.fin[[i]]
     } else if (additivity == "Bliss"){
       
     }
   }
-  if (length(all.combos) < 15){
-    p2 <- marrangeGrob(all.combos, ncol=ceiling(length(all.combos)/2), nrow=2)
+  if (length(all.combos.fin) < 15){
+    p2 <- marrangeGrob(all.combos.fin, ncol=ceiling(length(all.combos.fin)/2), nrow=2)
   } else {
-    p2 <- marrangeGrob(all.combos, ncol=ceiling(length(all.combos)/6), nrow=6)
+    p2 <- marrangeGrob(all.combos.fin, ncol=ceiling(length(all.combos.fin)/6), nrow=6)
   }
   print(p2)
 }
@@ -1095,6 +1094,7 @@ visDRspace <- function(combos, mode=c('isobologram', 'heatmap', 'contour')){
     combos -> cl
   }
   
+  par(mfrow=c(2,4))
   for (i in 1:length(cl)){
     cl[[i]] -> main  
     getComboProperties(cl, i) -> meta
@@ -1106,10 +1106,10 @@ visDRspace <- function(combos, mode=c('isobologram', 'heatmap', 'contour')){
       isobologram(drMatrix) -> p
     } else if (mode == "heatmap"){
       cIndex2(drMatrix) -> p
-    } else if (mode == "Contour"){
+    } else if (mode == "contour"){
       dContour(drMatrix)
     }
-    print(p)
+    #print(p)
   }
 }
 
@@ -1141,4 +1141,19 @@ vis3D <- function(all.combos){
             lighting = T, contour=F, alpha=0.6, col = ramp.col(col=colorRampPalette(rev(brewer.pal(10, "RdBu")))(20), n=100),
             main=nn[i])
   }
+}
+
+createHeatmap <- function(ic50){
+  if (is.loaded("gplots")){
+    library("gplots")
+    library("RColorBrewer")
+  } 
+
+  my.colors <- colorRampPalette(colorRampPalette(brewer.pal(11,"RdBu")[-c(4,5,7,8)])(50))
+  heatmap.2(ic50,
+            trace="none", col=my.colors,
+            breaks=unique(c(seq(-1, 0.5, length=2), seq(0.5, 1, length=4), 
+                            seq(1, 3, length=10), seq(3, 4, length=10))),
+            scale="none", margins=c(10,20))
+  
 }
