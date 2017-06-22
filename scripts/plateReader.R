@@ -850,6 +850,13 @@ readExperiment <- function(files, layout, mode="", pos.control="",
     lapply(all.resp, function(x) x$resp) -> all.resp
   }
   
+  # then do a final check if there are cases in all.resp where everything on the plate is dead
+  sapply(all.resp, function(x)
+    length(which(sapply(x, function(y) is.null(y)) %in% F))) -> check
+  if (length(which(check %in% 0)) > 0){
+    warning(paste(names(check)[which(check %in% 0)], " removed from analysis. Plate seems to contain only dead cells.", sep=""))
+    all.resp[which(check > 0)] -> all.resp
+  }
   return(all.resp)
 }
 
@@ -968,10 +975,18 @@ processPlate <- function(curr.layout, curr.plate, mode, c.mean, f){
       
       as.data.frame(resp) -> resp
       apply(resp, 2, function(x) as.numeric(as.character(x))) -> resp
-      if (mode == "indirect"){
-        (resp[,2:ncol(resp)]-pos)/(c.mean-pos) -> resp[,2:ncol(resp)]
+      
+      # check if all the cells are dead on the plate, typically with
+      # mean intensity less than 500 prior to normalization
+      mean(resp[,2:ncol(resp)], na.rm=T) -> plate.mean
+      if (plate.mean > 500){
+        if (mode == "indirect"){
+          (resp[,2:ncol(resp)]-pos)/(c.mean-pos) -> resp[,2:ncol(resp)]
+        } else {
+          resp[,2:ncol(resp)]/c.mean -> resp[,2:ncol(resp)]
+        }
       } else {
-        resp[,2:ncol(resp)]/c.mean -> resp[,2:ncol(resp)]
+        resp <- NULL # revert to NULL for resp
       }
     } else if (length(grep("coords", names(curr.layout[[x]])))>0){
       as.numeric(curr.layout[[x]]$coords[1,]) -> rows
@@ -980,13 +995,22 @@ processPlate <- function(curr.layout, curr.plate, mode, c.mean, f){
         curr.plate[rows[y], cols[[y]]]
       })) -> resp
       apply(resp, 2, function(x) as.numeric(as.character(x))) -> resp
-      if (mode == "indirect"){
-        (resp[,2:ncol(resp)]-pos)/(c.mean-pos) -> resp[,2:ncol(resp)]
+      
+      # check if all the cells are dead on the plate, typically with
+      # mean intensity less than 500 prior to normalization
+      mean(resp[,2:ncol(resp)], na.rm=T) -> plate.mean
+      if (plate.mean > 500){
+        if (mode == "indirect"){
+          (resp[,2:ncol(resp)]-pos)/(c.mean-pos) -> resp[,2:ncol(resp)]
+        } else {
+          resp[,2:ncol(resp)]/c.mean -> resp[,2:ncol(resp)]
+        }
+        colnames(resp) <- c("Concentrations", rep(curr.drug, length(2:ncol(resp))))
       } else {
-        resp[,2:ncol(resp)]/c.mean -> resp[,2:ncol(resp)]
+        resp <- NULL
       }
-      colnames(resp) <- c("Concentrations", rep(curr.drug, length(2:ncol(resp))))
     }
+    
     list(resp, f.warn, d.warn) -> fin.resp
     names(fin.resp) <- c("resp", "f.warn", "d.warn")
     return(fin.resp)
