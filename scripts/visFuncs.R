@@ -1163,8 +1163,15 @@ createHeatmap <- function(ic50, excl="", ref.heatmap=NA){
     warning("Feature under construction! Back to you soon")
   }
   
+  
+  # figure out why this is not working inside
   for (i in 1:ncol(ic50)){
     ic50[which(ic50[,i] %in% c("NaN", "NA")),i] <- NA
+  }
+  
+  which(sapply(ic50, function(x) ifelse(length(which(is.na(x))) == length(x), T, F)) %in% T) -> ind
+  if (ind > 0){
+    ic50[-ind,] -> ic50
   }
   
   heatmap.2(ic50,
