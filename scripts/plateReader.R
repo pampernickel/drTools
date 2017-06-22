@@ -986,7 +986,8 @@ processPlate <- function(curr.layout, curr.plate, mode, c.mean, f){
           resp[,2:ncol(resp)]/c.mean -> resp[,2:ncol(resp)]
         }
       } else {
-        resp <- NULL # revert to NULL for resp
+        #resp <- NULL # revert to NULL for resp
+        resp <- resp
       }
     } else if (length(grep("coords", names(curr.layout[[x]])))>0){
       as.numeric(curr.layout[[x]]$coords[1,]) -> rows
@@ -1007,7 +1008,8 @@ processPlate <- function(curr.layout, curr.plate, mode, c.mean, f){
         }
         colnames(resp) <- c("Concentrations", rep(curr.drug, length(2:ncol(resp))))
       } else {
-        resp <- NULL
+        #resp <- NULL
+        resp <- resp
       }
     }
     
