@@ -790,28 +790,33 @@ plotFit <- function(exp.res, drug.list){
     if (length(drug.list) != length(x) |
         length(drug.list) != length(y)){
       warning("Number of drugs not the same as number of fitted responses.")
-    } else {
-      df <- matrix(0, nrow=0, ncol=4)
-      colnames(df) <- c("drug", "x", "y", "replicate")
       
-      # create drug list internally
-      names(x) -> drug.list
-      sapply(strsplit(drug.list, "_"), 
-             function(x) x[1]) -> drugs.u
+      # remove from drug list what doesn't appear as names of x and y
+      drug.list[which(drug.list %in% names(x))] -> drug.list
+    }
+    
+    df <- matrix(0, nrow=0, ncol=4)
+    colnames(df) <- c("drug", "x", "y", "replicate")
       
-      for (j in 1:length(drugs.u)){
-        grep(drugs.u[j],names(x)) -> ind
-        for (k in 1:length(ind)){
-          if (length(x[[ind[k]]]) == 100){
-            cbind(drugs.u[j], x[[ind[k]]], y[[ind[k]]], 
-                  rep(k, length(x[[ind[k]]]))) -> t
-            colnames(t) <- colnames(df)
-            rbind(df, t) -> df
-          }
+    # create drug list internally
+    names(x) -> drug.list
+    sapply(strsplit(drug.list, "_"), 
+           function(x) x[1]) -> drugs.u
+      
+    for (j in 1:length(drugs.u)){
+      grep(drugs.u[j],names(x)) -> ind
+      for (k in 1:length(ind)){
+        if (length(x[[ind[k]]]) == 100){
+          cbind(drugs.u[j], x[[ind[k]]], y[[ind[k]]], 
+                rep(k, length(x[[ind[k]]]))) -> t
+          colnames(t) <- colnames(df)
+          rbind(df, t) -> df
         }
       }
-      cbind(df, rep(names(exp.res$res), nrow(df)), rep("fit", nrow(df))) -> df
-      colnames(df) <- c(colnames(df)[1:4], "patient", "type")
+    }
+    
+    cbind(df, rep(names(exp.res$res), nrow(df)), rep("fit", nrow(df))) -> df
+    colnames(df) <- c(colnames(df)[1:4], "patient", "type")
       
       #as.data.frame(df) -> test
       #as.numeric(as.character(test$x)) -> test$x
@@ -862,7 +867,6 @@ plotFit <- function(exp.res, drug.list){
           facet_wrap(~drug)+theme_bw()+
           ggtitle(names(exp.res$res)[i])-> p
       print(p)
-    }
   }
 }
 
@@ -1144,7 +1148,7 @@ vis3D <- function(all.combos){
   }
 }
 
-createHeatmap <- function(ic50, excl=""){
+createHeatmap <- function(ic50, excl="", ref.heatmap=NA){
   if (!is.loaded("gplots")){
     library("gplots")
     library("RColorBrewer")
@@ -1155,6 +1159,12 @@ createHeatmap <- function(ic50, excl=""){
     ic50[which(rownames(ic50) %ni% excl),] -> ic50
   }
   
+  if (!is.na(ref.heatmap)){
+    warning("Feature under construction! Back to you soon")
+  }
+  
+  apply(ic50, 2, function(x)
+    as.numeric(as.character(x))) -> ic50
   heatmap.2(ic50,
             trace="none", col=my.colors,
             breaks=unique(c(seq(-1, 0.5, length=2), seq(0.5, 1, length=4), 
