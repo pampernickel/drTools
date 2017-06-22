@@ -1163,8 +1163,10 @@ createHeatmap <- function(ic50, excl="", ref.heatmap=NA){
     warning("Feature under construction! Back to you soon")
   }
   
-  apply(ic50, 2, function(x)
-    as.numeric(as.character(x))) -> ic50
+  for (i in 1:ncol(ic50)){
+    ic50[,which(ic50 %in% c("NaN", "NA"))] <- NA
+  }
+  
   heatmap.2(ic50,
             trace="none", col=my.colors,
             breaks=unique(c(seq(-1, 0.5, length=2), seq(0.5, 1, length=4), 
