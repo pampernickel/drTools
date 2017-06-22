@@ -284,14 +284,31 @@ readFileXML <- function(coords, files, res.files, singleLayout){
       # find max matching names
       gsub("_cumul_1_v_1_2.csv",
            "", sapply(strsplit(res.files, "\\/"), function(y) y[length(y)])) -> pattern
-      gsub(".xml", "", sapply(strsplit(files, "\\/"), function(y) y[length(y)])) -> pattern2
-      as.numeric(unlist(sapply(pattern, function(y) 
-        agrep(y, pattern2, max.distance=0.4)))) -> ind.match
+      if (length(files) == length(res.files)){
+        gsub(".xml", "", sapply(strsplit(files, "\\/"), function(y) y[length(y)])) -> pattern2
+        as.numeric(unlist(sapply(pattern, function(y) 
+          agrep(y, pattern2, max.distance=0.4)))) -> ind.match
+      } else {
+        # use names of coords for pattern names
+        sapply(names(coords), function(x) nchar(x)) -> check
+        paste("plate00",names(coords)[which(check == 1)], sep="") -> names(coords)[which(check == 1)]
+        paste("plate0",names(coords)[which(check == 2)], sep="") -> names(coords)[which(check == 2)]
+        names(coords) -> pattern2
+        
+        gsub(".csv", "", sapply(strsplit(pattern, "plate"), 
+                                function(x) paste("plate", x[2], sep=""))) -> pattern
+        as.numeric(unlist(sapply(pattern, function(y) 
+          grep(y, pattern2, ignore.case=T)))) -> ind.match
+      }
+      
+      
       if (length(unique(ind.match)) != length(res.files)){
         stop("Please rename your files so as to have a one-to-one match with the layouts. For example,
              if your layout us called 'combo1 2017-06-02.xml', then call your result file `combo1_2017-06-02.csv`.")
-      } else {
+      } else if (length(res.files) == length(files)) {
         lapply(coords, function(x) x[[1]]) -> layout
+      } else if (length(res.files) > length(files)){
+        coords -> layout
       }
     }
   }
