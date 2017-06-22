@@ -1139,10 +1139,12 @@ remove <- function(l, efile, mode=c("layout", "response")){
 }
 
 removeFromLayout <- function(l, efile){
-  if (ncol(efile) > 4){
-    efile[which(efile$V6 %in% "all"),] -> efile
+  if (ncol(efile) != 6){
+    stop("Your exclusion file is missing some columns. Please check that it contains the following information:
+         Drug, plate number,row,column,f/p, and patient name.")
   }
   
+  efile[which(efile$V6 %in% "all"),] -> efile
   for (i in 1:nrow(efile)){
     plate.no <- NA
     if (!is.na(as.numeric(as.character(efile$V2[i])))){
