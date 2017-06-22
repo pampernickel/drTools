@@ -1164,7 +1164,7 @@ createHeatmap <- function(ic50, excl="", ref.heatmap=NA){
   }
   
   for (i in 1:ncol(ic50)){
-    ic50[,which(ic50 %in% c("NaN", "NA"))] <- NA
+    ic50[which(ic50[,i] %in% c("NaN", "NA")),i] <- NA
   }
   
   heatmap.2(ic50,
