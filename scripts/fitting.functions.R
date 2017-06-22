@@ -3,7 +3,7 @@ library(pracma)
 
 '%ni%' <- Negate('%in%')
 
-fitData <- function(experiments, min=NA, max.x=NA){
+fitData <- function(experiments, min=NA, max.x=NA, mode=NA){
   # --- update function based on current experiment structure
   # --- use normalized component for fitting,
   # --- unless one wants to obtain the ratio of live cells to a
@@ -12,6 +12,10 @@ fitData <- function(experiments, min=NA, max.x=NA){
   res <- list()
   for (i in 1:length(experiments)){
     curr.exp <- experiments[[i]]
+    if (mode %in% "debug"){
+      print(paste("Fitting plate", i, sep=" "))  
+    }
+    
     if (is.data.frame(curr.exp) || is.matrix(curr.exp)){
       # --- step 1: remove all outliers in a data set
       #apply(curr.exp[,2:ncol(curr.exp)], 2, function(x) removeOutliers(x, curr.exp[,1])) -> curr.exp[,2:ncol(curr.exp)]
