@@ -195,8 +195,9 @@ getCoords <- function(df, df1, df2){
     # cases of the same drug in different dilutions
     names(table(sub$`Fluid name`))[which(table(sub$`Fluid name`) > 0)] -> all.drugs
     combn(all.drugs, 2) -> dn
-    apply(dn, 2, function(x)
-      length(c(agrep(x[1], x[2]), agrep(x[2], x[1])))) -> matches
+    
+    apply(dn, 2, function(y)
+      length(c(agrep(y[1], y[2]), agrep(y[2], y[1])))) -> matches
     if (length(which(matches > 0))>0){
       dn[which(nchar(dn[,which(matches > 0)]) %in% 
                  min(nchar(dn[,which(matches > 0)]))),which(matches > 0)] -> root
@@ -379,6 +380,19 @@ getCoords <- function(df, df1, df2){
           }
         }
       }
+    } else if (length(unique(d1c)) == 1 &&
+               length(unique(d2r)) ==1){
+      # case of a single set of combos on a plate
+      unique(d1c) -> ac
+      d1r[order(d1c)] -> d1r.f
+      d1c[order(d1c)] -> d1c.f
+      
+      # get discontinuity in d1c.f
+      which(diff(d1c.f) != 0) -> bp
+      d1r.f -> d1r1
+      d1c.f -> d1c1
+      d2r -> d2r1
+      d2c -> d2c1
     }
   }
   
@@ -405,27 +419,43 @@ getCoords <- function(df, df1, df2){
   } else if (mode == 0){
     # finally, for full combo coords, look at column and row extent of split rows/columns
     # and use these for delimiting the coords of interest
-    max(unique(c(d1r1, d2r1))) -> lrhr1 # lower right hand row, set 1
-    max(unique(c(d1c1, d2c1))) -> lrhc1
-    min(unique(c(d1r1, d2r1))) -> ulhr1 # upper left hand column
-    min(unique(c(d1c1, d2c1))) -> ulhc1 # upper left hand column
-    
-    max(unique(c(d1r2, d2r2))) -> lrhr2 # lower right hand row, set 2
-    max(unique(c(d1c2, d2c2))) -> lrhc2
-    min(unique(c(d1r2, d2r2))) -> ulhr2 # upper left hand column
-    min(unique(c(d1c2, d2c2))) -> ulhc2 
-    
-    l1 <- list(list(c(ulhr1:lrhr1), c(ulhc1:lrhr2)), list(drow1, dcol1), list(d1r1, d1c1),
-               list(d2r1, d2c1), as.character(y[1]), as.character(y[2]),
-               list(d1doses, d2doses))
-    l2 <- list(list(c(ulhr2:lrhr2), c(ulhc2:lrhc2)), list(drow2, dcol2), list(d1r2, d1c2), 
-               list(d2r2, d2c2), as.character(y[1]), as.character(y[2]),
-               list(d1doses, d2doses))
-    names(l2) <- names(l1) <- c("combo_coords", "dmso_coords", "d1c", "d2c", "drug1", "drug2", "doses")
-    names(l1$combo_coords) <- names(l1$dmso_coords) <- names(l1$d1c) <- names(l1$d2c) <- c("r","c")
-    names(l2$combo_coords) <- names(l2$dmso_coords) <- names(l2$d1c) <- names(l2$d2c) <- c("r","c")
-    res <- list(l1, l2)
-    names(res) <- rep(paste(y, collapse="_"), 2)
+    if (length(d1r) == 2*length(unique(d1r)) &&
+        length(unique(d1c)) == 2 &&
+        length(unique(d2r)) ==1){
+      max(unique(c(d1r1, d2r1))) -> lrhr1 # lower right hand row, set 1
+      max(unique(c(d1c1, d2c1))) -> lrhc1
+      min(unique(c(d1r1, d2r1))) -> ulhr1 # upper left hand column
+      min(unique(c(d1c1, d2c1))) -> ulhc1 # upper left hand column
+      
+      
+      max(unique(c(d1r2, d2r2))) -> lrhr2 # lower right hand row, set 2
+      max(unique(c(d1c2, d2c2))) -> lrhc2
+      min(unique(c(d1r2, d2r2))) -> ulhr2 # upper left hand column
+      min(unique(c(d1c2, d2c2))) -> ulhc2 
+      
+      l1 <- list(list(c(ulhr1:lrhr1), c(ulhc1:lrhr2)), list(drow1, dcol1), list(d1r1, d1c1),
+                 list(d2r1, d2c1), as.character(y[1]), as.character(y[2]),
+                 list(d1doses, d2doses))
+      l2 <- list(list(c(ulhr2:lrhr2), c(ulhc2:lrhc2)), list(drow2, dcol2), list(d1r2, d1c2), 
+                 list(d2r2, d2c2), as.character(y[1]), as.character(y[2]),
+                 list(d1doses, d2doses))
+      names(l2) <- names(l1) <- c("combo_coords", "dmso_coords", "d1c", "d2c", "drug1", "drug2", "doses")
+      names(l1$combo_coords) <- names(l1$dmso_coords) <- names(l1$d1c) <- names(l1$d2c) <- c("r","c")
+      names(l2$combo_coords) <- names(l2$dmso_coords) <- names(l2$d1c) <- names(l2$d2c) <- c("r","c")
+      res <- list(l1, l2)
+      names(res) <- rep(paste(y, collapse="_"), 2)
+    } else {
+      max(unique(c(d1r1, d2r1))) -> lrhr1 # lower right hand row, set 1
+      max(unique(c(d1c1, d2c1))) -> lrhc1
+      min(unique(c(d1r1, d2r1))) -> ulhr1 # upper left hand row
+      min(unique(c(d1c1, d2c1))) -> ulhc1 # upper left hand column
+      l1 <- list(list(c(ulhr1:lrhr1), c(ulhc1:lrhr1)), list(drow, dcol), list(d1r1, d1c1),
+                 list(d2r1, d2c1), as.character(y[1]), as.character(y[2]),
+                 list(d1doses, d2doses))
+      names(l1) <- c("combo_coords", "dmso_coords", "d1c", "d2c", "drug1", "drug2", "doses")
+      res <- list(l1)
+      names(res) <- paste(y, collapse="_")
+    }
     list(res) -> res
   }
   
@@ -978,17 +1008,17 @@ processPlate <- function(curr.layout, curr.plate, mode, c.mean, f){
       
       # check if all the cells are dead on the plate, typically with
       # mean intensity less than 500 prior to normalization
-      mean(resp[,2:ncol(resp)], na.rm=T) -> plate.mean
-      if (plate.mean > 500){
+      #mean(resp[,2:ncol(resp)], na.rm=T) -> plate.mean
+      #if (plate.mean > 500){
         if (mode == "indirect"){
           (resp[,2:ncol(resp)]-pos)/(c.mean-pos) -> resp[,2:ncol(resp)]
         } else {
           resp[,2:ncol(resp)]/c.mean -> resp[,2:ncol(resp)]
         }
-      } else {
+      #} else {
         #resp <- NULL # revert to NULL for resp
-        resp <- resp
-      }
+      #  resp <- resp
+      #}
     } else if (length(grep("coords", names(curr.layout[[x]])))>0){
       as.numeric(curr.layout[[x]]$coords[1,]) -> rows
       as.numeric(curr.layout[[x]]$coords[2,]) -> cols
@@ -999,18 +1029,18 @@ processPlate <- function(curr.layout, curr.plate, mode, c.mean, f){
       
       # check if all the cells are dead on the plate, typically with
       # mean intensity less than 500 prior to normalization
-      mean(resp[,2:ncol(resp)], na.rm=T) -> plate.mean
-      if (plate.mean > 500){
+      #mean(resp[,2:ncol(resp)], na.rm=T) -> plate.mean
+      #if (plate.mean > 500){
         if (mode == "indirect"){
           (resp[,2:ncol(resp)]-pos)/(c.mean-pos) -> resp[,2:ncol(resp)]
         } else {
           resp[,2:ncol(resp)]/c.mean -> resp[,2:ncol(resp)]
         }
         colnames(resp) <- c("Concentrations", rep(curr.drug, length(2:ncol(resp))))
-      } else {
+      #} else {
         #resp <- NULL
-        resp <- resp
-      }
+      #  resp <- resp
+      #}
     }
     
     list(resp, f.warn, d.warn) -> fin.resp
