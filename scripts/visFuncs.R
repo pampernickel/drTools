@@ -789,7 +789,7 @@ plotFit <- function(exp.res, drug.list){
     # proceed with plots if drug list is as long as x and y
     if (length(drug.list) != length(x) |
         length(drug.list) != length(y)){
-      stop("Number of drugs not the same as number of fitted responses.")
+      warning("Number of drugs not the same as number of fitted responses.")
     } else {
       df <- matrix(0, nrow=0, ncol=4)
       colnames(df) <- c("drug", "x", "y", "replicate")
