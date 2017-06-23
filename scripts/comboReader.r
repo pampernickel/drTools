@@ -304,6 +304,7 @@ readFileXML <- function(coords, files, res.files, singleLayout){
                "", sapply(strsplit(res.files, "\\/"), function(y) y[length(y)])) -> pattern
         }
         names(coords) -> pattern2
+        
         as.numeric(unlist(sapply(pattern, function(y) 
           grep(y, pattern2, ignore.case=T)))) -> ind.match
       }
