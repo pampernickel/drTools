@@ -277,30 +277,36 @@ readFileXML <- function(coords, files, res.files, singleLayout){
     }
   } else {
     # check if length of layouts match length of res.files
-    if (length(coords) != length(res.files)){
-      stop("Number of results files not equal to number of plates detected in the .xml layout file.")
-    } else if (length(coords) == length(res.files)) {
+    ind.match <- NA
+    if (length(coords) != length(res.files) && 
+        length(unlist(coords, recursive=F)) != length(res.files)){
+        stop("Number of results files not equal to number of plates detected in the .xml layout file.")
+    } else if (length(coords) == length(res.files) || 
+               length(unlist(coords, recursive=F)) == length(res.files)) {
       # check if there's a way to match the names of the coords files with the res.files
       # find max matching names
-      gsub("_cumul_1_v_1_2.csv",
-           "", sapply(strsplit(res.files, "\\/"), function(y) y[length(y)])) -> pattern
       if (length(files) == length(res.files)){
         gsub(".xml", "", sapply(strsplit(files, "\\/"), function(y) y[length(y)])) -> pattern2
         as.numeric(unlist(sapply(pattern, function(y) 
           agrep(y, pattern2, max.distance=0.4)))) -> ind.match
       } else {
         # use names of coords for pattern names
-        sapply(names(coords), function(x) nchar(x)) -> check
-        paste("plate00",names(coords)[which(check == 1)], sep="") -> names(coords)[which(check == 1)]
-        paste("plate0",names(coords)[which(check == 2)], sep="") -> names(coords)[which(check == 2)]
+        check <- NA
+        if (length(coords) != length(res.files)){
+          gsub(".csv", "", sapply(strsplit(pattern, "plate"), 
+                                  function(x) paste("plate", x[2], sep=""))) -> pattern
+          unlist(coords, recursive = F) -> coords
+          sapply(names(coords), function(x) nchar(x)) -> check
+          paste("plate00",names(coords)[which(check == 1)], sep="") -> names(coords)[which(check == 1)]
+          paste("plate0",names(coords)[which(check == 2)], sep="") -> names(coords)[which(check == 2)]
+        } else {
+          gsub("_cumul_1_v_1_2.csv",
+               "", sapply(strsplit(res.files, "\\/"), function(y) y[length(y)])) -> pattern
+        }
         names(coords) -> pattern2
-        
-        gsub(".csv", "", sapply(strsplit(pattern, "plate"), 
-                                function(x) paste("plate", x[2], sep=""))) -> pattern
         as.numeric(unlist(sapply(pattern, function(y) 
           grep(y, pattern2, ignore.case=T)))) -> ind.match
       }
-      
       
       if (length(unique(ind.match)) != length(res.files)){
         stop("Please rename your files so as to have a one-to-one match with the layouts. For example,
@@ -329,7 +335,7 @@ readFileXML <- function(coords, files, res.files, singleLayout){
         parseContent(curr.plate, curr.layout, combos, i) -> combos[[i]]
       }
     } else {
-      which(ind.match %in% j) -> ind
+      ind.match[j] -> ind
       for (i in 1:length(layout[[ind]])){
         layout[[ind]][[i]] -> curr.layout
         parseContent(curr.plate, curr.layout, combos, i) -> combos[[i]]
@@ -344,7 +350,7 @@ readFileXML <- function(coords, files, res.files, singleLayout){
   unlist(all.combos, recursive = F) -> all.combos
   all.combos[which(sapply(all.combos, function(x) ifelse(is.matrix(x), T, F)) %in% T)] -> all.combos
   gsub("\\.", ":", names(all.combos)) -> names(all.combos)
-  checkCombos(all.combos) -> all.combos
+  # checkCombos(all.combos) -> all.combos
   return(all.combos)
 }
 
