@@ -292,6 +292,8 @@ readFileXML <- function(coords, files, res.files, singleLayout){
       } else {
         # use names of coords for pattern names
         check <- NA
+        gsub("_cumul_1_v_1_2.csv",
+             "", sapply(strsplit(res.files, "\\/"), function(y) y[length(y)])) -> pattern
         if (length(coords) != length(res.files)){
           gsub(".csv", "", sapply(strsplit(pattern, "plate"), 
                                   function(x) paste("plate", x[2], sep=""))) -> pattern
@@ -299,9 +301,6 @@ readFileXML <- function(coords, files, res.files, singleLayout){
           sapply(names(coords), function(x) nchar(x)) -> check
           paste("plate00",names(coords)[which(check == 1)], sep="") -> names(coords)[which(check == 1)]
           paste("plate0",names(coords)[which(check == 2)], sep="") -> names(coords)[which(check == 2)]
-        } else {
-          gsub("_cumul_1_v_1_2.csv",
-               "", sapply(strsplit(res.files, "\\/"), function(y) y[length(y)])) -> pattern
         }
         names(coords) -> pattern2
         
