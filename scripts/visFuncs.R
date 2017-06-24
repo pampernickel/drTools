@@ -1130,8 +1130,8 @@ vis3D <- function(all.combos){
   names(all.combos) -> nn
   sapply(strsplit(nn, "\\/"), function(x) x[length(x)]) -> nn
   gsub(".csv", "", nn) -> nn
-  par(mfrow=c(ceiling(length(all.combos)/6),
-              ceiling(length(all.combos)/(ceiling(length(all.combos)/6)))))
+  par(mfrow=c(ceiling(length(all.combos)/4),
+              ceiling(length(all.combos)/(ceiling(length(all.combos)/4)))))
   for (i in 1:length(all.combos)){
     # check if there's a need to scale
     if (mean(all.combos[[i]]) < 10){
