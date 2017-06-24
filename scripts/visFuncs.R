@@ -1087,7 +1087,7 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
   if (length(all.combos.fin) < 15){
     p2 <- marrangeGrob(all.combos.fin, ncol=ceiling(length(all.combos.fin)/2), nrow=2)
   } else {
-    p2 <- marrangeGrob(all.combos.fin, ncol=ceiling(length(all.combos.fin)/6), nrow=6)
+    p2 <- marrangeGrob(all.combos.fin, ncol=ceiling(length(all.combos.fin)/4), nrow=4)
   }
   print(p2)
 }
