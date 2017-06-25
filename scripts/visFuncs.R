@@ -870,7 +870,7 @@ plotFit <- function(exp.res, drug.list){
   }
 }
 
-comboHeatmap <- function(combos){
+comboHeatmap <- function(combos, nrows=4){
   if (is.list(combos[[1]])){
     unlist(combos, recursive = FALSE) -> cl
   } else {
@@ -881,8 +881,8 @@ comboHeatmap <- function(combos){
   # use par, depending on length of cl -- do an expansion for every
   # six samples
   if (length(cl) > 14){
-    ceiling(length(cl)/4) -> ncol
-    par(mfrow=c(4,ncol))
+    ceiling(length(cl)/nrows) -> ncol
+    par(mfrow=c(nrows,ncol))
     lapply(1:length(cl), function(x){
       round(as.numeric(rownames(cl[[x]])), 2) -> rownames(cl[[x]])
       round(as.numeric(colnames(cl[[x]])), 2) -> colnames(cl[[x]])
