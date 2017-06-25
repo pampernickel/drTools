@@ -917,7 +917,7 @@ isDescending <- function(x){
   return(res)
 }
 
-processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
+processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss"), nrows=4){
   # prepare combos for visualization (double-plot)
   # flatten list, i.e. have all combo data frames in a single structure
   # if (!is.loaded("gridExtra")) library(gridExtra)
@@ -1087,7 +1087,7 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss")){
   if (length(all.combos.fin) < 15){
     p2 <- marrangeGrob(all.combos.fin, ncol=ceiling(length(all.combos.fin)/2), nrow=2)
   } else {
-    p2 <- marrangeGrob(all.combos.fin, ncol=ceiling(length(all.combos.fin)/4), nrow=4)
+    p2 <- marrangeGrob(all.combos.fin, ncol=ceiling(length(all.combos.fin)/nrows), nrow=nrows)
   }
   print(p2)
 }
@@ -1099,7 +1099,6 @@ visDRspace <- function(combos, mode=c('isobologram', 'heatmap', 'contour')){
     combos -> cl
   }
   
-  par(mfrow=c(2,4))
   for (i in 1:length(cl)){
     cl[[i]] -> main  
     getComboProperties(cl, i) -> meta
@@ -1114,11 +1113,11 @@ visDRspace <- function(combos, mode=c('isobologram', 'heatmap', 'contour')){
     } else if (mode == "contour"){
       dContour(drMatrix)
     }
-    #print(p)
+    print(p)
   }
 }
 
-vis3D <- function(all.combos){
+vis3D <- function(all.combos, nrows=4){
   # needs to be fixed!!!
   if (require("plot3D",character.only = TRUE)){
     require("plot3D")
@@ -1130,8 +1129,8 @@ vis3D <- function(all.combos){
   names(all.combos) -> nn
   sapply(strsplit(nn, "\\/"), function(x) x[length(x)]) -> nn
   gsub(".csv", "", nn) -> nn
-  par(mfrow=c(ceiling(length(all.combos)/4),
-              ceiling(length(all.combos)/(ceiling(length(all.combos)/4)))))
+  par(mfrow=c(ceiling(length(all.combos)/nrows),
+              ceiling(length(all.combos)/(ceiling(length(all.combos)/nrows)))))
   for (i in 1:length(all.combos)){
     # check if there's a need to scale
     if (mean(all.combos[[i]]) < 10){
