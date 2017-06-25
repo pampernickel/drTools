@@ -1079,7 +1079,8 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss"), nrows=4
         geom_line(size=1)+
         scale_color_manual(values=c(cols[1], cols[length(cols)], cols[2:(length(cols)-1)]))+
         scale_x_log10()+
-        ylim(0, maxy) -> all.combos.fin[[i]]
+        ylim(0, maxy)+
+        ggtitle(patient) -> all.combos.fin[[i]]
     } else if (additivity == "Bliss"){
       
     }
