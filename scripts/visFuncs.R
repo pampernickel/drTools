@@ -923,7 +923,7 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss"), nrows=4
   # if (!is.loaded("gridExtra")) library(gridExtra)
   if (is.list(combos[[1]])){
     unlist(combos, recursive = FALSE) -> cl
-  } else {
+  } else if (is.matrix(combos[[1]])){
     combos -> cl
   }
   
@@ -1178,4 +1178,22 @@ createHeatmap <- function(ic50, excl="", ref.heatmap=NA){
             breaks=unique(c(seq(-1, 0.5, length=2), seq(0.5, 1, length=4), 
                             seq(1, 3, length=10), seq(3, 4, length=10))),
             scale="none", margins=c(10,20))
+}
+
+plotPerPatient <- function(combos){
+  if (is.list(combos[[1]])){
+    unlist(combos, recursive = FALSE) -> cl
+  } else {
+    combos -> cl
+  }
+  
+  # for each patient, create the following plots: ggplot isobolograms, 3D plot and additivity plot
+  for (i in 1:length(cl)){
+    list(cl[[i]]) -> cl.loc
+    names(cl.loc)[i] <- names(cl)[i]
+    processCombos(cl.loc, additivity="Loewe", nrows=1)
+    visDRspace(cl.loc, mode="isobologram")
+    visDRspace(cl.loc, mode="heatmap")
+    vis3D(cl.loc, nrows=1)
+  }
 }
