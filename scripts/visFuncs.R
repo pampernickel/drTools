@@ -1190,7 +1190,7 @@ plotPerPatient <- function(combos){
   # for each patient, create the following plots: ggplot isobolograms, 3D plot and additivity plot
   for (i in 1:length(cl)){
     list(cl[[i]]) -> cl.loc
-    names(cl.loc)[i] <- names(cl)[i]
+    names(cl.loc) <- names(cl)[i]
     processCombos(cl.loc, additivity="Loewe", nrows=1)
     visDRspace(cl.loc, mode="isobologram")
     visDRspace(cl.loc, mode="heatmap")
