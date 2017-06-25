@@ -1025,7 +1025,7 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss"), nrows=4
         rbind(drug1.doses[1:(length(drug1.doses)-1)],
               drug1.doses[2:length(drug1.doses)]) -> dd
         mean(apply(dd, 2, function(x) x[1]/x[2])) -> dil # dil
-        drug1.doses[rev(order(drug1.doses))]+drug2.doses[rev(order(drug2.doses))] -> sq
+        drug1.doses[rev(order(drug1.doses))]+drug1.doses[rev(order(drug1.doses))] -> sq
         respFromFunc(drug1.doses, as.numeric(smooth(drug1.resp)), sq) -> additivity.line
       } else {
         # choose cross-sections based on the more active drug:
@@ -1039,7 +1039,8 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss"), nrows=4
           colnames(t) <- c("x", "y", "combo", "patient")
           rbind(temp, t) -> temp
         }
-        drug2.doses/(2^seq(1,9,by=1)) -> sq
+        drug2.doses[rev(order(drug2.doses))]+drug2.doses[rev(order(drug2.doses))] -> sq
+        respFromFunc(drug2.doses, as.numeric(smooth(drug2.resp)), sq) -> additivity.line
       }
       
       # check temp$x for orientation of additivity line
@@ -1080,7 +1081,7 @@ processCombos <- function(combos, additivity=c("HSA", "Loewe", "Bliss"), nrows=4
         scale_color_manual(values=c(cols[1], cols[length(cols)], cols[2:(length(cols)-1)]))+
         scale_x_log10()+
         ylim(0, maxy)+
-        ggtitle(patient) -> all.combos.fin[[i]]
+        ggtitle(as.character(unique(temp$patient))) -> all.combos.fin[[i]]
     } else if (additivity == "Bliss"){
       
     }
