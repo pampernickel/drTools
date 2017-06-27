@@ -294,7 +294,7 @@ getCoords <- function(df, df1, df2){
            length(cols)/length(rows) >= 2.5)){
         # one drug dose is much longer than another drug dose
         if (length(rows) > length(cols)){
-          
+
         } else {
           # get coordinates of breaks, use this to break dmsos
           match(gsub("[[:digit:]]","",breaks), LETTERS) -> mcr
@@ -360,10 +360,15 @@ getCoords <- function(df, df1, df2){
       
       # then check if the discontinuity applies to the dmsos; find
       # discontinuity
-      if (length(which(diff(drow) > 1))){
-        
-      } else if (length(which(diff(dcol) > 1))){
-        # discontinuity in columns
+      if (length(which(diff(dcol) > 0))){
+        # in this case, check if the columns are ordered; also
+        # break on major components, i.e. DMSOs that are contigs,
+        # and not single cells
+        names(table(dcol))[which(table(dcol) %in% max(table(dcol)))] -> mcols
+        which(dcol %in% mcols) -> mind
+        dcol[mind] -> dcol; drow[mind] -> drow
+        order(dcol) -> ord
+        dcol[ord] -> dcol; drow[ord] -> drow
         bp <- which(diff(dcol) > 1)
         if (length(bp) > 0){
           drow[1:bp] -> drow1
@@ -395,6 +400,7 @@ getCoords <- function(df, df1, df2){
       d2c -> d2c1
     }
   }
+  
   
   # also get drug doses
   as.numeric(as.character(sd.coords$`Dispensed conc.`[which(sd.coords$`Fluid name` %in% y[1])])) -> d1doses
