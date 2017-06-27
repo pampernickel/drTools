@@ -334,14 +334,18 @@ readFileXML <- function(coords, files, res.files, singleLayout){
         layout[[1]][[1]][[i]] -> curr.layout
         parseContent(curr.plate, curr.layout, combos, i) -> combos[[i]]
       }
+      
+      for (i in 1:length(layout[[1]][[1]])){
+        names(combos)[i] <- paste(layout[[1]][[1]][[i]]$drug1, layout[[1]][[1]][[i]]$drug2, sep="_")
+      }
     } else {
       ind.match[j] -> ind
       for (i in 1:length(layout[[ind]])){
         layout[[ind]][[i]] -> curr.layout
         parseContent(curr.plate, curr.layout, combos, i) -> combos[[i]]
       }
+      names(combos) <- names(layout[[ind]])
     }
-    names(combos) <- names(layout[[ind]])
     combos -> all.combos[[j]]
   }
   names(all.combos) <- names(plates)
