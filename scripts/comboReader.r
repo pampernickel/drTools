@@ -113,7 +113,6 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized"), df1=1, df2=1,
             mean(apply(dmso.coords.sub, 1, function(x)
               content[x[1],x[2]])) -> dmso.mean
             mat[nrow(mat),2] <- dmso.mean
-            print(dmso.mean)
             apply(mat[2:nrow(mat),2:ncol(mat)],2, function(y) as.numeric(as.character(y))) -> mat_n
             100*mat_n/dmso.mean -> mat_n
             rownames(mat_n) <- mat[2:nrow(mat),1]
