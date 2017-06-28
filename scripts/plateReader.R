@@ -476,6 +476,8 @@ getFiles <- function(dir){
   
   # check if there are subdirectories, in which case keep files in a list
   strsplit(gsub(dir, "", files), "/") -> sp
+  
+  # ensure that one gets any element before the cumul_1_v_1_2.csv
   unique(sapply(sp, function(x) 
     x[2])) -> subdirs
   if (length(subdirs) > 1){
