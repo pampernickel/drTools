@@ -1161,6 +1161,7 @@ createHeatmap <- function(ic50, excl="", ref.heatmap=NA){
     ic50[,1] -> rownames(ic50)
     ic50[,-1] -> ic50
     toupper(gsub("\\.", "-", colnames(ic50))) -> colnames(ic50)
+    as.matrix(ic50) -> ic50
   }
   
   my.colors <- colorRampPalette(colorRampPalette(brewer.pal(11,"RdBu")[-c(4,5,7,8)])(50))
