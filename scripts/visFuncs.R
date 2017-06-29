@@ -1155,6 +1155,14 @@ createHeatmap <- function(ic50, excl="", ref.heatmap=NA){
     library("RColorBrewer")
   } 
 
+  # handle case if IC50 object is read from a .csv/.xslx file instead
+  # of being loaded directly from a routine
+  if (length(which(rownames(ic50) %in% c(1:nrow(ic50)))) == nrow(ic50)){
+    ic50[,1] -> rownames(ic50)
+    ic50[,-1] -> ic50
+    toupper(gsub("\\.", "-", colnames(ic50))) -> colnames(ic50)
+  }
+  
   my.colors <- colorRampPalette(colorRampPalette(brewer.pal(11,"RdBu")[-c(4,5,7,8)])(50))
   if (excl %ni% ""){
     ic50[which(rownames(ic50) %ni% excl),] -> ic50
