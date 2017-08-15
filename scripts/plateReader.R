@@ -754,10 +754,14 @@ handleExplicit <- function(mode, t, doses, dilution, replicates){
 checkFiles <- function(files, layout){
   print("Checking file:layout match...")
   if (length(layout) > 1){
-    sapply(files, function(x) ifelse(length(x)==length(layout),T,F)) -> l
-    if (length(which(l %in% F)) > 0){
-      stop("Folder", which(l %in% F), " does not have the same number 
-                    of files as layouts.", sep=" ")
+    
+    if (length(files) != length(layout)){
+      # Check nested structures
+      sapply(files, function(x) ifelse(length(x)==length(layout),T,F)) -> l
+      if (length(which(l %in% F)) > 0){
+        stop("Folder", which(l %in% F), " does not have the same number 
+                      of files as layouts.", sep=" ")
+      }
     }
       # then check if we can match the layout names to each file name
     lapply(files, function(y) 
