@@ -768,7 +768,7 @@ checkFiles <- function(files, layout){
       as.numeric(sapply(names(layout), function(x)
         grep(paste(x, "_", sep=""), y, ignore.case=T)))) -> matches
     sapply(matches, function(x)
-      ifelse(length(which(is.na(x))==0),T,F)) -> p
+      ifelse(length(which(is.na(x)))==length(x),T,F)) -> p
     
     if (length(which(p %in% T)) > 0){
       stop("Folder", which(p %in% T), " does not have the same number 
