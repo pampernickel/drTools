@@ -762,8 +762,19 @@ checkFiles <- function(files, layout){
         stop("Folder", which(l %in% F), " does not have the same number 
                       of files as layouts.", sep=" ")
       }
+    } else if (length(files) == length(layout) && 
+               is.list(files) && 
+               unique(sapply(files, function(x) length(x)))==1){
+      # flatten file list in case it is artificially nested, i.e.
+      # there is only one file per element per list
+      sapply(strsplit(names(files), "_"), function(x) x[1])[1] -> nn
+      if (length(unlist(files)) == length(layout)){
+        list(as.character(unlist(files))) -> files
+        names(files) <- nn
+      }
     }
-      # then check if we can match the layout names to each file name
+    
+    # then check if we can match the layout names to each file name
     lapply(files, function(y) 
       as.numeric(sapply(names(layout), function(x)
         grep(paste(x, "_", sep=""), y, ignore.case=T)))) -> matches
