@@ -1209,3 +1209,22 @@ plotPerPatient <- function(combos){
     vis3D(cl.loc, nrows=1)
   }
 }
+
+createColorTags <- function(b, color.pal){
+  if (!is.loaded("RColorBrewer")){
+    library(RColorBrewer)
+  }
+  
+  if (length(unique(b)) < 3){
+    brewer.pal(3,color.pal) -> cols  
+  } else {
+    brewer.pal(length(unique(b)),color.pal) -> cols  
+  }
+  
+  colors <- rep(NA, length(b))
+  for (i in 1:length(unique(b))){
+    colors[which(b %in% unique(b)[i])] <- cols[i]
+  }
+  
+  return(colors)
+}
