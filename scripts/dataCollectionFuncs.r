@@ -8,7 +8,22 @@
 # matrix, which contains the response data of the blood paper cohort
 #@...
 
-addFit <- function(assembled, res.df, patient.name=""){
+getNewestFile <- function(){
+  list.files("./r.data.files", pattern=".rda", full.names=T) -> files
+  if (length(files) == 1 && length(grep("heatmap", files)) == 1){
+    load(files[grep("heatmap", files)]) #assembled
+  } else {
+    # check if there are files that follow the format Day MM DD Time YY
+    paths <- dir("./r.data.files", pattern=".rda", full.names=TRUE)
+    paths[which(tail(file.info(paths)$ctime) %in% max(tail(file.info(paths)$ctime)))] -> f
+    load(f) # assembled
+  }
+}
+
+addFit <- function(res.df, drug.list.all, patient.name=""){
+  # automatically check the available files in the ./r.data.files subdirectory
+  getNewestFile()
+  
   # explicitly add patient name and check if has the LK code
   if (length(grep("LK", patient.name, ignore.case = T) == 0)){
     stop("Only primary patient data can be added to the ALL record. 
@@ -23,9 +38,9 @@ addFit <- function(assembled, res.df, patient.name=""){
     ind.match[which(ind.match %ni% NA)] -> ind.match
     rep(NA, ncol(assembled)) -> fin
     fin[ind.match[which(ind.match %ni% NA)]] <- as.numeric(as.character(pat[1,2:ncol(pat)]))
-    rbind(assembled, fin) -> assembledNew
-    rownames(assembled) <- patient.name
-    save(assembledNew, file=paste("./r.data.files/", date(), ".rda", sep=""))
+    rbind(assembled, fin) -> assembled
+    rownames(assembled)[nrow(assembled)] <- patient.name
+    save(assembled, file=paste("./r.data.files/", date(), ".rda", sep=""))
   } if (getData ==T && pat.name %ni% rownames(assembled)){
     warning("Patient record already exists in this file. No record added.")
   }
