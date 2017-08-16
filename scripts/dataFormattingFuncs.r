@@ -1,4 +1,4 @@
-.mapResponse <- function(res.df, assembled, drug.list.all=NULL){
+.mapResponse <- function(res.df, assembled, drug.list.all=NULL, pat.name=NULL){
   nrow(res.df) -> e
   as.matrix(res.df) -> conv
   if (is.null(dim(res.df)) & ncol(conv) < nrow(conv)){
@@ -78,9 +78,14 @@
   which(rownames(assembled.sub) %ni% 
           rownames(assembled)) -> r.ind
   
-  if (!is.matrix(res.df.sub)){
+  if (!is.matrix(res.df.sub) && is.null(pat.name)){
     rownames(assembled.sub)[which(rownames(assembled.sub) %ni% rownames(assembled))] <- 
       paste("POI",r.ind, sep=",")
+  } else if (length(which(rownames(assembled.sub) %ni% rownames(assembled))) == length(pat.name)) {
+    rownames(assembled.sub)[which(rownames(assembled.sub) %ni% rownames(assembled))] <- 
+      pat.name
+  } else {
+    stop("Number of patient names specified does not match available data.")
   }
   
   cbind(rownames(assembled.sub), assembled.sub) -> assembled.sub
