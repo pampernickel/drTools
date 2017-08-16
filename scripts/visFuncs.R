@@ -1218,7 +1218,7 @@ createColorTags <- function(b, color.pal){
   if (length(unique(b)) < 3){
     brewer.pal(3,color.pal) -> cols  
   } else {
-    brewer.pal(length(unique(b)),color.pal) -> cols  
+    colorRampPalette(brewer.pal(8,color.pal))(length(unique(b))) -> cols
   }
   
   colors <- rep(NA, length(b))
