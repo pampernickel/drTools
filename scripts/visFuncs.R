@@ -494,11 +494,12 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   }
 }
 
-mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL, order="none"){
+mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL, order="none",
+                        pat.name=NULL){
   # default: create dotplot of res.df results against assembled
   # poi: patient in assembled that the user wants to highlight
   # first, cap values, then convert into a matrix for uniform handling
-  .mapResponse(res.df, assembled, drug.list.all) -> assembled.sub
+  .mapResponse(res.df, assembled, drug.list.all, pat.name) -> assembled.sub
   melt(assembled.sub, id.vars="id") -> assembled.l
   c("", rownames(assembled.sub)[which(rownames(assembled.sub) %ni% rownames(assembled))]) -> etc
   class <- rep("OTHER", nrow(assembled.l))
@@ -611,7 +612,6 @@ mapResponse <- function(res.df, assembled, drug.list.all=NULL, poi=NULL, order="
   #png(file=paste(rd, "/dotplot.png", sep=""), width=dim, height=dim)
   #png(file="dotplot.png", width=dim, height=dim)
   print(p)
-  #dev.off()
 }
 
 addDrug <- function(curr.df, all.drugs, patient, group){
