@@ -1,4 +1,5 @@
 # PDobay for AG Bourquin, KISPI
+# pamela.dobay@kispi.uzh.ch
 
 #@...
 # Layout processing functions
