@@ -326,6 +326,7 @@ readFileXML <- function(coords, files, res.files, singleLayout){
   gsub("_", "-", gsub(".csv", "", sapply(strsplit(names(plates), "\\/"), function(x) x[length(x)]))) -> names(plates)
   
   for (j in 1:length(plates)){
+    #print(j)
     plates[[j]] -> curr.plate
     combos <- list()
     if (singleLayout==T){
