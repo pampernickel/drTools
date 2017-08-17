@@ -21,7 +21,26 @@ getNewestFile <- function(){
 }
 
 addNewDrugs <- function(res.df, assembled){
+  # Need R interface to ChEMBL API; as this is a dev package, need to add
+  # auto-install options for users. Currently, the ChEMBL API does not have
+  # full functionality, so the solution is to 
+  if ("devtools" %in% rownames(installed.packages()) && !is.loaded("devtools")){
+    library(devtools)
+    if ("chemblr" %in% rownames(installed.packages()) && !is.loaded("chemblr")){
+      library(chemblr)  
+    }
+  } else if ("devtools" %ni% rownames(installed.packages())){
+    # if devtools is not installed, it's guaranteed the dev package is not installed
+    print("Installing required packages...")
+    install.packages("devtools")
+    if ("chemblr" %ni% rownames(installed.packages())){
+      install_github("rajarshi/chemblr/package")
+    }
+  }
+  
   .matchDrugs(res.df, assembled) -> res
+  # check if the drug exists
+  # checkDrug(res$unmatched, ) -> 
 }
 
 addFit <- function(res.df, drug.list.all, patient.name=""){
