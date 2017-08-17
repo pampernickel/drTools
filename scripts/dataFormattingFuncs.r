@@ -1,4 +1,31 @@
-.matchDrugs <- function(res.df){
+.getNearestMatch <- function(nn, comparator){
+  # find closest matching name between a character list and a list of drugs;
+  # if the difference between two strings is less than a minimal distance and
+  # if the character difference is a non-alphanumeric character
+  #increase max distance for shorter nns
+  lapply(nn, function(x) 
+    comparator[which(agrepl(x, comparator, 
+                            max.distance = nchar(nn)*.0005,
+                            ignore.case = T) %in% T)]) -> pos.match
+  
+  # get actual differences in terms nchars between the strings; maximum
+  # distance currently fixed at 1 (just allow for minimal typos)
+  matches <- rep(NA, length(nn))
+  for (i in 1:length(pos.match)){
+    if (length(pos.match[[i]]) > 0){
+      adist(c(names(pos.match)[i], pos.match[[i]])) -> dm
+      apply(dm, 1, function(x) 
+        length(which(x == 1))) -> test
+      if (length(which(test > 0)) > 0){
+        pos.match[[i]][setdiff(which(test > 0), 1)-1] -> matches[i]
+      }
+    }
+  }
+  
+  return(matches)
+}
+
+.matchDrugs <- function(res.df, assembled){
   # designed to match drugs created from a data frame generated with the drTools averageRes()
   # call, can be expanded to deal with strings
   res <- common.drugs <- unmatched.drugs <- NA
@@ -38,10 +65,18 @@
     }
     
     colnames(res.df)[which(colnames(res.df) %ni% common.drugs)] -> unmatched
+    .getNearestMatch(unmatched, colnames(assembled)) -> corrected
+    names(corrected) <- names(unmatched)
+    if (length(which(corrected %ni% NA)) > 0){
+      as.character(corrected[which(corrected %ni% NA)]) -> 
+        colnames(res.df)[which(colnames(res.df) %in% unmatched[which(corrected %ni% NA)])]
+    }
+    common.drugs <- c(common.drugs, corrected[which(corrected %ni% NA)])
+    setdiff(unmatched, unmatched[which(corrected %ni% NA)]) -> unmatched
   }
   
-  list(common.drugs, unmatched) -> res
-  names(res) <- c("common", "unmatched")
+  list(common.drugs, unmatched, res.df) -> res
+  names(res) <- c("common", "unmatched", "corrected")
   return(res)
 }
 
@@ -54,8 +89,9 @@
     t(conv) -> res.df
   }
   
-  .matchDrugs(res.df) -> resm
+  .matchDrugs(res.df, assembled) -> resm
   resm$common -> common.drugs
+  resm$corrected -> res.df
   res.df[,which(colnames(res.df) %in% common.drugs)] -> res.df.sub
   assembled[,which(colnames(assembled) %in% common.drugs)] -> assembled.sub
   
