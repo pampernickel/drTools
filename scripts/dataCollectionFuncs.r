@@ -29,9 +29,9 @@ addFit <- function(res.df, drug.list.all, patient.name=""){
     stop("Only primary patient data can be added to the ALL record. 
          The name that you specified is inconsistent with patient information.")
   }
-  
-  .mapResponse(res.df, assembled, drug.list.all, patient.name) -> assembled.sub
   if (patient.name %ni% rownames(assembled)){
+    .mapResponse(res.df, assembled, drug.list.all, patient.name) -> assembled.sub
+    
     # merge assembled, assembled.sub
     assembled.sub[which(rownames(assembled.sub) %ni% rownames(assembled)),] -> pat
     match(colnames(pat), colnames(assembled)) -> ind.match
@@ -40,6 +40,11 @@ addFit <- function(res.df, drug.list.all, patient.name=""){
     fin[ind.match[which(ind.match %ni% NA)]] <- as.numeric(as.character(pat[1,2:ncol(pat)]))
     rbind(assembled, fin) -> assembled
     rownames(assembled)[nrow(assembled)] <- patient.name
+    
+    # then append any information from new drugs/unmatched drugs
+    match(colnames(pat), colnames(assembled)) -> ind.match
+    ind.match[which(ind.match %in% NA)] -> ind.match
+    
     save(assembled, file=paste("./r.data.files/", date(), ".rda", sep=""))
   } else if (patient.name %ni% rownames(assembled)){
     warning("Patient record already exists in this file. No record added.")
