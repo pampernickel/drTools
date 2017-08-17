@@ -20,6 +20,10 @@ getNewestFile <- function(){
   }
 }
 
+addNewDrugs <- function(res.df, assembled){
+  .matchDrugs(res.df, assembled) -> res
+}
+
 addFit <- function(res.df, drug.list.all, patient.name=""){
   # automatically check the available files in the ./r.data.files subdirectory
   getNewestFile()
@@ -42,9 +46,7 @@ addFit <- function(res.df, drug.list.all, patient.name=""){
     rownames(assembled)[nrow(assembled)] <- patient.name
     
     # then append any information from new drugs/unmatched drugs
-    match(colnames(pat), colnames(assembled)) -> ind.match
-    ind.match[which(ind.match %in% NA)] -> ind.match
-    
+    addNewDrugs(res.df, assembled) -> res.df
     save(assembled, file=paste("./r.data.files/", date(), ".rda", sep=""))
   } else if (patient.name %ni% rownames(assembled)){
     warning("Patient record already exists in this file. No record added.")
