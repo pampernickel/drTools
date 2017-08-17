@@ -110,8 +110,8 @@ getResponseClass <- function(y.dat, x.dat, curr.exp=NA){
     # lm(formula=y.dat~log10(x.dat), na.action = na.omit)$coefficients[2] < -0.07 &&
     #  mean(slopes) <= -0.1 
     if (mean(y.dat, na.rm=T) < 0.76 ||
-        length(which(slopes.u < 0)) == length(slopes.u) ||
-        length(which(last < 0)) == length(last)){
+        length(which(slopes.u <= 0)) == length(slopes.u) ||
+        length(which(last <= 0)) == length(last)){
       # --- added case where all slopes are downwards;
       # --- also included a check on the slope of the last two points
       # --- class to be fitted
@@ -444,9 +444,8 @@ removeOutliers <- function(y.dat, x.dat, limit=0.35){
   # --- handle some patterns
   # --- go through all points and check if the removal of ANY point increases the negative slope
   # --- of a drug response curve
-  c(1:(length(y.dat)-1)) -> ind
-  sapply(ind, function(x) getSlope(x, y.dat, x.dat)) -> slopes
-  y.dat[which(slopes >= limit)] <- NA # for external data: CGP
+  getSlopes(y.dat) -> slopes
+  y.dat[which(slopes >= limit)] <- NA
   if (slopes[length(slopes)] > limit){ #check slope between last two points
     y.dat[length(y.dat)] <- NA
   }
