@@ -26,8 +26,17 @@ getMax <- function(exp.res.ave, dl){
 
 
 extractFit <- function(summary, drug){
-  lapply(summary, function(x) x[[which(names(x) %in% drug)]]$x) -> x.fits
-  lapply(summary, function(x) x[[which(names(x) %in% drug)]]$y) -> y.fits
+  lapply(summary, function(x){
+    if(drug %in% names(x)){
+      return(x[[which(names(x) %in% drug)]]$x)
+    }
+  }) -> x.fits
+  
+  lapply(summary, function(x){
+    if(drug %in% names(x)){
+      return(x[[which(names(x) %in% drug)]]$x)
+    }
+  }) -> y.fits
   
   # create ggplot-compatible data frame
   res.df <- matrix(0, nrow=0, ncol=4)
