@@ -110,8 +110,8 @@ getResponseClass <- function(y.dat, x.dat, curr.exp=NA){
     # lm(formula=y.dat~log10(x.dat), na.action = na.omit)$coefficients[2] < -0.07 &&
     #  mean(slopes) <= -0.1 
     if (mean(y.dat, na.rm=T) < 0.76 ||
-        length(which(slopes.u <= 0)) == length(slopes.u) ||
-        length(which(last <= 0)) == length(last)){
+        length(which(slopes.u < 0)) == length(slopes.u) ||
+        length(which(last < 0)) == length(last)){
       # --- added case where all slopes are downwards;
       # --- also included a check on the slope of the last two points
       # --- class to be fitted
