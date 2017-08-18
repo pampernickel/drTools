@@ -42,7 +42,7 @@ extractFit <- function(summary, drug){
   res.df <- matrix(0, nrow=0, ncol=4)
   colnames(res.df) <- c("x", "y", "patient", "drug")
   for (i in 1:length(x.fits)){
-    if (!is.na(x.fits[[i]])){
+    if (!is.null(x.fits[[i]])){
       cbind(x.fits[[i]], y.fits[[i]], 
             rep(names(x.fits)[i], 100), 
             rep(drug, 100)) -> t
