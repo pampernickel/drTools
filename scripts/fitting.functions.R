@@ -444,7 +444,9 @@ removeOutliers <- function(y.dat, x.dat, limit=0.35){
   # --- handle some patterns
   # --- go through all points and check if the removal of ANY point increases the negative slope
   # --- of a drug response curve
-  getSlopes(y.dat) -> slopes
+  c(1:(length(y.dat)-1)) -> ind
+  sapply(ind, function(x) getSlope(x, y.dat, x.dat)) -> slopes
+  y.dat[which(slopes >= limit)] <- NA # for external data: CGP
   y.dat[which(slopes >= limit)] <- NA
   if (slopes[length(slopes)] > limit){ #check slope between last two points
     y.dat[length(y.dat)] <- NA
