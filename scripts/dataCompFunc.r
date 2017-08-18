@@ -41,8 +41,11 @@ extractFit <- function(summary, drug){
       rbind(res.df, t) -> res.df
     }
   }
-  as.data.frame(res.df) -> res.df
-  as.numeric(as.character(res.df$x)) -> res.df$x
-  as.numeric(as.character(res.df$y)) -> res.df$y
+  
+  if (nrow(res.df) > 0){
+    as.data.frame(res.df) -> res.df
+    as.numeric(as.character(res.df$x)) -> res.df$x
+    as.numeric(as.character(res.df$y)) -> res.df$y
+  }
   return(res.df)
 }
