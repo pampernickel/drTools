@@ -72,6 +72,7 @@ loadAllDependencies <- function(){
   loadComboDependencies()
   print("Loading data management tools...")
   source_https('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/dataCollectionFuncs.r')
+  source_https('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/dataCompFunc.r')
   loadComboDependencies()
   library(ggplot2)
   library(reshape2)
