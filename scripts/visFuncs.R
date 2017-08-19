@@ -1228,3 +1228,99 @@ createColorTags <- function(b, color.pal){
   
   return(colors)
 }
+
+visFit <- function(summary, query, ares, drug.list, patient.name=""){
+  # Plots the fit for all drugs in the query list from ares (currently)
+  # tested in the single-patient case
+  lapply(as.character(query), function(x)
+    extractFit(summary, x)) -> comp
+  do.call("rbind", comp) -> comp
+  
+  # add the patient fits to comp
+  names(ares[[1]]$max) -> dl
+  as.character(sapply(dl, function(x) 
+    ifelse(length(grep(x, drug.list.all$all.names,
+                       ignore.case=T))>0,
+           drug.list.all$final.name[grep(x, drug.list.all$all.names, ignore.case=T)],
+           drug.list.all$final.name[agrepl(x, comparator, max.distance=0.04)]))) -> dl
+  getMax(ares, dl) -> fits.p
+  fits.p[[1]][which(names(fits.p[[1]]) %in% query)] -> fits.ps
+  for (i in 1:length(fits.ps)){
+    cbind(fits.ps[[i]]$x, fits.ps[[i]]$y,
+          rep(patient.name, 100),
+          rep(names(fits.ps)[i], 100)) -> t
+    colnames(t) <- colnames(comp)
+    as.data.frame(t) -> t
+    rbind(comp, t) -> comp
+  }
+  
+  tag <- rep("other", nrow(comp))
+  tag[which(comp$patient %in% patient.name)] <- patient.name
+  cbind(comp, tag) -> comp
+  
+  # then plot everything; to make the visuals better, extrapolate
+  # the first point as the y value when x is at the lowest possible
+  # value
+  as.numeric(comp$x) -> comp$x
+  as.numeric(comp$y) -> comp$y
+  log10(comp$x) -> comp$x 
+  
+  for (i in 1:length(query)){
+    mins <- maxs <- rep(0, length(unique(comp$patient)))
+    for (j in 1:length(unique(comp$patient))){
+      intersect(which(comp$drug %in% query[i]),
+                which(comp$patient %in% unique(comp$patient)[j])) -> ind
+      if (length(ind) > 0){
+        min(comp$x[ind], na.rm=T) -> mins[j]
+        max(comp$x[ind], na.rm=T) -> maxs[j]
+      }
+    }
+    
+    # trim comp result to be the same range for all drugs
+    if (length(which(is.na(mins))) < length(mins) &&
+        length(which(is.na(maxs))) < length(maxs)){
+      min(as.numeric(mins[which(mins %ni% c("Inf","-Inf"))]), na.rm=T) -> fin.min
+      max(as.numeric(maxs[which(maxs %ni% c("Inf","-Inf"))]), na.rm=T) -> fin.max
+      
+      # then for each patient whose min and max values are above and below fin.min and fin.max, respectively
+      # append fin.min and fin.max, and add the corresponding first and last y-values as y-value approximations
+      for (j in 1:length(unique(comp$patient))){
+        intersect(which(comp$drug %in% query[i]),
+                  which(comp$patient %in% unique(comp$patient)[j])) -> ind
+        if (length(ind) > 0 && length(which(is.na(comp$x[ind]))) < 100){
+          as.numeric(min(comp$x[ind], na.rm=T)) -> pat.min
+          as.numeric(max(comp$x[ind], na.rm=T)) -> pat.max
+          if (pat.min > fin.min){
+            comp$x[ind[which(comp$x[ind] %in% pat.min)]] <- fin.min
+          }
+          
+          if (pat.max < fin.max){
+            comp$x[ind[which(comp$x[ind] %in% pat.max)]] <- fin.max
+          }
+        }
+      }
+    }
+  }
+
+  comp[-intersect(which(comp$patient %in% "B-SR-14"),
+                  which(comp$drug %in% "VINCRISTINE")),] -> comp
+  
+  as.numeric(comp$x) -> comp$x
+  as.numeric(comp$y) -> comp$y
+  man.col <- scale_color_manual(values=c("red","lightgrey"))
+  ggplot(comp, aes(x=x, y=y, color=tag, 
+                   group=patient))+
+    geom_line()+facet_wrap(~drug)+
+    theme(axis.title.y=element_blank(),
+          axis.text.x=element_text(size=14),
+          axis.text.y=element_text(size=14),
+          strip.text=element_text(size=11),
+          panel.background=element_blank(),
+          panel.border=element_blank(),
+          panel.grid.major=element_blank(),
+          panel.grid.minor=element_blank(),
+          plot.background=element_blank(),
+          panel.spacing = unit(0.0, "lines"))+
+    ylab("% Viability")+xlab("Dose (nm, log10)")+
+    man.col
+}
