@@ -1229,9 +1229,13 @@ createColorTags <- function(b, color.pal){
   return(colors)
 }
 
-visFit <- function(summary, query, ares, drug.list, patient.name=""){
+visFit <- function(summary, query, ares, drug.list, patient.name="",
+                   extra.labs="", pat.lab="", category=""){
   # Plots the fit for all drugs in the query list from ares (currently)
-  # tested in the single-patient case
+  # tested in the single-patient case;
+  # Extra.labs will be for the case when the user wants to highlight
+  # a patient group in the images; 'category' refers to the group of
+  # patients to be highlighted
   lapply(as.character(query), function(x)
     extractFit(summary, x)) -> comp
   do.call("rbind", comp) -> comp
@@ -1263,6 +1267,7 @@ visFit <- function(summary, query, ares, drug.list, patient.name=""){
   # value
   as.numeric(comp$x) -> comp$x
   as.numeric(comp$y) -> comp$y
+  as.character(comp$tag) -> comp$tag
   log10(comp$x) -> comp$x 
   
   for (i in 1:length(query)){
@@ -1302,15 +1307,23 @@ visFit <- function(summary, query, ares, drug.list, patient.name=""){
     }
   }
 
+  # internal exclusion
   comp[-intersect(which(comp$patient %in% "B-SR-14"),
                   which(comp$drug %in% "VINCRISTINE")),] -> comp
-  
   as.numeric(comp$x) -> comp$x
   as.numeric(comp$y) -> comp$y
-  man.col <- scale_color_manual(values=c("red","lightgrey"))
+  as.character(comp$tag) -> comp$tag  
+  if (extra.labs %ni% ""){
+    grep(category, colnames(pat.lab), ignore.case=T) -> ind
+    comp$tag[which(comp$patient %in% 
+                pat.lab$paper.name[which(pat.lab[,ind] %in% 
+                                           extra.labs)])] <- extra.labs
+  }
+
+  man.col <- scale_color_manual(values=c("red","lightgrey", "grey30"))
   ggplot(comp, aes(x=x, y=y, color=tag, 
                    group=patient))+
-    geom_line()+facet_wrap(~drug)+
+    geom_line(alpha=.8)+facet_wrap(~drug)+
     theme(axis.title.y=element_blank(),
           axis.text.x=element_text(size=14),
           axis.text.y=element_text(size=14),
