@@ -8,7 +8,7 @@ source_https('https://raw.githubusercontent.com/pampernickel/chemblr/pampernicke
   #increase max distance for shorter nns
   lapply(nn, function(x) 
     comparator[which(agrepl(x, comparator, 
-                            max.distance = nchar(nn)*.0005,
+                            max.distance = nchar(x)*.0005,
                             ignore.case = T) %in% T)]) -> pos.match
   
   # get actual differences in terms nchars between the strings; maximum
