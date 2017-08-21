@@ -2,7 +2,7 @@
 # pamela.dobay@kispi.uzh.ch
 
 #@...
-# Routines that extracts information for a drug from a list
+# Routines that extract information for a drug from a list
 # of drug response profiles
 #@...
 
