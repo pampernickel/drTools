@@ -1,3 +1,6 @@
+library(RCurl)
+source_https('https://raw.githubusercontent.com/pampernickel/chemblr/pampernickel-patch-1/package/R/query.R')
+
 .getNearestMatch <- function(nn, comparator){
   # find closest matching name between a character list and a list of drugs;
   # if the difference between two strings is less than a minimal distance and
