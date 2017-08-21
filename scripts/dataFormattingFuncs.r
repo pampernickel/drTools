@@ -10,6 +10,7 @@ source_https('https://raw.githubusercontent.com/pampernickel/chemblr/pampernicke
     comparator[which(agrepl(x, comparator, 
                             max.distance = nchar(x)*.0005,
                             ignore.case = T) %in% T)]) -> pos.match
+  names(pos.match) <- nn
   
   # get actual differences in terms nchars between the strings; maximum
   # distance currently fixed at 1 (just allow for minimal typos)
