@@ -3,13 +3,13 @@
 
 #@...
 # Routines that extract information for a drug from a list
-# of drug response profiles
+# of drug response profiles for the purpose of comparison
 #@...
 
 
 getMax <- function(exp.res.ave, dl){
   # given an exp.res.ave object from the averageRes() function
-  # and a list of drugs, extract tye fits
+  # and a list of drugs, extract the fits
   lapply(exp.res.ave, function(x){
     lapply(x$max, function(y){
       extractMax(y)
@@ -57,4 +57,10 @@ extractFit <- function(summary, drug){
     as.numeric(as.character(res.df$y)) -> res.df$y
   }
   return(res.df)
+}
+
+extractParam <- function(exp.res.ave, param){
+  # Extract a given a param (IC50, EC50, Emax, AUC) from an exp.res.ave object
+  t(sapply(exp.res.ave, function(x) x[[which(names(x) %in% param)]])) -> res
+  return(res)
 }
