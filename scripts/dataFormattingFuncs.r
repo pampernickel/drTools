@@ -148,3 +148,31 @@ source_https('https://raw.githubusercontent.com/pampernickel/chemblr/pampernicke
   colnames(assembled.sub)[1] <- "id"
   return(assembled.sub)
 }
+
+condenseToDF <- function(l){
+  # create a data frame from a set of lists with unequal length; this
+  # function is specifically designed for lists of patient parameters, e.g.
+  # IC50, AUC, Emax lists; l may contain either data frames
+  # or lists; in the case that it is a list of data frames
+  # l has to be preprocessed such that the drug names have already been converted
+  # to the standard drug names, i.e. can be compared across different entries
+  # in l
+  if (is.list(l[[1]])){
+    
+  } else if (is.matrix(l[[1]]) || is.matrix[l[[1]]]){
+    unique(unlist(sapply(l, function(x) 
+      toupper(colnames(x))))) -> dl
+    res <- matrix(NA, nrow=sum(sapply(l, function(x) nrow(x))), ncol=length(dl))
+    colnames(res) <- dl
+    rownames(res) <- as.character(unlist(sapply(l, function(x) rownames(x))))
+    ctr <- 1
+    for (i in 1:length(l)){
+      for (j in 1:nrow(l[[i]])){
+        res[ctr, match(colnames(l[[i]]), colnames(res))] <- l[[i]][j,]
+        ctr+1 -> ctr
+      }
+    }
+  }
+  
+  return(res)
+}
