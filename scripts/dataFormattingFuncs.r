@@ -157,8 +157,15 @@ condenseToDF <- function(l){
   # l has to be preprocessed such that the drug names have already been converted
   # to the standard drug names, i.e. can be compared across different entries
   # in l
-  if (is.list(l[[1]])){
-    
+  if (is.list(l[[1]]) || is.numeric(l[[1]])){
+    unique(unlist(sapply(l, function(x) 
+      toupper(names(x))))) -> dl
+    res <- matrix(NA, nrow=length(l), ncol=length(dl))
+    colnames(res) <- dl
+    rownames(res) <- names(l)
+    for (i in 1:length(l)){
+      res[i, match(names(l[[i]]), colnames(res))] <- l[[i]]
+    }
   } else if (is.matrix(l[[1]]) || is.matrix[l[[1]]]){
     unique(unlist(sapply(l, function(x) 
       toupper(colnames(x))))) -> dl
@@ -173,6 +180,5 @@ condenseToDF <- function(l){
       }
     }
   }
-  
   return(res)
 }
