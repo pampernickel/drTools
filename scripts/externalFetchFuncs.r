@@ -56,8 +56,8 @@ formatNCTIDs <- function(tids){
   # given some ids from clinicaltrials.gov
   sapply(tids, function(x)
     paste(as.character(sapply(x, function(y)
-      paste("\\href{", paste("https://clinicaltrials.gov/ct2/show/", y, sep=""), "}{", y, "}", sep="")
-    )), collapse=",")
+      paste("<a href=", paste("https://clinicaltrials.gov/ct2/show/", y, sep=""), ">", y, "<a>", sep="")
+    )), collapse=",") -> ids
   ) -> ids
   return(ids)
 }
