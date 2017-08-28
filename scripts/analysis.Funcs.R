@@ -3,7 +3,6 @@ library(limma)
 library(reshape2)
 library(ggplot2)
 
-
 extractMax <- function(t){
   # function for retrieving x and y elements from a max
   # entry
@@ -15,10 +14,25 @@ extractMax <- function(t){
   return(fit.res)
 }
 
-rankResponses <- function(res.df, assembled, topK=10, drug.list.all=NULL, poi=NULL){
-  # given a dose response matrix for a given patient and dose response matrices
-  # for other patients, rank drugs from OTHER patients
+rankResponses <- function(ares, assembled, topK=10, drug.list.all=NULL, poi=NULL){
+  # given a fit result (ares, which includes the full fit from which all other params)
+  # may be derived, compare it with responses of other patients and 
+  # rank it accordingly
+  if (length(ares) > 1){
+    stop("Multi-patient handling for ranking drug response not yet available. Please analyze patients individually.")
+  }
+  
+  t(sapply(ares, function(x) x$logIC50)) -> res.df
+  gsub("X6", "6", gsub("\\.", "-", colnames(res.df))) -> colnames(res.df)
+  
+  # get Emax
+  t(sapply(ares[[1]]$max, function(x) extractMax(x)$y[100])) -> emax
+  colnames(res.df) -> colnames(emax)
+  rownames(res.df) -> rownames(emax)
+  
+  # get drug mapping -- for Emax, this is more to map the drug names
   .mapResponse(res.df, assembled, drug.list.all) -> assembled.sub
+  .mapResponse(emax, assembled, drug.list.all) -> assembled.sub.max
   grep("POI", assembled.sub$id) -> ind
   
   # scale and center assembled sub
@@ -33,8 +47,17 @@ rankResponses <- function(res.df, assembled, topK=10, drug.list.all=NULL, poi=NU
     apply(csdata, 2, function(x) median(x, na.rm=T)) -> med
     med-poi -> diff
     rev(order(diff)) -> ord
-    cbind(colnames(csdata)[ord], round(diff[ord], 3), round(med[ord],3)) -> res
+    cbind(colnames(csdata)[ord], round(diff[ord], 2), round(med[ord],2)) -> res
     colnames(res) <- c("Drug", "Difference from median IC50", "Median IC50 (centered, scaled)")
+    
+    # then get other parameters, e.g. AUC and Emax, use them to rank the topK
+    # automatically eliminate results where Emax > .15 at tested doses
+    sapply(rownames(res), function(x) 
+      assembled.sub.max[ind,grep(x, colnames(assembled.sub.max))]) -> me # max.effect
+    cbind(res, round(me, 2)) -> res
+    colnames(res)[ncol(res)] <- "Emax"
+    as.numeric(res[,4])*100 -> res[,4]
+    res[which(as.numeric(res[,4]) <= 15),] -> res
     if (nrow(res) > topK){
       res[1:topK,] -> res
     }
