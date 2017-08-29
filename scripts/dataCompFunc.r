@@ -28,13 +28,13 @@ getMax <- function(exp.res.ave, dl){
 extractFit <- function(summary, drug){
   lapply(summary, function(x){
     if(drug %in% names(x)){
-      return(x[[which(names(x) %in% drug)]]$x)
+      return(x[[which(names(x) %in% drug)[1]]]$x)
     }
   }) -> x.fits
   
   lapply(summary, function(x){
     if(drug %in% names(x)){
-      return(x[[which(names(x) %in% drug)]]$y)
+      return(x[[which(names(x) %in% drug)[1]]]$y)
     }
   }) -> y.fits
   
