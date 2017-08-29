@@ -1246,7 +1246,7 @@ visFit <- function(summary, query, ares, drug.list, patient.name="",
     ifelse(length(grep(x, drug.list.all$all.names,
                        ignore.case=T))>0,
            drug.list.all$final.name[grep(x, drug.list.all$all.names, ignore.case=T)],
-           drug.list.all$final.name[agrepl(x, comparator, max.distance=0.04)]))) -> dl
+           drug.list.all$final.name[agrepl(x, drug.list.all$all.names, max.distance=0.04)]))) -> dl
   getMax(ares, dl) -> fits.p
   fits.p[[1]][which(names(fits.p[[1]]) %in% query)] -> fits.ps
   for (i in 1:length(fits.ps)){
