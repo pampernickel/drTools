@@ -1260,13 +1260,17 @@ visFit <- function(summary, query, ares, drug.list, patient.name="",
   
   tag <- rep("other", nrow(comp))
   tag[which(comp$patient %in% patient.name)] <- patient.name
-  cbind(comp, tag) -> comp
+  ymin <- ymax <- rep(0, nrow(comp)) # for geom_ribbon
+  cbind(comp, tag, ymin, ymax) -> comp
+  
   
   # then plot everything; to make the visuals better, extrapolate
   # the first point as the y value when x is at the lowest possible
   # value
   as.numeric(comp$x) -> comp$x
   as.numeric(comp$y) -> comp$y
+  as.numeric(comp$ymin) -> comp$ymin
+  as.numeric(comp$ymax) -> comp$ymax
   as.character(comp$tag) -> comp$tag
   log10(comp$x) -> comp$x 
   
@@ -1307,9 +1311,11 @@ visFit <- function(summary, query, ares, drug.list, patient.name="",
     }
   }
 
-  # internal exclusion
-  comp[-intersect(which(comp$patient %in% "B-SR-14"),
-                  which(comp$drug %in% "VINCRISTINE")),] -> comp
+  # internal exclusion of bad fits, can be done at level of summary
+  if ("B-SR-14" %in% comp$patient){
+    comp[-which(comp$patient %in% "B-SR-14"),] -> comp
+  }
+  
   as.numeric(comp$x) -> comp$x
   as.numeric(comp$y) -> comp$y
   as.character(comp$tag) -> comp$tag  
@@ -1323,6 +1329,7 @@ visFit <- function(summary, query, ares, drug.list, patient.name="",
   man.col <- scale_color_manual(values=c("red","lightgrey", "grey30"))
   ggplot(comp, aes(x=x, y=y, color=tag, 
                    group=patient))+
+    #geom_ribbon(aes(ymin = ymin, ymax = ymax))+
     geom_line(alpha=.8)+facet_wrap(~drug)+
     theme(axis.title.y=element_blank(),
           axis.text.x=element_text(size=14),
@@ -1335,5 +1342,5 @@ visFit <- function(summary, query, ares, drug.list, patient.name="",
           plot.background=element_blank(),
           panel.spacing = unit(0.0, "lines"))+
     ylab("% Viability")+xlab("Dose (nm, log10)")+
-    man.col
+    man.col+ylim(0,1.25)
 }
