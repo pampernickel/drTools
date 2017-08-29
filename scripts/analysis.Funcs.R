@@ -71,6 +71,7 @@ rankResponses <- function(ares, assembled, topK=10, drug.list.all=NULL, poi=NULL
     }) -> res
   }
   
+  rownames(res) <- c(1:nrow(res))
   return(res)
 }
 
