@@ -74,6 +74,7 @@ loadAllDependencies <- function(){
   source_https('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/dataCollectionFuncs.r')
   source_https('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/dataCompFunc.r')
   source_https('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/externalFetchFuncs.r')
+  source_https('https://raw.githubusercontent.com/pampernickel/drTools/master/scripts/dataManagement.r')
   loadComboDependencies()
   library(ggplot2)
   library(reshape2)
