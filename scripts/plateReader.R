@@ -271,9 +271,17 @@ getCoords <- function(df, df1, df2, mode){
         
       } else if (mode == "single_mp"){
           # in this case, check for breaks in the DMSO to figure out where the two patients
-          # are; split might be on rows or columns
+          # are; split might be on rows or columns; also check distribution of fluid names
+          unique(df$`Fluid name`) -> all.fluids
           if (length(unique(drow)) < length(unique(dcol))){
-            # patients are split based on the row; start checking 
+            # patients are split based on the row; check if rows below or above are occupied;
+            # check distribution of fluid names
+            # unique(drow)
+            as.numeric(as.character(unique(df$`Dispensed\nrow`[which(df$`Fluid name` 
+                                                                     %in% all.fluids[1])]))) -> r1
+            if (r1[1] < drow[1]){
+              # config where dispensed drugs are above DMSO
+            }
           }
       }
     }
