@@ -5,6 +5,7 @@
 # Layout processing functions
 #@...
 
+
 readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   # function that returns a list of length n, where
   # n corresponds to the number of drugs on the plate + one slot for the control
@@ -89,6 +90,23 @@ readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   return(meta1)
 }
 
+splitPlates <- function(dir, pat.file){
+  # given a list of layouts, split both layout and results
+  # file per patient; input would be the layout directory
+  # and a patient file, which indicates the location
+  # of a patient
+  
+  # work directly with xml
+  list.files(dir, pattern=".xml", full.names = T) -> xml
+  list.files(dir, pattern=".txt", full.names = T) -> txt
+  if (length(xml) == 1){
+    if (!is.loaded("XML")) require(XML)
+      readXML(xml, 1, 1) -> xmlCoords
+  } else {
+    
+  }
+}
+
 getNode <- function(x, tag){
   # get year of publication
   # 'tag' is an xml tag, e.g. 
@@ -103,7 +121,7 @@ getNode <- function(x, tag){
 }
 
 
-readXML <- function(files, df1, df2){
+readXML <- function(files, df1, df2, mode="combos"){
   if (!is.loaded("XML")) require(XML)
   
   lapply(files, function(x){
@@ -169,16 +187,20 @@ readXML <- function(files, df1, df2){
       do.call("rbind.data.frame", content[2:length(content)]) -> df
     }
     colnames(df) <- col.names[2:length(col.names)]
-    getCoords(df, df1, df2) -> coords
+    
+    # default mode is for combos
+    getCoords(df, df1, df2, mode) -> coords
     return(coords)
   }) -> coords
   return(coords)
 }
 
-getCoords <- function(df, df1, df2){
+getCoords <- function(df, df1, df2, mode){
   # 'df' is a parsed version of the "tabular detail" table of
-  # the TECAN xml file
+  # the TECAN xml file; `df1' and `df2' are dilution factors;
+  # mode is by default for combos
   lapply(unique(df$Plate), function(x){
+    #print(x)
     df[which(df$Plate %in% x),] -> sub
     
     # identify drugs
@@ -188,57 +210,71 @@ getCoords <- function(df, df1, df2){
     as.numeric(as.character(sub$`Dispensed\nrow`[grep("DMSO", sub$`Fluid name`)])) -> drow
     as.numeric(as.character(sub$`Dispensed\ncol`[grep("DMSO", sub$`Fluid name`)])) -> dcol
     
-    # iterate through sub and determine if it contains a single drug or a combination
-    sapply(unique(sub$`Dispensed\nwell`), function(y) 
-      paste(sub$`Fluid name`[which(sub$`Dispensed\nwell` %in% y)], collapse="_")) -> conts
-    
+    # Combo mode
     # figure out combos, then get coords for these combos separately; check if there are
     # cases of the same drug in different dilutions
-    names(table(sub$`Fluid name`))[which(table(sub$`Fluid name`) > 0)] -> all.drugs
-    combn(all.drugs, 2) -> dn
-    
-    apply(dn, 2, function(y)
-      length(c(agrep(y[1], y[2]), agrep(y[2], y[1])))) -> matches
-    if (length(which(matches > 0))>0){
-      dn[which(nchar(dn[,which(matches > 0)]) %in% 
-                 min(nchar(dn[,which(matches > 0)]))),which(matches > 0)] -> root
-      # replace everything that has a partial match with the root in sub
-      as.character(sub$`Fluid name`) -> sub$`Fluid name`
-      sub$`Fluid name`[grep(root, sub$`Fluid name`)] <- root
-    }
-    
-    # then finalize
-    names(table(sub$`Fluid name`))[which(table(sub$`Fluid name`) > 0)] -> all.drugs
-    all.drugs[setdiff(c(1:length(all.drugs)), 
-                        grep("DMSO", all.drugs))] -> all.drugs
-    sapply(unique(sub$`Dispensed\nwell`), function(y) 
-      paste(sub$`Fluid name`[which(sub$`Dispensed\nwell` %in% y)], collapse="_")) -> conts
-    if (length(all.drugs) %% 2 > 0){
-      # odd combo, where one drug is used more than once; find drug used more than once
-      md <- names(table(sub$`Fluid name`))[which(table(sub$`Fluid name`) %in% 
-                                                     max(table(sub$`Fluid name`)))]
-      od <- setdiff(all.drugs, md)
-      cbind(rep(md, length(od)), od) -> combos
-      colnames(combos) <- c("drug1", "drug2")
+    if (mode %in% "combos"){
+      # iterate through sub and determine if it contains a single drug or a combination
+      sapply(unique(sub$`Dispensed\nwell`), function(y) 
+        paste(sub$`Fluid name`[which(sub$`Dispensed\nwell` %in% y)], collapse="_")) -> conts
       
-      # get single drug coords and borders between multiple combos on a single plate
-      apply(combos, 1, function(y){
-        .getCoords(sub, y, conts, drow, dcol, (length(all.drugs) %% 2), df1, df2) -> res
-      }) -> res
-      names(res) <- apply(combos, 1, function(y) paste(y, collapse="_"))
-    } else if (length(all.drugs) %% 2 == 0) {
-      # even combo, case where each plate half has either the same combo (d1,d2 x2) or
-      # combos where none of the drugs are in common (d1,d2; d3,d4); use conts
-      # to figure out all combos
-      strsplit(unique(conts[grep("_", conts)]), "_") -> all.c
-      lapply(all.c, function(y){
-        .getCoords(sub, y, conts, drow, dcol, (length(all.drugs) %% 2), df1, df2) -> res
-      }) -> res
+      names(table(sub$`Fluid name`))[which(table(sub$`Fluid name`) > 0)] -> all.drugs
+      combn(all.drugs, 2) -> dn
       
-      if (is.data.frame(all.c)){
-        names(res) <- apply(all.c, 1, function(y) paste(y, collapse="_"))
-      } else if (is.list(all.c)){
-        names(res) <- sapply(all.c, function(y) paste(y, collapse="_"))
+      apply(dn, 2, function(y)
+        length(c(agrep(y[1], y[2]), agrep(y[2], y[1])))) -> matches
+      if (length(which(matches > 0))>0){
+        dn[which(nchar(dn[,which(matches > 0)]) %in% 
+                   min(nchar(dn[,which(matches > 0)]))),which(matches > 0)] -> root
+        # replace everything that has a partial match with the root in sub
+        as.character(sub$`Fluid name`) -> sub$`Fluid name`
+        sub$`Fluid name`[grep(root, sub$`Fluid name`)] <- root
+      }
+      
+      # then finalize
+      names(table(sub$`Fluid name`))[which(table(sub$`Fluid name`) > 0)] -> all.drugs
+      all.drugs[setdiff(c(1:length(all.drugs)), 
+                          grep("DMSO", all.drugs))] -> all.drugs
+      sapply(unique(sub$`Dispensed\nwell`), function(y) 
+        paste(sub$`Fluid name`[which(sub$`Dispensed\nwell` %in% y)], collapse="_")) -> conts
+      if (length(all.drugs) %% 2 > 0){
+        # odd combo, where one drug is used more than once; find drug used more than once
+        md <- names(table(sub$`Fluid name`))[which(table(sub$`Fluid name`) %in% 
+                                                       max(table(sub$`Fluid name`)))]
+        od <- setdiff(all.drugs, md)
+        cbind(rep(md, length(od)), od) -> combos
+        colnames(combos) <- c("drug1", "drug2")
+        
+        # get single drug coords and borders between multiple combos on a single plate
+        apply(combos, 1, function(y){
+          .getCoords(sub, y, conts, drow, dcol, (length(all.drugs) %% 2), df1, df2) -> res
+        }) -> res
+        names(res) <- apply(combos, 1, function(y) paste(y, collapse="_"))
+      } else if (length(all.drugs) %% 2 == 0) {
+        # even combo, case where each plate half has either the same combo (d1,d2 x2) or
+        # combos where none of the drugs are in common (d1,d2; d3,d4); use conts
+        # to figure out all combos
+        strsplit(unique(conts[grep("_", conts)]), "_") -> all.c
+        lapply(all.c, function(y){
+          .getCoords(sub, y, conts, drow, dcol, (length(all.drugs) %% 2), df1, df2) -> res
+        }) -> res
+        
+        if (is.data.frame(all.c)){
+          names(res) <- apply(all.c, 1, function(y) paste(y, collapse="_"))
+        } else if (is.list(all.c)){
+          names(res) <- sapply(all.c, function(y) paste(y, collapse="_"))
+        }
+      }
+    } else {
+      # single drug; two cases: multiple patients/plate (mp) or single patient/plate (sp)
+      if (mode == "single_sp"){
+        
+      } else if (mode == "single_mp"){
+          # in this case, check for breaks in the DMSO to figure out where the two patients
+          # are; split might be on rows or columns
+          if (length(unique(drow)) < length(unique(dcol))){
+            # patients are split based on the row; start checking 
+          }
       }
     }
     return(res)
