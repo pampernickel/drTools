@@ -19,74 +19,82 @@ readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   # dup.mode can be rows or columns
   print(paste("Processing directory ", dir, "...", sep=""))
   unlist(strsplit(dir, "/")) -> dir.name
-    
-  c(list.files(path = dir, pattern = ".txt", recursive=TRUE, full.names = TRUE), 
-  list.files(path = dir, pattern = ".csv", recursive=TRUE, full.names = TRUE)) -> files  
-  if (length(files) == 0){
-    stop(paste("No files found in ", dir, ".", sep=""))
-  }
   
-  if (length(dups) < length(files) |
-      length(dup.mode) < length(files)){
-    stop("Length of duplicate modes not the same as number of layout templates.")
-  }
-  
-  if (length(grep(".txt", files)) > 0){ # 
-    lapply(files, function(x) suppressWarnings(readLines(x))) -> contents
-    lapply(contents, function(x) c(grep("mM", x),grep("mL", x))) -> infoLines
-    lapply(infoLines, function(x) sort(x)) -> infoLines
-    lapply(c(1:length(contents)), function(x)
-      strsplit(contents[[x]][infoLines[[x]]], "\t")) -> meta
-    meta1 <- list()
-    for (x in 1:length(contents)){
-      all.res <- list()
-      for (j in 1:length(infoLines[[x]])){
-        getPlate(infoLines, contents, x, j) -> plate
-        # case of all drugs, where there is a serial dilution
-        if (length(grep("control", tolower(meta[[x]][[j]]))) == 0){
-            getDoses(plate, dups[x]) -> doses
-            if (dups[x] == "ei"){ #explicit, irregular
-              all.res[[j]] <- doses
-            } else if (replicates==2 && dups[x] == "i") {
-              as.numeric(plate[doses$dose.rows[1],]) -> t # used for finding the columns/rows of dups
-              all.res[[j]] <- handleImplicit(dup.mode[x], t, doses, dilution)
-            } else if (dups[x] == "e"){
-              # replicates are explicitly indicated
-              as.numeric(plate[doses$dose.rows[1],]) -> t # used for finding the columns/rows of dups
-              all.res[[j]] <- handleExplicit(dup.mode[x], t, doses, dilution, replicates)
-            }
-        } else {
-            # control: single dose only; problem is to localize it
-            # in particular, there's a need to solve problems related to
-            # tabs filled in automatically by R when the plate shape is uneven
-            which(apply(plate, 1, function(y)
-              length(which(y %in% ""))) < ncol(plate)) -> dose.rows
-            # for each row, find the columns
-            lapply(dose.rows, function(y)
-              which(plate[y,] %ni% "")) -> control.cols
-            
-            # t(apply(plate[dose.rows,], 1, 
-            #         function(x) suppressWarnings(as.numeric(x)))) -> controls
-            # apply(controls, 1, function(x) length(which(is.na(x)))) -> r 
-            # 
-            # controls[which(r < ncol(plate)),] -> controls
-            # dose.rows[which(r < ncol(plate))] -> dose.rows
-            # t(apply(controls, 1, function(x) which(!is.na(x)))) -> control.cols
-            # unique(as.numeric(dose.rows)) -> dose.rows
-            # lapply(1:nrow(control.cols), function(x) unlist(list(control.cols[x,]))) -> control.cols
-            # 
-            # # get measurement for control
-            list(NA, as.numeric(dose.rows), 
-                  control.cols) -> all.res[[j]]
-            names(all.res[[j]]) <- c("doses", "rows", "cols")
-          }
-      }
-      
-      meta1[[x]] <- all.res
-      names(meta1[[x]]) <- sapply(meta[[x]], function(z) return(z[1]))
+  # prioritize TECAN .xml format files, when available
+  list.files(dir, pattern=".xml", full.names = T) -> xml
+  if (length(xml) == 1){
+    if (!is.loaded("XML")) require(XML)
+    readXML(xml, 1, 1) -> xmlCoords
+    .getPatientLayout(xmlCoords)
+  } else {
+    c(list.files(path = dir, pattern = ".txt", recursive=TRUE, full.names = TRUE), 
+    list.files(path = dir, pattern = ".csv", recursive=TRUE, full.names = TRUE)) -> files  
+    if (length(files) == 0){
+      stop(paste("No files found in ", dir, ".", sep=""))
     }
+    
+    if (length(dups) < length(files) |
+        length(dup.mode) < length(files)){
+      stop("Length of duplicate modes not the same as number of layout templates.")
+    }
+    
+    if (length(grep(".txt", files)) > 0){ # 
+      lapply(files, function(x) suppressWarnings(readLines(x))) -> contents
+      lapply(contents, function(x) c(grep("mM", x),grep("mL", x))) -> infoLines
+      lapply(infoLines, function(x) sort(x)) -> infoLines
+      lapply(c(1:length(contents)), function(x)
+        strsplit(contents[[x]][infoLines[[x]]], "\t")) -> meta
+      meta1 <- list()
+      for (x in 1:length(contents)){
+        all.res <- list()
+        for (j in 1:length(infoLines[[x]])){
+          getPlate(infoLines, contents, x, j) -> plate
+          # case of all drugs, where there is a serial dilution
+          if (length(grep("control", tolower(meta[[x]][[j]]))) == 0){
+              getDoses(plate, dups[x]) -> doses
+              if (dups[x] == "ei"){ #explicit, irregular
+                all.res[[j]] <- doses
+              } else if (replicates==2 && dups[x] == "i") {
+                as.numeric(plate[doses$dose.rows[1],]) -> t # used for finding the columns/rows of dups
+                all.res[[j]] <- handleImplicit(dup.mode[x], t, doses, dilution)
+              } else if (dups[x] == "e"){
+                # replicates are explicitly indicated
+                as.numeric(plate[doses$dose.rows[1],]) -> t # used for finding the columns/rows of dups
+                all.res[[j]] <- handleExplicit(dup.mode[x], t, doses, dilution, replicates)
+              }
+          } else {
+              # control: single dose only; problem is to localize it
+              # in particular, there's a need to solve problems related to
+              # tabs filled in automatically by R when the plate shape is uneven
+              which(apply(plate, 1, function(y)
+                length(which(y %in% ""))) < ncol(plate)) -> dose.rows
+              # for each row, find the columns
+              lapply(dose.rows, function(y)
+                which(plate[y,] %ni% "")) -> control.cols
+              
+              # t(apply(plate[dose.rows,], 1, 
+              #         function(x) suppressWarnings(as.numeric(x)))) -> controls
+              # apply(controls, 1, function(x) length(which(is.na(x)))) -> r 
+              # 
+              # controls[which(r < ncol(plate)),] -> controls
+              # dose.rows[which(r < ncol(plate))] -> dose.rows
+              # t(apply(controls, 1, function(x) which(!is.na(x)))) -> control.cols
+              # unique(as.numeric(dose.rows)) -> dose.rows
+              # lapply(1:nrow(control.cols), function(x) unlist(list(control.cols[x,]))) -> control.cols
+              # 
+              # # get measurement for control
+              list(NA, as.numeric(dose.rows), 
+                    control.cols) -> all.res[[j]]
+              names(all.res[[j]]) <- c("doses", "rows", "cols")
+            }
+        }
+        
+        meta1[[x]] <- all.res
+        names(meta1[[x]]) <- sapply(meta[[x]], function(z) return(z[1]))
+      }
+    }
+    names(meta1) <- paste("plate", c(1:length(meta1)), sep="")
   }
-  names(meta1) <- paste("plate", c(1:length(meta1)), sep="")
   return(meta1)
 }
 
@@ -121,7 +129,7 @@ getNode <- function(x, tag){
 }
 
 
-readXML <- function(files, df1, df2, mode="combos"){
+readXML <- function(files, df1, df2, mode="combos", dups=0){
   if (!is.loaded("XML")) require(XML)
   
   lapply(files, function(x){
@@ -195,10 +203,12 @@ readXML <- function(files, df1, df2, mode="combos"){
   return(coords)
 }
 
-getCoords <- function(df, df1, df2, mode){
+getCoords <- function(df, df1, df2, mode, factor=""){
   # 'df' is a parsed version of the "tabular detail" table of
   # the TECAN xml file; `df1' and `df2' are dilution factors;
-  # mode is by default for combos
+  # mode is by default for combos; `factor' is the dilution factor
+  # in the case of the single drug (non-combo) setup when the
+  # eppendorf machine is also used
   lapply(unique(df$Plate), function(x){
     #print(x)
     df[which(df$Plate %in% x),] -> sub
@@ -279,9 +289,16 @@ getCoords <- function(df, df1, df2, mode){
             # unique(drow)
             as.numeric(as.character(unique(df$`Dispensed\nrow`[which(df$`Fluid name` 
                                                                      %in% all.fluids[1])]))) -> r1
+            
             if (r1[1] < drow[1]){
-              # config where dispensed drugs are above DMSO
+              # config where dispensed drugs are above DMSO; get layout per plate
+              lapply(unique(df$Plate), function(z){
+                df[which(df$Plate %in% z),] -> df.sub
+                .getPatientLayout(df.sub, "up", factor) -> res  
+              }) -> res
+              names(res) <- paste("plate", 1:length(res), sep="")
             }
+            unlist(res, recursive = F) -> res
           }
       }
     }
@@ -289,6 +306,56 @@ getCoords <- function(df, df1, df2, mode){
   }) -> res
   names(res) <- unique(df$Plate)
   return(res)
+}
+
+.getPatientLayout <- function(df, mode, factor=""){
+  as.numeric(as.character(df$`Dispensed\nrow`[grep("DMSO", df$`Fluid name`)])) -> drow
+  as.numeric(as.character(df$`Dispensed\ncol`[grep("DMSO", df$`Fluid name`)])) -> dcol
+  as.numeric(as.character(unique(df$`Dispensed\nrow`))) -> all.rows
+  as.numeric(as.character(unique(df$`Dispensed\ncol`))) -> all.cols
+  
+  pat <- list(); fin.rows <- c()
+  for (j in 1:length(unique(drow))){
+    layout <- list()
+    if (mode %in% "up"){
+      # ::: case where content is above the DMSO row
+      all.rows[which(all.rows < unique(drow)[j])] -> rows.loc
+      setdiff(rows.loc, c(fin.rows, unique(drow))) -> rows.loc
+      nn <- rep(NA, length(rows.loc))
+      for (i in 1:length(rows.loc)){
+        which(df$`Dispensed\nrow` %in% rows.loc[i]) -> curr.row
+        doses <- as.numeric(as.character(unique(df$`Dispensed conc.`[curr.row])))
+        nn[i] <- as.character(unique(df$`Fluid name`[curr.row]))
+        doses <- round(doses, 2)
+        cols.loc <- as.numeric(as.character(unique(df$`Dispensed\ncol`[curr.row])))
+        
+        # for each column loc, get doses to check how the duplicates are arranged
+        as.numeric(sapply(cols.loc, function(z){
+          as.character(unique(df$`Dispensed conc.`[intersect(curr.row,which(df$`Dispensed\ncol` %in% z))]))
+        })) -> col.doses
+        
+        s1 <- s2 <- NA
+        which(duplicated(col.doses)) -> s2
+        if (length(s2) > 0 && s2 %ni% NA){
+          setdiff(1:length(col.doses), s2) -> s1
+        }
+        
+        if (factor %ni% ""){
+          doses/factor -> doses
+        }
+        
+        list(doses, rep(rows.loc[i], 2), list(s1, s2)) -> t
+        names(t) <- c("doses", "rows", "cols")
+        t -> layout[[i]]
+        c(fin.rows, rows.loc[i]) -> fin.rows
+      }
+      names(layout) <- nn
+    }
+    layout -> pat[[j]]
+  }
+  
+  names(pat) <- paste("patient", c(1:length(unique(drow))), sep="")
+  return(pat)
 }
 
 .getCoords <- function(sub, y, conts, drow, dcol, mode, df1, df2){
@@ -799,7 +866,6 @@ handleExplicit <- function(mode, t, doses, dilution, replicates){
 checkFiles <- function(files, layout){
   print("Checking file:layout match...")
   if (length(layout) > 1){
-    
     if (length(files) != length(layout)){
       # Check nested structures
       sapply(files, function(x) ifelse(length(x)==length(layout),T,F)) -> l
@@ -856,6 +922,7 @@ readExperiment <- function(files, layout, mode="", pos.control="",
          all.names and final.name.")  
   }
   
+  # check if each layout file has more than one patient, in which case, the list must be flattened
   lapply(files, function(f){
     lapply(f, function(y){
       if (length(grep(".csv", y)) == 1){
