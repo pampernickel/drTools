@@ -24,8 +24,6 @@ readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   list.files(dir, pattern=".xml", full.names = T) -> xml
   if (length(xml) == 1){
     if (!is.loaded("XML")) require(XML)
-    readXML(xml, 1, 1) -> xmlCoords
-    .getPatientLayout(xmlCoords)
   } else {
     c(list.files(path = dir, pattern = ".txt", recursive=TRUE, full.names = TRUE), 
     list.files(path = dir, pattern = ".csv", recursive=TRUE, full.names = TRUE)) -> files  
@@ -98,7 +96,7 @@ readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   return(meta1)
 }
 
-readMultiPatient <- function(dir, factor=1){
+readMultiPatient <- function(dir, results.dir, factor=1){
   # separate function for handling cases with multiple patients per plate
   # for single drug screening
   # prioritize TECAN .xml format files, when available
@@ -107,12 +105,45 @@ readMultiPatient <- function(dir, factor=1){
     if (!is.loaded("XML")) require(XML)
     readXML(files=xml, mode="single_mp", factor) -> layout
     unlist(layout, recursive = F) -> layout
+  } else {
+    stop("Only one .xml file is expected per folder.")
+  }
+  
+  getFiles(results.dir) -> files
+  lapply(1:length(files), function(x){
+    lapply(files[[x]], function(y){
+      if (length(grep(".csv", y)) == 1){
+        data <- t(read.csv(as.character(y), header = FALSE))
+      } else if (length(grep(".csv", y)) == 1) {
+        data <- read.table(as.character(y), header = FALSE, sep = "\t")
+      }
+    }) -> all.dat
+    names(all.dat) <- files[[x]]
+    return(all.dat)
+  }) -> all.dat
+  names(all.dat) <- names(files)
+  
+  # check if the length of each set in all.dat is equal to the number of plates in the layout
+  # file
+  sapply(all.dat, function(x) ifelse(length(x) == length(layout), T, F)) -> check
+  if (length(which(check %in% F)) > 0){
+    stop("One or more datasets are missing plates.")
+  }
+  
+  # create all.resp format, where each response is per patient
+  all.resp <- list()
+  for (i in 1:length(layout)){
+    layout[[i]] -> curr.layout
+    lapply(curr.layout, function(x){
+      for (j in 1:length(all.dat)){
+        
+      }
+    })
   }
 }
 
-readXML <- function(files, df1="", df2="", mode="combos", factor){
+readXML <- function(files, df1="", df2="", mode="combos", factor=1){
   if (!is.loaded("XML")) require(XML)
-  
   lapply(files, function(x){
     match <- F
     y <- xmlToList(xmlRoot(xmlParse(x)))
@@ -178,13 +209,13 @@ readXML <- function(files, df1="", df2="", mode="combos", factor){
     colnames(df) <- col.names[2:length(col.names)]
     
     # default mode is for combos
-    getCoords(df, df1, df2, mode) -> coords
+    getCoords(df, df1, df2, mode, factor) -> coords
     return(coords)
   }) -> coords
   return(coords)
 }
 
-getCoords <- function(df, df1, df2, mode, factor=""){
+getCoords <- function(df, df1, df2, mode, factor){
   # 'df' is a parsed version of the "tabular detail" table of
   # the TECAN xml file; `df1' and `df2' are dilution factors;
   # mode is by default for combos; `factor' is the dilution factor
@@ -272,7 +303,8 @@ getCoords <- function(df, df1, df2, mode, factor=""){
                                                                      %in% all.fluids[1])]))) -> r1
             
             if (r1[1] < drow[1]){
-              # config where dispensed drugs are above DMSO; get layout per plate
+              # config where dispensed drugs are above DMSO; get layout per plate;
+              # add DMSO coords for normalization
               .getPatientLayout(sub, "up", factor) -> res  
             }
           }
