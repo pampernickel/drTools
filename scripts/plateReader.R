@@ -98,23 +98,6 @@ readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   return(meta1)
 }
 
-splitPlates <- function(dir, pat.file){
-  # given a list of layouts, split both layout and results
-  # file per patient; input would be the layout directory
-  # and a patient file, which indicates the location
-  # of a patient
-  
-  # work directly with xml
-  list.files(dir, pattern=".xml", full.names = T) -> xml
-  list.files(dir, pattern=".txt", full.names = T) -> txt
-  if (length(xml) == 1){
-    if (!is.loaded("XML")) require(XML)
-      readXML(xml, 1, 1) -> xmlCoords
-  } else {
-    
-  }
-}
-
 getNode <- function(x, tag){
   # get year of publication
   # 'tag' is an xml tag, e.g. 
@@ -136,6 +119,7 @@ readMultiPatient <- function(dir, factor=1){
   if (length(xml) == 1){
     if (!is.loaded("XML")) require(XML)
     readXML(files=xml, mode="single_mp", factor) -> layout
+    unlist(layout, recursive = F) -> layout
   }
 }
 
@@ -302,18 +286,14 @@ getCoords <- function(df, df1, df2, mode, factor=""){
             
             if (r1[1] < drow[1]){
               # config where dispensed drugs are above DMSO; get layout per plate
-              lapply(unique(df$Plate), function(z){
-                df[which(df$Plate %in% z),] -> df.sub
-                .getPatientLayout(df.sub, "up", factor) -> res  
-              }) -> res
-              names(res) <- paste("plate", 1:length(res), sep="")
+              .getPatientLayout(sub, "up", factor) -> res  
             }
           }
       }
     }
     return(res)
   }) -> res
-  names(res) <- unique(df$Plate)
+  names(res) <- paste("plate", unique(df$Plate), sep="")
   return(res)
 }
 
