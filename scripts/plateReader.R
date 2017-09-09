@@ -98,19 +98,6 @@ readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   return(meta1)
 }
 
-getNode <- function(x, tag){
-  # get year of publication
-  # 'tag' is an xml tag, e.g. 
-  getNodeSet(x, tag) -> ret
-  if (class(ret) %in% "XMLNodeSet" &&
-      length(ret) > 0){
-    sapply(ret, function(y) xmlValue(y)) -> ret
-  } else {
-    ret <- NA
-  }
-  return(ret)
-}
-
 readMultiPatient <- function(dir, factor=1){
   # separate function for handling cases with multiple patients per plate
   # for single drug screening
