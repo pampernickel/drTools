@@ -137,11 +137,23 @@ readMultiPatient <- function(dir, results.dir, factor=1){
 .getContent <- function(curr.layout, curr.plate){
   lapply(curr.layout, function(x){
     x[which(names(x) %ni% "DMSOcontrol")] -> x
-    lapply(x, function(y){
-      sapply(1:length(y$rows), function(z) curr.plate[y$rows[[z]],y$cols[[z]]])
-    })
+    lapply(1:length(x), function(y){
+      t <- cbind(x[[y]]$doses, sapply(1:length(x[[y]]$rows), function(z) 
+                                  curr.plate[x[[y]]$rows[[z]],x[[y]]$cols[[z]]]))
+      colnames(t) <- c("Concentrations", paste(names(x)[y], 1:length(x[[y]]$rows), sep="_"))
+      return(t)
+    }) -> res
   }) -> res
+  names(res) <- names(curr.layout)
+  
+  lapply(res, function(x) lapply(x, function(y) 
+    return(y[,1]))) -> all.conc
+  findUniqueConc(all.conc) -> unique.conc
+  
+  # for each class, group responses
+  lapply(res, function(x) groupResponses(x, unique.conc)) -> all.resp
 }
+
 readXML <- function(files, df1="", df2="", mode="combos", factor=1){
   if (!is.loaded("XML")) require(XML)
   lapply(files, function(x){
