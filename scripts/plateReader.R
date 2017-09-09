@@ -136,8 +136,11 @@ readMultiPatient <- function(dir, results.dir, factor=1){
 
 .getContent <- function(curr.layout, curr.plate){
   lapply(curr.layout, function(x){
-    
-  })
+    x[which(names(x) %ni% "DMSOcontrol")] -> x
+    lapply(x, function(y){
+      sapply(1:length(y$rows), function(z) curr.plate[y$rows[[z]],y$cols[[z]]])
+    })
+  }) -> res
 }
 readXML <- function(files, df1="", df2="", mode="combos", factor=1){
   if (!is.loaded("XML")) require(XML)
@@ -340,9 +343,9 @@ getCoords <- function(df, df1, df2, mode, factor){
         })) -> col.doses
         
         s1 <- s2 <- NA
-        which(duplicated(col.doses)) -> s2
+        cols.loc[which(duplicated(col.doses))] -> s2
         if (length(s2) > 0 && s2 %ni% NA){
-          setdiff(1:length(col.doses), s2) -> s1
+          cols.loc[setdiff(1:length(col.doses), s2)] -> s1
         }
         
         if (factor %ni% ""){
