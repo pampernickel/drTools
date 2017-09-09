@@ -135,8 +135,7 @@ readMultiPatient <- function(dir, factor=1){
   list.files(dir, pattern=".xml", full.names = T) -> xml
   if (length(xml) == 1){
     if (!is.loaded("XML")) require(XML)
-    readXML(files=xml, mode="single_mp", factor) -> xmlCoords
-    .getPatientLayout(xmlCoords) -> layout
+    readXML(files=xml, mode="single_mp", factor) -> layout
   }
 }
 
@@ -309,7 +308,6 @@ getCoords <- function(df, df1, df2, mode, factor=""){
               }) -> res
               names(res) <- paste("plate", 1:length(res), sep="")
             }
-            unlist(res, recursive = F) -> res
           }
       }
     }
