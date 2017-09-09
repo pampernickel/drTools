@@ -345,7 +345,7 @@ getCoords <- function(df, df1, df2, mode, factor){
         s1 <- s2 <- NA
         cols.loc[which(duplicated(col.doses))] -> s2
         if (length(s2) > 0 && s2 %ni% NA){
-          cols.loc[setdiff(1:length(col.doses), s2)] -> s1
+          cols.loc[setdiff(1:length(col.doses), which(duplicated(col.doses)))] -> s1
         }
         
         if (factor %ni% ""){
