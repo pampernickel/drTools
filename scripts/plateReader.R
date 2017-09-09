@@ -110,22 +110,18 @@ readMultiPatient <- function(dir, results.dir, factor=1){
   }
   
   getFiles(results.dir) -> files
-  lapply(1:length(files), function(x){
-    lapply(files[[x]], function(y){
-      if (length(grep(".csv", y)) == 1){
-        data <- t(read.csv(as.character(y), header = FALSE))
-      } else if (length(grep(".csv", y)) == 1) {
-        data <- read.table(as.character(y), header = FALSE, sep = "\t")
-      }
-    }) -> all.dat
-    names(all.dat) <- files[[x]]
-    return(all.dat)
+  lapply(files, function(y){
+    if (length(grep(".csv", y)) == 1){
+      data <- t(read.csv(as.character(y), header = FALSE))
+    } else if (length(grep(".csv", y)) == 1) {
+      data <- read.table(as.character(y), header = FALSE, sep = "\t")
+    }
+    return(data)
   }) -> all.dat
-  names(all.dat) <- names(files)
   
-  # check if the length of each set in all.dat is equal to the number of plates in the layout
+  # check if the length of of all.dat is equal to the number of plates in the layout
   # file
-  sapply(all.dat, function(x) ifelse(length(x) == length(layout), T, F)) -> check
+  ifelse(length(all.dat) == length(layout), T, F) -> check
   if (length(which(check %in% F)) > 0){
     stop("One or more datasets are missing plates.")
   }
@@ -134,14 +130,15 @@ readMultiPatient <- function(dir, results.dir, factor=1){
   all.resp <- list()
   for (i in 1:length(layout)){
     layout[[i]] -> curr.layout
-    lapply(curr.layout, function(x){
-      for (j in 1:length(all.dat)){
-        
-      }
-    })
+    all.dat[[i]] -> curr.plate
   }
 }
 
+.getContent <- function(curr.layout, curr.plate){
+  lapply(curr.layout, function(x){
+    
+  })
+}
 readXML <- function(files, df1="", df2="", mode="combos", factor=1){
   if (!is.loaded("XML")) require(XML)
   lapply(files, function(x){
