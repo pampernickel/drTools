@@ -128,8 +128,19 @@ getNode <- function(x, tag){
   return(ret)
 }
 
+readMultiPatient <- function(dir, factor=1){
+  # separate function for handling cases with multiple patients per plate
+  # for single drug screening
+  # prioritize TECAN .xml format files, when available
+  list.files(dir, pattern=".xml", full.names = T) -> xml
+  if (length(xml) == 1){
+    if (!is.loaded("XML")) require(XML)
+    readXML(files=xml, mode="single_mp", factor) -> xmlCoords
+    .getPatientLayout(xmlCoords) -> layout
+  }
+}
 
-readXML <- function(files, df1, df2, mode="combos", dups=0){
+readXML <- function(files, df1="", df2="", mode="combos", factor){
   if (!is.loaded("XML")) require(XML)
   
   lapply(files, function(x){
