@@ -131,7 +131,9 @@ readMultiPatient <- function(dir, results.dir, factor=1){
   for (i in 1:length(layout)){
     layout[[i]] -> curr.layout
     all.dat[[i]] -> curr.plate
+    .getContent(curr.layout, curr.plate) -> all.resp[[i]]
   }
+  return(all.resp)
 }
 
 .getContent <- function(curr.layout, curr.plate){
@@ -151,7 +153,8 @@ readMultiPatient <- function(dir, results.dir, factor=1){
   findUniqueConc(all.conc) -> unique.conc
   
   # for each class, group responses
-  lapply(res, function(x) groupResponses(x, unique.conc)) -> all.resp
+  groupResponses(res, unique.conc, mode="perPatient") -> all.resp
+  return(all.resp)
 }
 
 readXML <- function(files, df1="", df2="", mode="combos", factor=1){
@@ -1243,52 +1246,74 @@ findUniqueConc <- function(all.conc){
   return(class.labels)
 }
 
-groupResponses <- function(all.resp, unique.conc){
+groupResponses <- function(all.resp, unique.conc, mode=""){
   # groups responses based on concentrations
   unique(unlist(unique.conc)) -> all.conc
   all.df <- list()
-  for (i in 1:length(all.conc)){
-    lapply(1:length(unique.conc), function(x){
-      which(unique.conc[[x]] %in% all.conc[i]) -> ind
-      return(ind)
-    }) -> m
-    
-    loc.df <- matrix(0, nrow=0, ncol=0)
-    for (j in 1:length(m)){
-      if (length(m[[j]]) > 0 & nrow(loc.df) == 0){
-        # first entry
-        as.data.frame(all.resp[[j]][m[[j]]]) -> loc.df
-      } else if (length(m[[j]]) > 0 & nrow(loc.df) > 0){
-        # append
-        cbind(loc.df, as.data.frame(all.resp[[j]][m[[j]]])) -> loc.df
+  if (mode == ""){
+    for (i in 1:length(all.conc)){
+      lapply(1:length(unique.conc), function(x){
+        which(unique.conc[[x]] %in% all.conc[i]) -> ind
+        return(ind)
+      }) -> m
+      
+      loc.df <- matrix(0, nrow=0, ncol=0)
+      for (j in 1:length(m)){
+        if (length(m[[j]]) > 0 & nrow(loc.df) == 0){
+          # first entry
+          as.data.frame(all.resp[[j]][m[[j]]]) -> loc.df
+        } else if (length(m[[j]]) > 0 & nrow(loc.df) > 0){
+          # append
+          cbind(loc.df, as.data.frame(all.resp[[j]][m[[j]]])) -> loc.df
+        }
       }
-    }
-  
-    # case of two drugs on different plates
-    if (length(which(duplicated(colnames(loc.df)[-grep("Concentrations", colnames(loc.df))]))) > 0){
-      colnames(loc.df)[which(duplicated(colnames(loc.df)))] -> cols
-      for (j in 1:length(cols)){
-        if (length(grep(cols[j], "Concentrations"))==0){
-          which(colnames(loc.df) %in% cols[j]) -> inds
-          colnames(loc.df)[inds] -> dups
-          for (k in 1:length(dups)){
-            colnames(loc.df)[inds[k]] <- paste(dups[k], k, sep="_")
+    
+      # case of two drugs on different plates
+      if (length(which(duplicated(colnames(loc.df)[-grep("Concentrations", colnames(loc.df))]))) > 0){
+        colnames(loc.df)[which(duplicated(colnames(loc.df)))] -> cols
+        for (j in 1:length(cols)){
+          if (length(grep(cols[j], "Concentrations"))==0){
+            which(colnames(loc.df) %in% cols[j]) -> inds
+            colnames(loc.df)[inds] -> dups
+            for (k in 1:length(dups)){
+              colnames(loc.df)[inds[k]] <- paste(dups[k], k, sep="_")
+            }
           }
         }
       }
-    }
-    
-    if (ncol(loc.df) > 0 && length(grep("Concentrations", colnames(loc.df), ignore.case=T))>1){
-      grep("Concentrations", colnames(loc.df), ignore.case=T)[2:length(grep("Concentrations", colnames(loc.df), ignore.case=T))] -> rm.ind
-      rm.ind[which(!is.na(rm.ind))] -> rm.ind
-      if (length(rm.ind) > 0){
-        loc.df[,-rm.ind] -> all.df[[i]]
+      
+      if (ncol(loc.df) > 0 && length(grep("Concentrations", colnames(loc.df), ignore.case=T))>1){
+        grep("Concentrations", colnames(loc.df), ignore.case=T)[2:length(grep("Concentrations", colnames(loc.df), ignore.case=T))] -> rm.ind
+        rm.ind[which(!is.na(rm.ind))] -> rm.ind
+        if (length(rm.ind) > 0){
+          loc.df[,-rm.ind] -> all.df[[i]]
+        }
+      } else if (ncol(loc.df) > 0 && length(grep("Concentrations", colnames(loc.df), ignore.case=T))==1){
+        loc.df -> all.df[[i]]
       }
-    } else if (ncol(loc.df) > 0 && length(grep("Concentrations", colnames(loc.df), ignore.case=T))==1){
-      loc.df -> all.df[[i]]
     }
+  } else if (mode == "perPatient"){
+    # case where grouping has to be performed per patient
+    all.df <- list()
+    for (i in 1:length(all.resp)){
+      unique.conc[[i]] -> groups
+      unique(groups) -> groups.u
+      res <- list()
+      for (j in 1:length(groups.u)){
+        all.resp[[i]][which(groups %in% groups.u[j])] -> sub
+        sub[[1]][,1] -> conc
+        df <- matrix(NA, nrow=length(conc), ncol=0)
+        cbind(df, conc) -> df
+        for (k in 1:length(sub)){
+          cbind(df, sub[[k]][,2:ncol(sub[[k]])]) -> df
+        }
+        colnames(df)[1] <- "Concentrations"
+        df -> res[[j]]
+      }
+      res -> all.df[[i]]
+    }
+    names(all.df) <- names(all.resp)
   }
-  
   return(all.df)
 }
 
