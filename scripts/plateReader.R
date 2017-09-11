@@ -133,13 +133,13 @@ readMultiPatient <- function(dir, results.dir, factor=1){
     all.dat[[i]] -> curr.plate
     .getContent(curr.layout, curr.plate) -> all.resp[[i]]
   }
-  
-  # then normalize based on DMSO per patient
+
   return(all.resp)
 }
 
 .getContent <- function(curr.layout, curr.plate){
   lapply(curr.layout, function(x){
+    x[which(names(x) %in% "DMSOcontrol")] -> dmso
     x[which(names(x) %ni% "DMSOcontrol")] -> x
     lapply(1:length(x), function(y){
       t <- cbind(x[[y]]$doses, sapply(1:length(x[[y]]$rows), function(z) 
@@ -147,6 +147,13 @@ readMultiPatient <- function(dir, results.dir, factor=1){
       colnames(t) <- c("Concentrations", paste(names(x)[y], 1:length(x[[y]]$rows), sep="_"))
       return(t)
     }) -> res
+    
+    # then normalize based on DMSO per patient
+    mean(curr.plate[dmso$DMSOcontrol$rows,dmso$DMSOcontrol$cols], na.rm=T) -> dmso.mean
+    for (i in 1:length(res)){
+      res[[i]][,2:ncol(res[[i]])]/dmso.mean -> res[[i]][,2:ncol(res[[i]])]
+    }
+    return(res)
   }) -> res
   names(res) <- names(curr.layout)
   
