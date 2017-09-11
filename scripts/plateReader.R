@@ -133,6 +133,8 @@ readMultiPatient <- function(dir, results.dir, factor=1){
     all.dat[[i]] -> curr.plate
     .getContent(curr.layout, curr.plate) -> all.resp[[i]]
   }
+  
+  # then normalize based on DMSO per patient
   return(all.resp)
 }
 
@@ -340,6 +342,12 @@ getCoords <- function(df, df1, df2, mode, factor){
   pat <- list(); fin.rows <- c()
   for (j in 1:length(unique(drow))){
     layout <- list()
+    
+    # add dmso
+    unique(drow)[j] -> dmso.row
+    dcol[which(drow %in% dmso.row)] -> dmso.col
+    list(c(NA), dmso.row, dmso.col) -> dmso.list
+    names(dmso.list) <- c("doses", "rows", "cols")
     if (mode %in% "up"){
       # ::: case where content is above the DMSO row
       all.rows[which(all.rows < unique(drow)[j])] -> rows.loc
@@ -373,6 +381,8 @@ getCoords <- function(df, df1, df2, mode, factor){
         c(fin.rows, rows.loc[i]) -> fin.rows
       }
       names(layout) <- nn
+      layout[[i+1]] <- dmso.list
+      names(layout)[length(layout)] <- "DMSOcontrol"
     }
     layout -> pat[[j]]
   }
