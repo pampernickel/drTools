@@ -105,9 +105,9 @@ readMultiPatient <- function(dir, results.dir, factor=1, annotFile=""){
     if (!is.loaded("XML")) require(XML)
     readXML(files=xml, mode="single_mp", factor) -> layout
     unlist(layout, recursive = F) -> layout
-  } else {
-    stop("Only one .xml file is expected per folder.")
-  }
+  }# else {
+  #  stop("Only one .xml file is expected per folder.")
+  #}
   
   getFiles(results.dir) -> files
   lapply(files, function(y){
