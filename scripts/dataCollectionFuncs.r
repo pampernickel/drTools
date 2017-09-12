@@ -11,12 +11,23 @@
 getNewestFile <- function(){
   list.files("./r.data.files", pattern=".rda", full.names=T) -> files
   if (length(files) == 1 && length(grep("heatmap", files)) == 1){
-    load(files[grep("heatmap", files)]) #assembled
+    load(files[grep("heatmap", files)], envir = parent.frame()) #assembled
   } else {
     # check if there are files that follow the format Day MM DD Time YY
     paths <- dir("./r.data.files", pattern=".rda", full.names=TRUE)
     paths[which(tail(file.info(paths)$ctime) %in% max(tail(file.info(paths)$ctime)))] -> f
-    load(f) # assembled
+    load(f, envir = parent.frame()) # assembled
+  }
+  
+  # do the same for the fit summary files
+  list.files("./r.data.files/rawFits", pattern=".rda", full.names=T) -> files
+  if (length(files) == 1){
+    load(files, envir = parent.frame()) #summary
+  } else {
+    # check if there are files that follow the format Day MM DD Time YY
+    paths <- dir("./r.data.files/rawFits", pattern=".rda", full.names=TRUE)
+    paths[which(tail(file.info(paths)$ctime) %in% max(tail(file.info(paths)$ctime)))] -> f
+    load(f, envir = parent.frame()) #summary
   }
 }
 
@@ -44,9 +55,16 @@ addNewDrugs <- function(res.df, assembled){
   # checkDrug(res$unmatched, ) -> 
 }
 
-collectFit <- function(res.df, drug.list.all, patient.name=""){
-  # automatically check the available files in the ./r.data.files subdirectory
+collectFit <- function(ares, drug.list.all, patient.name=""){
+  # automatically check the available files in the ./r.data.files subdirectory; change
+  # routine to create a subdirectory with derived, i.e. data frame files created using
+  # the condenseToDF() function and also save fit files (rawFits).
+  # This function takes the average of fits, and saves the whole ares file together
+  # with the summary files; also appends the newest fit to the heatmap file
+  # `assembled'
+  print("Getting newest fit files...")
   getNewestFile()
+  t(sapply(ares, function(x) x$logIC50)) -> res.df
   
   # explicitly add patient name and check if has the LK code
   if (length(grep("LK", patient.name, ignore.case = T)) == 0){
@@ -68,7 +86,14 @@ collectFit <- function(res.df, drug.list.all, patient.name=""){
     # then append any information from new drugs/unmatched drugs
     addNewDrugs(res.df, assembled) -> res.df
     save(assembled, file=paste("./r.data.files/", date(), ".rda", sep=""))
-  } else if (patient.name %ni% rownames(assembled)){
+    
+    # additionally, keep a copy of the fit in a summary file
+    # of the form summary$`PATIENT`$DRUG; ensure that drug names match
+    # the standard name when available
+    lapply(ares, function(x) 
+      lapply(x$max, function(y) extractMax(y))) -> pat.fits
+    #pat.fits$LK201798.Dexamethasone
+  } else if (patient.name %in% rownames(assembled)){
     warning("Patient record already exists in this file. No record added.")
   }
 }
