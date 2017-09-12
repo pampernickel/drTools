@@ -1180,7 +1180,7 @@ createHeatmap <- function(ic50, excl="", ref.heatmap=NA){
   }
   
   which(sapply(ic50, function(x) ifelse(length(which(is.na(x))) == length(x), T, F)) %in% T) -> ind
-  if (ind > 0){
+  if (length(ind) > 0){
     ic50[-ind,] -> ic50
   }
   
