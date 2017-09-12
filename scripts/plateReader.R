@@ -96,7 +96,7 @@ readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   return(meta1)
 }
 
-readMultiPatient <- function(dir, results.dir, factor=1){
+readMultiPatient <- function(dir, results.dir, factor=1, annotFile=""){
   # separate function for handling cases with multiple patients per plate
   # for single drug screening
   # prioritize TECAN .xml format files, when available
@@ -133,8 +133,36 @@ readMultiPatient <- function(dir, results.dir, factor=1){
     all.dat[[i]] -> curr.plate
     .getContent(curr.layout, curr.plate) -> all.resp[[i]]
   }
-
-  return(all.resp)
+  names(all.resp) <- names(layout)
+  
+  # name list, and flatten list at level of patients
+  if (annotFile != ""){
+    annot <- read.table(annotFile, header = FALSE, sep = "\t")
+    for (i in 1:nrow(annot)){
+      all.resp[[which(names(all.resp) %in% annot$V1[i])]] -> curr.plate
+      names(curr.plate)[which(names(curr.plate) %in% annot$V2[i])] <- annot$V3[i]
+      curr.plate -> all.resp[[which(names(all.resp) %in% annot$V1[i])]]
+    }
+  }
+  
+  all.resp.fin <- list()
+  nn <- c()
+  ctr <- 1
+  for (i in 1:length(all.resp)){
+    for (j in 1:length(all.resp[[i]])){
+      all.resp[[i]][[j]] -> all.resp.fin[[ctr]]
+      ctr <- ctr+1
+    }
+    c(nn, names(all.resp[[i]])) -> nn
+  }
+  names(all.resp.fin) <- nn
+  
+  for (i in 1:length(all.resp.fin)){
+    for (j in 1:length(all.resp.fin[[i]])){
+      as.data.frame(all.resp.fin[[i]][[j]]) -> all.resp.fin[[i]][[j]]
+    }
+  }
+  return(all.resp.fin)
 }
 
 .getContent <- function(curr.layout, curr.plate){
