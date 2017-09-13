@@ -80,12 +80,12 @@ findClosestMatch <- function(drug.name, drug.list.all){
   # as well as the drug.list flat file
   which(sapply(match, function(x) length(x)) == 0) -> no.match
   if (length(no.match) > 0){
-    names(no.match) -> no.match
+    names(no.match) -> no.match.fin
   }
   
   as.character(match) -> match
   match[no.match] <- drug.name[no.match]
-  res <- list(match, no.match)
+  res <- list(match, no.match.fin)
   names(res) <- c("match", "new.drug")
   return(res)
 }
