@@ -44,9 +44,11 @@ source_https('https://raw.githubusercontent.com/pampernickel/chemblr/pampernicke
     as.character(colnames(res.df)[which(colnames(res.df) %ni% common.drugs)]) -> unmatched
     findClosestMatch(unmatched, drug.list.all) -> corrected
     setdiff(corrected$match, corrected$new.drug) -> corrected.fin
-    if (length(which(corrected.fin %ni% NA)) > 0){
-      as.character(corrected.fin[which(corrected.fin %ni% NA)]) -> 
-        colnames(res.df)[which(colnames(res.df) %in% unmatched[which(corrected.fin %ni% NA)])]
+    unmatched[which(corrected$match %ni% corrected$new.drug)] -> corrected.drug
+    if (length(corrected.fin) > 0 && length(corrected.fin) == length(corrected.drug)){
+      for (i in 1:length(corrected.fin)){
+        as.character(corrected.fin[i]) -> colnames(res.df)[which(colnames(res.df) %in% corrected.drug[i])]
+      }
     }
     common.drugs <- c(common.drugs, corrected.fin[which(corrected.fin %ni% NA)])
     corrected$new.drug -> unmatched
