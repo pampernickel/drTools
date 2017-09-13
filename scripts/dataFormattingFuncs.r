@@ -1,37 +1,10 @@
 library(RCurl)
 source_https('https://raw.githubusercontent.com/pampernickel/chemblr/pampernickel-patch-1/package/R/query.R')
 
-.getNearestMatch <- function(nn, comparator){
-  # find closest matching name between a character list and a list of drugs;
-  # if the difference between two strings is less than a minimal distance and
-  # if the character difference is a non-alphanumeric character
-  #increase max distance for shorter nns
-  lapply(nn, function(x) 
-    comparator[which(agrepl(x, comparator, 
-                            max.distance = nchar(x)*.0005,
-                            ignore.case = T) %in% T)]) -> pos.match
-  names(pos.match) <- nn
-  
-  # get actual differences in terms nchars between the strings; maximum
-  # distance currently fixed at 1 (just allow for minimal typos)
-  matches <- rep(NA, length(nn))
-  for (i in 1:length(pos.match)){
-    if (length(pos.match[[i]]) > 0){
-      adist(c(names(pos.match)[i], pos.match[[i]])) -> dm
-      apply(dm, 1, function(x) 
-        length(which(x == 1))) -> test
-      if (length(which(test > 0)) > 0){
-        pos.match[[i]][setdiff(which(test > 0), 1)-1] -> matches[i]
-      }
-    }
-  }
-  
-  return(matches)
-}
-
-.matchDrugs <- function(res.df, assembled){
+.matchDrugs <- function(res.df, assembled, drug.list.all){
   # designed to match drugs created from a data frame generated with the drTools averageRes()
-  # call, can be expanded to deal with strings
+  # call, can be expanded to deal with strings; in new version, also requires
+  # drug.list.all to correct for drugs with a misspelled name
   res <- common.drugs <- unmatched.drugs <- NA
   if (is.matrix(res.df) || is.data.frame(res.df)){
     res.df[which(res.df >= 4.5)] <- 4.5
@@ -54,7 +27,7 @@ source_https('https://raw.githubusercontent.com/pampernickel/chemblr/pampernicke
         t(conv) -> res.df
       }
     }
-    
+    gsub("\\.", "-", colnames(res.df)) -> colnames(res.df)
     sapply(colnames(res.df), function(x) 
       ifelse(length(grep(x, drug.list.all$all.names))==1, 
              drug.list.all$final.name[grep(x, drug.list.all$all.names)],
@@ -68,9 +41,9 @@ source_https('https://raw.githubusercontent.com/pampernickel/chemblr/pampernicke
       intersect(colnames(res.df), colnames(assembled)) -> common.drugs
     }
     
-    colnames(res.df)[which(colnames(res.df) %ni% common.drugs)] -> unmatched
-    .getNearestMatch(unmatched, colnames(assembled)) -> corrected
-    names(corrected) <- names(unmatched)
+    as.character(colnames(res.df)[which(colnames(res.df) %ni% common.drugs)]) -> unmatched
+    findClosestMatch(unmatched, drug.list.all) -> corrected
+    #names(corrected) <- names(unmatched)
     if (length(which(corrected %ni% NA)) > 0){
       as.character(corrected[which(corrected %ni% NA)]) -> 
         colnames(res.df)[which(colnames(res.df) %in% unmatched[which(corrected %ni% NA)])]
