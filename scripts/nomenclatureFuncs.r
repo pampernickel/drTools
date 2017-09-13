@@ -54,19 +54,20 @@ findClosestMatch <- function(drug.name, drug.list.all){
         #str_match(string, pattern)
       }
     } else {
-      # get closest match, but give a warning that it's second guessing
+      # get closest match, with a minimum distance requirement; again for
+      # addressing typos
       sapply(drug.list.all$final.name, function(y) adist(y, x, counts=F)) -> d
-      sapply(all.names, function(y)
-        mean(sapply(y, function(z) adist(z, x, counts=T)))) -> d1
-        # check top candidates, based on minimum distance
-        drug.list.all$final.name[which(d %in% min(d))] -> pmatch
+      # check top candidates, based on minimum distance
+      drug.list.all$final.name[which(d %in% min(d))] -> pmatch
+      if (length(pmatch) > 0 && min(d) <= 2){
         unlist(strsplit(x, "")) -> all.char
         sapply(pmatch, function(z) 
-          which(length(which(all.char %in% unlist(strsplit(z, "")))) >= (length(all.char)-1))) -> check
+          which(length(which(all.char %in% unlist(strsplit(z, "")))) == length(all.char))) -> check
         unlist(check) -> check
         if (length(check) > 0){
           pmatch[which(check == 1)] -> match
         }
+      }
     }
   }) -> match
   
