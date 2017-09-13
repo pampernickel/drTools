@@ -89,9 +89,17 @@ collectFit <- function(ares, drug.list.all, patient.name=""){
     
     # additionally, keep a copy of the fit in a summary file
     # of the form summary$`PATIENT`$DRUG; ensure that drug names match
-    # the standard name when available
-    lapply(ares, function(x) 
-      lapply(x$max, function(y) extractMax(y))) -> pat.fits
+    # the standard name when available; deals with cases where only one patient is added
+    if (length(ares) > 1){
+      stop("Add patient fits one by one.")
+    } else {
+      lapply(ares, function(x) 
+        lapply(x$max, function(y) extractMax(y))) -> pat.fits
+      gsub("\\.", "-", toupper(names(pat.fits[[1]]))) -> names(pat.fits[[1]])
+      sapply(toupper(names(pat.fits[[1]])), function(x) 
+        findClosestMatch(x, drug.list.all))
+    }
+    
     #pat.fits$LK201798.Dexamethasone
   } else if (patient.name %in% rownames(assembled)){
     warning("Patient record already exists in this file. No record added.")
