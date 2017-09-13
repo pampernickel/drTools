@@ -75,5 +75,17 @@ findClosestMatch <- function(drug.name, drug.list.all){
       }
     }
   }) -> match
-  return(match)
+  
+  # then tag cases where the drug might be a new drug; these will be added as a new drug in the critical files
+  # as well as the drug.list flat file
+  which(sapply(match, function(x) length(x)) == 0) -> no.match
+  if (length(no.match) > 0){
+    names(no.match) -> no.match
+  }
+  
+  match[no.match] <- drug.name[no.match]
+  as.character(match) -> match
+  res <- list(match, no.match)
+  names(res) <- c("match", "new.drug")
+  return(res)
 }
