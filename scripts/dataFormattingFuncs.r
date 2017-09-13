@@ -43,13 +43,13 @@ source_https('https://raw.githubusercontent.com/pampernickel/chemblr/pampernicke
     
     as.character(colnames(res.df)[which(colnames(res.df) %ni% common.drugs)]) -> unmatched
     findClosestMatch(unmatched, drug.list.all) -> corrected
-    #names(corrected) <- names(unmatched)
-    if (length(which(corrected %ni% NA)) > 0){
-      as.character(corrected[which(corrected %ni% NA)]) -> 
-        colnames(res.df)[which(colnames(res.df) %in% unmatched[which(corrected %ni% NA)])]
+    setdiff(corrected$match, corrected$new.drug) -> corrected.fin
+    if (length(which(corrected.fin %ni% NA)) > 0){
+      as.character(corrected.fin[which(corrected.fin %ni% NA)]) -> 
+        colnames(res.df)[which(colnames(res.df) %in% unmatched[which(corrected.fin %ni% NA)])]
     }
-    common.drugs <- c(common.drugs, corrected[which(corrected %ni% NA)])
-    setdiff(unmatched, unmatched[which(corrected %ni% NA)]) -> unmatched
+    common.drugs <- c(common.drugs, corrected.fin[which(corrected.fin %ni% NA)])
+    corrected$new.drug -> unmatched
   }
   
   list(common.drugs, unmatched, res.df) -> res
@@ -57,7 +57,7 @@ source_https('https://raw.githubusercontent.com/pampernickel/chemblr/pampernicke
   return(res)
 }
 
-.mapResponse <- function(res.df, assembled, drug.list.all=NULL, pat.name=NULL){
+.mapResponse <- function(res.df, assembled, drug.list.all, pat.name=NULL){
   # conversion
   nrow(res.df) -> e
   as.matrix(res.df) -> conv
@@ -66,7 +66,7 @@ source_https('https://raw.githubusercontent.com/pampernickel/chemblr/pampernicke
     t(conv) -> res.df
   }
   
-  .matchDrugs(res.df, assembled) -> resm
+  .matchDrugs(res.df, assembled, drug.list.all) -> resm
   resm$common -> common.drugs
   resm$corrected -> res.df
   res.df[,which(colnames(res.df) %in% common.drugs)] -> res.df.sub
