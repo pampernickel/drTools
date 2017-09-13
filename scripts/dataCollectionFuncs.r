@@ -31,7 +31,7 @@ getNewestFile <- function(){
   }
 }
 
-addNewDrugs <- function(res.df, assembled){
+addNewDrugs <- function(res.df, assembled, drug.list.all, patient.name){
   # Need R interface to ChEMBL API; as this is a dev package, need to add
   # auto-install options for users. Currently, the ChEMBL API does not have
   # full functionality, so the solution is to linked to a local forked version
@@ -50,9 +50,15 @@ addNewDrugs <- function(res.df, assembled){
     }
   }
   
-  .matchDrugs(res.df, assembled) -> res
-  # check if the drug exists
-  # checkDrug(res$unmatched, ) -> 
+  .matchDrugs(res.df, assembled, drug.list.all) -> res
+  newDrugs <- matrix(NA, nrow=nrow(assembled), ncol=length(res$unmatched))
+  for (i in 1:length(res$unmatched)){
+    newDrugs[which(rownames(assembled) %in% patient.name),i] <- 
+      res$corrected[1,which(colnames(res$corrected) %in% res$unmatched[i])]
+  }
+  colnames(newDrugs) <- res$unmatched
+  cbind(assembled, newDrugs) -> assembledNew
+  return(assembledNew)
 }
 
 collectFit <- function(ares, drug.list.all, patient.name=""){
@@ -71,6 +77,7 @@ collectFit <- function(ares, drug.list.all, patient.name=""){
     stop("Only primary patient data can be added to the ALL record. 
          The name that you specified is inconsistent with patient information.")
   }
+  
   if (patient.name %ni% rownames(assembled)){
     .mapResponse(res.df, assembled, drug.list.all, patient.name) -> assembled.sub
     
@@ -84,7 +91,7 @@ collectFit <- function(ares, drug.list.all, patient.name=""){
     rownames(assembled)[nrow(assembled)] <- patient.name
     
     # then append any information from new drugs/unmatched drugs
-    addNewDrugs(res.df, assembled) -> res.df
+    addNewDrugs(res.df, assembled, drug.list.all, patient.name) -> assembled
     save(assembled, file=paste("./r.data.files/", date(), ".rda", sep=""))
     
     # additionally, keep a copy of the fit in a summary file
@@ -96,11 +103,14 @@ collectFit <- function(ares, drug.list.all, patient.name=""){
       lapply(ares, function(x) 
         lapply(x$max, function(y) extractMax(y))) -> pat.fits
       gsub("\\.", "-", toupper(names(pat.fits[[1]]))) -> names(pat.fits[[1]])
-      sapply(toupper(names(pat.fits[[1]])), function(x) 
-        findClosestMatch(x, drug.list.all))
+      findClosestMatch(toupper(names(pat.fits[[1]])), drug.list.all) -> drugMatches
+      drugMatches$match -> names(pat.fits[[1]])
+      
+      # add to summary
+      if (names(pat.fits) %ni% names(summary)){
+        c(summary, pat.fits) -> summary
+      }
     }
-    
-    #pat.fits$LK201798.Dexamethasone
   } else if (patient.name %in% rownames(assembled)){
     warning("Patient record already exists in this file. No record added.")
   }
