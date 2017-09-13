@@ -58,7 +58,8 @@ findClosestMatch <- function(drug.name, drug.list.all){
       sapply(drug.list.all$final.name, function(y) adist(y, x, counts=F)) -> d
       sapply(all.names, function(y)
         mean(sapply(y, function(z) adist(z, x, counts=T)))) -> d1
-      if (drug.list.all$final.name[which(d %in% min(d))] == 
+      if (length(drug.list.all$final.name[which(d %in% min(d))]) == 1 && 
+          drug.list.all$final.name[which(d %in% min(d))] == 
           drug.list.all$final.name[which(d1 %in% min(d1))]){
         drug.list.all$final.name[which(d %in% min(d))] -> match
       } else {
@@ -67,7 +68,10 @@ findClosestMatch <- function(drug.name, drug.list.all){
         unlist(strsplit(x, "")) -> all.char
         sapply(pmatch, function(z) 
           which(length(which(all.char %in% unlist(strsplit(z, "")))) >= (length(all.char)-1))) -> check
-        pmatch[which(check == 1)] -> match
+        unlist(check) -> check
+        if (length(check) > 0){
+          pmatch[which(check == 1)] -> match
+        }
       }
     }
   }) -> match
