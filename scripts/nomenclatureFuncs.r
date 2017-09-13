@@ -43,7 +43,7 @@ findClosestMatch <- function(drug.name, drug.list.all){
   sapply(drug.name, function(x){
     match <- NA
     toupper(x) -> x
-    if (x %in% drug.list.all$final.name){
+    if (toupper(x) %in% toupper(drug.list.all$final.name)){
       x -> match
     } else if (length(grep(x, drug.list.all$all.names, ignore.case=T)) > 0) {
       if (length(grep(x, drug.list.all$all.names, ignore.case=T)) == 1){
@@ -61,6 +61,13 @@ findClosestMatch <- function(drug.name, drug.list.all){
       if (drug.list.all$final.name[which(d %in% min(d))] == 
           drug.list.all$final.name[which(d1 %in% min(d1))]){
         drug.list.all$final.name[which(d %in% min(d))] -> match
+      } else {
+        # check top candidates, based on minimum distance
+        drug.list.all$final.name[which(d %in% min(d))] -> pmatch
+        unlist(strsplit(x, "")) -> all.char
+        sapply(pmatch, function(z) 
+          which(length(which(all.char %in% unlist(strsplit(z, "")))) >= (length(all.char)-1))) -> check
+        pmatch[which(check == 1)] -> match
       }
     }
   }) -> match
