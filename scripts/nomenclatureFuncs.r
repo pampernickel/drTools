@@ -41,7 +41,7 @@ findClosestMatch <- function(drug.name, drug.list.all){
   # output: standard name of the drug, as indicated in the "final.name" column of drug.list.all
   strsplit(drug.list.all$all.names, ";") -> all.names
   sapply(drug.name, function(x){
-    match <- NA
+    match <- no.match.fin <- NA
     toupper(x) -> x
     if (toupper(x) %in% toupper(drug.list.all$final.name)){
       x -> match
