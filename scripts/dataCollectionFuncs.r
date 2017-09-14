@@ -114,6 +114,7 @@ collectFit <- function(ares, drug.list.all, patient.name=""){
       # add to summary
       if (names(pat.fits) %ni% names(summary)){
         c(summary, pat.fits) -> summary
+        names(summary)[length(summary)] <- patient.name
         save(summary, file=paste("./r.data.files/rawFits/", dateStamp, ".rda", sep=""))
       }
     }
