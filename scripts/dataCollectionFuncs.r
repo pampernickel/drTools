@@ -92,7 +92,8 @@ collectFit <- function(ares, drug.list.all, patient.name=""){
     
     # then append any information from new drugs/unmatched drugs
     addNewDrugs(res.df, assembled, drug.list.all, patient.name) -> assembled
-    save(assembled, file=paste("./r.data.files/", date(), ".rda", sep=""))
+    date() -> dateStamp
+    save(assembled, file=paste("./r.data.files/", dateStamp, ".rda", sep=""))
     
     # additionally, keep a copy of the fit in a summary file
     # of the form summary$`PATIENT`$DRUG; ensure that drug names match
@@ -109,6 +110,7 @@ collectFit <- function(ares, drug.list.all, patient.name=""){
       # add to summary
       if (names(pat.fits) %ni% names(summary)){
         c(summary, pat.fits) -> summary
+        save(summary, file=paste("./r.data.files/rawFits/", dateStamp, ".rda", sep=""))
       }
     }
   } else if (patient.name %in% rownames(assembled)){
