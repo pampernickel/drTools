@@ -9,8 +9,10 @@ loadDrugList <- function(){
     files <- list.files("/Volumes/data/drTools/drugList", 
                         pattern=".xlsx", full.names = T)
     if (length(files) > 1){
-      stop("There is more than one excel file in the directory. 
-           Please remove whatever file has no business here.")
+      # get largest file
+      files[which(file.size(files) %in% max(file.size(files)))] -> files
+      warning("There is more than one excel file in the directory. 
+           The largest file in the directory was loaded into the workspace.")
     }
     read.xlsx(files, sheetIndex = 1, header=T, stringsAsFactors = F) -> drug.list.all
   } else {
