@@ -51,13 +51,17 @@ addNewDrugs <- function(res.df, assembled, drug.list.all, patient.name){
   }
   
   .matchDrugs(res.df, assembled, drug.list.all) -> res
-  newDrugs <- matrix(NA, nrow=nrow(assembled), ncol=length(res$unmatched))
-  for (i in 1:length(res$unmatched)){
-    newDrugs[which(rownames(assembled) %in% patient.name),i] <- 
-      res$corrected[1,which(colnames(res$corrected) %in% res$unmatched[i])]
+  if (length(which(is.na(res$unmatched)) > length(res$unmatched))){
+    newDrugs <- matrix(NA, nrow=nrow(assembled), ncol=length(res$unmatched))
+    for (i in 1:length(res$unmatched)){
+      newDrugs[which(rownames(assembled) %in% patient.name),i] <- 
+        res$corrected[1,which(colnames(res$corrected) %in% res$unmatched[i])]
+    }
+    colnames(newDrugs) <- res$unmatched
+    cbind(assembled, newDrugs) -> assembledNew
+  } else {
+    assembled -> assembledNew # no changes
   }
-  colnames(newDrugs) <- res$unmatched
-  cbind(assembled, newDrugs) -> assembledNew
   return(assembledNew)
 }
 
