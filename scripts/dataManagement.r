@@ -30,7 +30,7 @@ getNewestFile <- function(){
   } else {
     # check if there are files that follow the format Day MM DD Time YY
     paths <- dir("./r.data.files", pattern=".rda", full.names=TRUE)
-    paths[which(tail(file.info(paths)$ctime) %in% max(tail(file.info(paths)$ctime)))] -> f
+    paths[which(file.info(paths)$ctime %in% max(tail(file.info(paths)$ctime)))] -> f
     load(f, envir = parent.frame()) # assembled
   }
   
