@@ -8,28 +8,6 @@
 # matrix, which contains the response data of the blood paper cohort
 #@...
 
-getNewestFile <- function(){
-  list.files("./r.data.files", pattern=".rda", full.names=T) -> files
-  if (length(files) == 1 && length(grep("heatmap", files)) == 1){
-    load(files[grep("heatmap", files)], envir = parent.frame()) #assembled
-  } else {
-    # check if there are files that follow the format Day MM DD Time YY
-    paths <- dir("./r.data.files", pattern=".rda", full.names=TRUE)
-    paths[which(tail(file.info(paths)$ctime) %in% max(tail(file.info(paths)$ctime)))] -> f
-    load(f, envir = parent.frame()) # assembled
-  }
-  
-  # do the same for the fit summary files
-  list.files("./r.data.files/rawFits", pattern=".rda", full.names=T) -> files
-  if (length(files) == 1){
-    load(files, envir = parent.frame()) #summary
-  } else {
-    # check if there are files that follow the format Day MM DD Time YY
-    paths <- dir("./r.data.files/rawFits", pattern=".rda", full.names=TRUE)
-    paths[which(tail(file.info(paths)$ctime) %in% max(tail(file.info(paths)$ctime)))] -> f
-    load(f, envir = parent.frame()) #summary
-  }
-}
 
 addNewDrugs <- function(res.df, assembled, drug.list.all, patient.name){
   # Need R interface to ChEMBL API; as this is a dev package, need to add
