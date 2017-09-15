@@ -31,10 +31,10 @@ getNewestFile <- function(){
     # check if there are files that follow the format Day MM DD Time YY
     # modify to extract most recent based on file creation timestamp
     paths <- dir("./r.data.files", pattern=".rda", full.names=TRUE)
-    paths[which(file.info(paths)$mtime %in% max(tail(file.info(paths)$mtime)))] -> f
+    paths[which(file.info(paths)$mtime %in% max(file.info(paths)$mtime))] -> f
     load(f, envir = parent.frame()) # assembled
   }
-  
+
   # do the same for the fit summary files
   list.files("./r.data.files/rawFits", pattern=".rda", full.names=T) -> files
   if (length(files) == 1){
@@ -42,7 +42,7 @@ getNewestFile <- function(){
   } else {
     # check if there are files that follow the format Day MM DD Time YY
     paths <- dir("./r.data.files/rawFits", pattern=".rda", full.names=TRUE)
-    paths[which(file.info(paths)$mtime %in% max(tail(file.info(paths)$mtime)))] -> f
+    paths[which(file.info(paths)$mtime %in% max(file.info(paths)$mtime))] -> f
     load(f, envir = parent.frame()) #summary
   }
 }
