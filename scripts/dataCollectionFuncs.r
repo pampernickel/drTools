@@ -29,7 +29,9 @@ addNewDrugs <- function(res.df, assembled, drug.list.all, patient.name){
   }
   
   .matchDrugs(res.df, assembled, drug.list.all) -> res
-  if (length(which(is.na(res$unmatched))) > length(res$unmatched)){
+  if (length(which(is.na(res$unmatched))) > length(res$unmatched) ||
+      (length(which(is.na(res$unmatched))) == 0 &&
+       length(which(res$unmatched %ni% NA)) > 0)){
     newDrugs <- matrix(NA, nrow=nrow(assembled), ncol=length(res$unmatched))
     for (i in 1:length(res$unmatched)){
       newDrugs[which(rownames(assembled) %in% patient.name),i] <- 
