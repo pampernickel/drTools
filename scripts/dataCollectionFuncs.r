@@ -43,7 +43,7 @@ addNewDrugs <- function(res.df, assembled, drug.list.all, patient.name){
   return(assembledNew)
 }
 
-collectFit <- function(ares, drug.list.all, patient.name=""){
+collectFit <- function(ares, drug.list.all, assembled, patient.name=""){
   # automatically check the available files in the ./r.data.files subdirectory; change
   # routine to create a subdirectory with derived, i.e. data frame files created using
   # the condenseToDF() function and also save fit files (rawFits).
