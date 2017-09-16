@@ -83,12 +83,12 @@ source_https('https://raw.githubusercontent.com/pampernickel/chemblr/pampernicke
   assembled[,which(colnames(assembled) %in% common.drugs)] -> assembled.sub
   
   c.ind <- NA
-  if (is.matrix(res.df.sub)){
+  if (is.matrix(res.df.sub) || is.data.frame(res.df.sub)){
     sapply(colnames(assembled.sub), function(x) 
       which(toupper(colnames(res.df.sub)) %in% x)) -> c.ind
   } else {
     sapply(colnames(assembled.sub), function(x) 
-      which(toupper(names(res.df.sub)) %in% x)) -> c.ind
+      which(toupper(names(res.df.sub)) %in% x)[1]) -> c.ind
   }
   
   if (is.matrix(res.df.sub)){
