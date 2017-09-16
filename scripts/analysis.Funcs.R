@@ -14,7 +14,7 @@ extractMax <- function(t){
   return(fit.res)
 }
 
-rankResponses <- function(ares, assembled, topK=10, drug.list.all=NULL, poi=NULL){
+rankResponses <- function(ares, assembled, topK=10, drug.list.all=NULL, poi=NULL, pos.only=F){
   # given a fit result (ares, which includes the full fit from which all other params)
   # may be derived, compare it with responses of other patients and 
   # rank it accordingly
@@ -71,7 +71,9 @@ rankResponses <- function(ares, assembled, topK=10, drug.list.all=NULL, poi=NULL
     }) -> res
   }
   
-  res[which(as.numeric(as.character(res$`Difference from median IC50`)) > 0),] -> res
+  if (pos.only == T){
+    res[which(as.numeric(as.character(res$`Difference from median IC50`)) > 0),] -> res
+  }
   rownames(res) <- c(1:nrow(res))
   return(res)
 }
