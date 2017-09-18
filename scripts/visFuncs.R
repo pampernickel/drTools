@@ -506,6 +506,7 @@ mapResponse <- function(res.df, assembled, drug.list.all, poi=NULL, order="none"
     assembled[-which(rownames(assembled) %in% pat.name),] -> assembled
     .mapResponse(res.df, assembled, drug.list.all, pat.name) -> assembled.sub
   }
+  
   melt(assembled.sub, id.vars="id") -> assembled.l
   c("", rownames(assembled.sub)[which(rownames(assembled.sub) %ni% rownames(assembled))]) -> etc
   class <- rep("OTHER", nrow(assembled.l))
@@ -526,18 +527,18 @@ mapResponse <- function(res.df, assembled, drug.list.all, poi=NULL, order="none"
     rbind(df.i, df.p) -> df.i
   }
   
-  # order by drug class
-  sapply(df.o$variable, function(x) 
-    drug.list.all$classification[which(drug.list.all$final.name %in% x)]) -> dc
-  sapply(df.o$variable, function(x) 
-    drug.list.all$subclass[which(drug.list.all$final.name %in% x)]) -> dc2
-  cbind(df.o, dc, dc2) -> df.o
-    
-  sapply(df.i$variable, function(x) 
-    drug.list.all$classification[which(drug.list.all$final.name %in% x)]) -> dc
-  sapply(df.i$variable, function(x) 
-    drug.list.all$subclass[which(drug.list.all$final.name %in% x)]) -> dc2
-  cbind(df.i, dc, dc2) -> df.i
+  # # order by drug class
+  # sapply(df.o$variable, function(x) 
+  #   drug.list.all$classification[which(drug.list.all$final.name %in% x)]) -> dc
+  # sapply(df.o$variable, function(x) 
+  #   drug.list.all$subclass[which(drug.list.all$final.name %in% x)]) -> dc2
+  # cbind(df.o, dc, dc2) -> df.o
+  #   
+  # sapply(df.i$variable, function(x) 
+  #   drug.list.all$classification[which(drug.list.all$final.name %in% x)]) -> dc
+  # sapply(df.i$variable, function(x) 
+  #   drug.list.all$subclass[which(drug.list.all$final.name %in% x)]) -> dc2
+  # cbind(df.i, dc, dc2) -> df.i
     
   length(unique(df.i$id)) -> no.samples
     
