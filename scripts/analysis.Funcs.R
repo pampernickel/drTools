@@ -75,6 +75,7 @@ rankResponses <- function(ares, assembled, drug.list.all, topK=10, poi=NULL, pos
     res[which(as.numeric(as.character(res$`Difference from median IC50`)) > 0),] -> res
   }
   
+  res$Emax[which(as.numeric(as.character(res$Emax)) < 0)] <- 0
   rownames(res) <- c(1:nrow(res))
   return(res)
 }
