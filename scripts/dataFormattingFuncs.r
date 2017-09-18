@@ -66,6 +66,7 @@ source_https('https://raw.githubusercontent.com/pampernickel/chemblr/pampernicke
 }
 
 .mapResponse <- function(res.df, assembled, drug.list.all, pat.name=NULL){
+  # function under dataFormattingFuncs.r
   # Function that maps patient data onto currently available population data
   # This function is NOT meant to add new drug data, which will be performed
   # in the collectFit() function (under dataCollectionsFuncs.r)
