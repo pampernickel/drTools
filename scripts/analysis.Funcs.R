@@ -14,7 +14,7 @@ extractMax <- function(t){
   return(fit.res)
 }
 
-rankResponses <- function(ares, assembled, topK=10, drug.list.all=NULL, poi=NULL, pos.only=F){
+rankResponses <- function(ares, assembled, drug.list.all, topK=10, poi=NULL, pos.only=F){
   # given a fit result (ares, which includes the full fit from which all other params)
   # may be derived, compare it with responses of other patients and 
   # rank it accordingly
@@ -32,7 +32,9 @@ rankResponses <- function(ares, assembled, topK=10, drug.list.all=NULL, poi=NULL
   
   # get drug mapping -- for Emax, this is more to map the drug names
   .mapResponse(res.df, assembled, drug.list.all) -> assembled.sub
+  print("p1")
   .mapResponse(emax, assembled, drug.list.all) -> assembled.sub.max
+  print("p2")
   grep("POI", assembled.sub$id) -> ind
   
   # scale and center assembled sub
@@ -74,6 +76,7 @@ rankResponses <- function(ares, assembled, topK=10, drug.list.all=NULL, poi=NULL
   if (pos.only == T){
     res[which(as.numeric(as.character(res$`Difference from median IC50`)) > 0),] -> res
   }
+  
   rownames(res) <- c(1:nrow(res))
   return(res)
 }
