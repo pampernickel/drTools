@@ -499,7 +499,13 @@ mapResponse <- function(res.df, assembled, drug.list.all, poi=NULL, order="none"
   # default: create dotplot of res.df results against assembled
   # poi: patient in assembled that the user wants to highlight
   # first, cap values, then convert into a matrix for uniform handling
-  .mapResponse(res.df, assembled, drug.list.all, pat.name) -> assembled.sub
+  if (pat.name %ni% rownames(assembled)){
+     .mapResponse(res.df, assembled, drug.list.all, pat.name) -> assembled.sub
+  } else {
+    # remove, then put back as a stop gap
+    assembled[-which(rownames(assembled) %in% pat.name),] -> assembled
+    .mapResponse(res.df, assembled, drug.list.all, pat.name) -> assembled.sub
+  }
   melt(assembled.sub, id.vars="id") -> assembled.l
   c("", rownames(assembled.sub)[which(rownames(assembled.sub) %ni% rownames(assembled))]) -> etc
   class <- rep("OTHER", nrow(assembled.l))
