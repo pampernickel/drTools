@@ -32,9 +32,7 @@ rankResponses <- function(ares, assembled, drug.list.all, topK=10, poi=NULL, pos
   
   # get drug mapping -- for Emax, this is more to map the drug names
   .mapResponse(res.df, assembled, drug.list.all) -> assembled.sub
-  print("p1")
   .mapResponse(emax, assembled, drug.list.all) -> assembled.sub.max
-  print("p2")
   grep("POI", assembled.sub$id) -> ind
   
   # scale and center assembled sub
