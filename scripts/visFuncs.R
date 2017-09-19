@@ -250,7 +250,7 @@ plotPerDrug <- function(drug.name, experiment, type=c("raw", "normalized")){
     cbind(fin.data, translocation.type) -> fin.data
     as.data.frame(fin.data) -> fin.data
     p <- ggplot(data = fin.data, aes(x = dose, y = as.numeric(as.character(resp)), group=patient, color=translocation.type))
-    p.1 <- p+geom_point()+geom_line()+ggtitle(drug.name)+xlab("Log Dose (nm)")+ylab("Live cells")
+    p.1 <- p+geom_point()+geom_line()+ggtitle(drug.name)+xlab("Log Dose (nM)")+ylab("Live cells")
     if (type=="raw"){
       ggsave(filename=paste(drug.name, "response.summary.raw.png", sep="."), plot=p.1)
     } else if (type=="normalized"){
@@ -1348,6 +1348,6 @@ visFit <- function(summary, query, ares, drug.list, patient.name="",
           panel.grid.minor=element_blank(),
           plot.background=element_blank(),
           panel.spacing = unit(0.0, "lines"))+
-    ylab("% Viability")+xlab("Dose (nm, log10)")+
+    ylab("% Viability")+xlab("Dose (nM, log10)")+
     man.col+ylim(0,1.25)
 }
