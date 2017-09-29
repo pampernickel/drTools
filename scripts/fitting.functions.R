@@ -147,6 +147,38 @@ getResponseClass <- function(y.dat, x.dat, curr.exp=NA){
   return(fit.class)
 }
 
+refitData <- function(exp.res, refit){
+  # Force data refit in cases where data can clearly be fitted better;
+  # these would be cases where the linear fit indicated that the
+  # curve is not fittable, but a visual inspection of the fits indicate
+  # otherwise; input parameters would be exp.res from fitData() and
+  # a file which contains the names of patients to be refitted
+  # and the drug(s) that need to be refitted
+  for (i in 1:nrow(refit)){
+    which(names(exp.res$experiments) %in% refit$patient[i]) -> ind
+    which(sapply(exp.res$experiments[[ind]], function(x)
+      length(grep(refit$drug[i], colnames(x)))) > 0) -> ind1
+    exp.res$experiments[[ind]][[ind1]] -> df
+    df[,c(1, grep(refit$drug[i], colnames(df)))] -> dfs
+    apply(dfs[,2:ncol(dfs)], 2, function(y){
+      addFit(dfs[,1], y, max(dfs[,1], na.rm=T)) -> fit
+    }) -> newFits
+    
+    
+    for (k in 1:length(newFits)){
+      for (j in 1:length(exp.res$res[[ind]])){
+        exp.res$res[[ind]][[j]] -> var
+        if (!is.na(newFits[[k]][[j]])){
+          var[which(names(var) %in% 
+                      names(newFits)[k])] <- newFits[[k]][[j]]
+        }
+        var -> exp.res$res[[ind]][[j]]
+      }
+    }
+  }
+  return(exp.res)
+}
+
 getMatchIndex <- function(result.name, all.names){
   which(all.names %in% result.name) -> ind
   return(ind)
@@ -314,7 +346,7 @@ addFit <- function(x.dat, y.dat, max.x){
   # --- if max(x.dat) < max.x, estimate y.dat at max.x
   # --- with a linear fit
   exp.model <- NA
-  if (max(x.dat) < max.x){
+  if (max(x.dat, na.rm=T) < max.x){
     # get linear fits of last three points
     getSlope(length(y.dat)-1, y.dat, x.dat) -> slope
     if (slope >= -0.1){
@@ -391,7 +423,7 @@ addFit <- function(x.dat, y.dat, max.x){
     dataList <- exp.model[["dataList"]]
     dose <- dataList[["dose"]]
     #xLimits <- c(min(dose), max(dose)) # use full range of 5/8 pt data for fit approx
-    x.fit <- exp(seq(log(min(x.dat)), log(max.x), length = 100))
+    x.fit <- exp(seq(log(min(x.dat, na.rm = T)), log(max.x), length = 100))
     y.fit <- (exp.model$"curve")[[1]](x.fit)
     
     # --- get max from y.fit at x.fit = x
