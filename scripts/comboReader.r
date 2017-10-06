@@ -305,6 +305,15 @@ readFileXML <- function(coords, files, res.files, singleLayout){
         
         as.numeric(unlist(sapply(pattern, function(y) 
           grep(y, pattern2, ignore.case=T)))) -> ind.match
+        
+        if (length(ind.match) == 0){
+          # case where it's the other way around, i.e. pattern2 has potentially shorter patterns
+          # than plate1
+          # do another split on pattern, grab part of string with the word "plate"
+          sapply(strsplit(pattern, "_"), function(x) x[grep("plate", x, ignore.case=T)]) -> pattern
+          as.numeric(unlist(sapply(pattern, function(y) 
+            grep(y, pattern2, ignore.case=T)))) -> ind.match
+        }
       }
       
       if (length(unique(ind.match)) != length(res.files)){
