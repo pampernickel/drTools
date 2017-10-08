@@ -274,7 +274,6 @@ getCoords <- function(df, df1, df2, mode, factor){
   # in the case of the single drug (non-combo) setup when the
   # eppendorf machine is also used
   lapply(unique(df$Plate), function(x){
-    #print(x)
     df[which(df$Plate %in% x),] -> sub
     
     # identify drugs
@@ -322,6 +321,15 @@ getCoords <- function(df, df1, df2, mode, factor){
         # get single drug coords and borders between multiple combos on a single plate
         apply(combos, 1, function(y){
           .getCoords(sub, y, conts, drow, dcol, (length(all.drugs) %% 2), df1, df2) -> res
+          
+          # split dmsos in the case where there is no space between patient combos
+          # check if the lengths of the dmso_coords are longer than for either combo
+          rbind(sapply(res, function(y) length(y$dmso_coords$r)),
+                sapply(res, function(y) length(y$d1c$r))) -> fin.check
+          if (length(which(apply(fin.check, 2, function(y) y[1] >= y[2]*2) %in% T)) > 0){
+            # need to split dmso coords
+            
+          }
         }) -> res
         names(res) <- apply(combos, 1, function(y) paste(y, collapse="_"))
       } else if (length(all.drugs) %% 2 == 0) {
