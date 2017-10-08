@@ -328,7 +328,21 @@ getCoords <- function(df, df1, df2, mode, factor){
                 sapply(res, function(y) length(y$d1c$r))) -> fin.check
           if (length(which(apply(fin.check, 2, function(y) y[1] >= y[2]*2) %in% T)) > 0){
             # need to split dmso coords
-            
+            for (i in 1:length(res)){
+              res[[i]]$dmso_coords$r -> dmso.r
+              res[[i]]$dmso_coords$c -> dmso.c
+              if (length(unique(dmso.r)) == 1 && length(which(diff(dmso.c) > 1)) > 0){
+                # split dmso on row
+                which(diff(dmso.c) > 1) -> sp
+                if (i == 1){
+                  dmso.c[1:sp] -> res[[i]]$dmso_coords$c
+                  dmso.r[1:sp] -> res[[i]]$dmso_coords$r
+                } else {
+                  dmso.c[(sp+1):length(dmso.c)] -> res[[i]]$dmso_coords$c
+                  dmso.r[(sp+1):length(dmso.c)] -> res[[i]]$dmso_coords$r
+                }
+              }
+            }
           }
         }) -> res
         names(res) <- apply(combos, 1, function(y) paste(y, collapse="_"))
