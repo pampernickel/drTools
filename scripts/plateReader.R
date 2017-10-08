@@ -324,28 +324,29 @@ getCoords <- function(df, df1, df2, mode, factor){
           
           # split dmsos in the case where there is no space between patient combos
           # check if the lengths of the dmso_coords are longer than for either combo
-          rbind(sapply(res, function(y) length(y$dmso_coords$r)),
-                sapply(res, function(y) length(y$d1c$r))) -> fin.check
-          if (length(which(apply(fin.check, 2, function(y) y[1] >= y[2]*2) %in% T)) > 0){
-            # need to split dmso coords
-            for (i in 1:length(res)){
-              res[[i]]$dmso_coords$r -> dmso.r
-              res[[i]]$dmso_coords$c -> dmso.c
-              if (length(unique(dmso.r)) == 1 && length(which(diff(dmso.c) > 1)) > 0){
-                # split dmso on row
-                which(diff(dmso.c) > 1) -> sp
-                if (i == 1){
-                  dmso.c[1:sp] -> res[[i]]$dmso_coords$c
-                  dmso.r[1:sp] -> res[[i]]$dmso_coords$r
-                } else {
-                  dmso.c[(sp+1):length(dmso.c)] -> res[[i]]$dmso_coords$c
-                  dmso.r[(sp+1):length(dmso.c)] -> res[[i]]$dmso_coords$r
-                }
+        }) -> res
+        names(res) <- apply(combos, 1, function(y) paste(y, collapse="_"))
+        
+        rbind(sapply(res, function(z) length(z$dmso_coords$r)),
+              sapply(res, function(z) length(z$d1c$r))) -> fin.check
+        if (length(which(apply(fin.check, 2, function(z) z[1] >= z[2]*2) %in% T)) > 0){
+          # need to split dmso coords
+          for (i in 1:length(res)){
+            res[[i]]$dmso_coords$r -> dmso.r
+            res[[i]]$dmso_coords$c -> dmso.c
+            if (length(unique(dmso.r)) == 1 && length(which(diff(dmso.c) > 1)) > 0){
+              # split dmso on row
+              which(diff(dmso.c) > 1) -> sp
+              if (i == 1){
+                dmso.c[1:sp] -> res[[i]]$dmso_coords$c
+                dmso.r[1:sp] -> res[[i]]$dmso_coords$r
+              } else {
+                dmso.c[(sp+1):length(dmso.c)] -> res[[i]]$dmso_coords$c
+                dmso.r[(sp+1):length(dmso.c)] -> res[[i]]$dmso_coords$r
               }
             }
           }
-        }) -> res
-        names(res) <- apply(combos, 1, function(y) paste(y, collapse="_"))
+        }
       } else if (length(all.drugs) %% 2 == 0) {
         # even combo, case where each plate half has either the same combo (d1,d2 x2) or
         # combos where none of the drugs are in common (d1,d2; d3,d4); use conts
