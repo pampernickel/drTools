@@ -297,7 +297,13 @@ readFileXML <- function(coords, files, res.files, singleLayout){
           gsub(".csv", "", sapply(strsplit(pattern, "plate"), 
                                   function(x) paste("plate", x[2], sep=""))) -> pattern
           unlist(coords, recursive = F) -> coords
-          sapply(names(coords), function(x) nchar(x)) -> check
+          check <- NA
+          if (length(grep("plate", names(coords))) > 0){
+            gsub("plate", "", names(coords)) -> names(coords)
+            sapply(names(coords), function(x) nchar(x)) -> check
+          } else {
+            sapply(names(coords), function(x) nchar(x)) -> check
+          }
           paste("plate00",names(coords)[which(check == 1)], sep="") -> names(coords)[which(check == 1)]
           paste("plate0",names(coords)[which(check == 2)], sep="") -> names(coords)[which(check == 2)]
         }
