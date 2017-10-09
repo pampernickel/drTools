@@ -210,6 +210,10 @@ readCombos <- function(dir, res.dir, mode=c("", "normalized"), df1=1, df2=1,
 
 parseContent <- function(curr.plate, curr.layout, combos, i){
   # general-purpose content parsing function for combination experiments
+  if (length(curr.layout$combo_coords$r) != length(curr.layout$combo_coords$c)){
+    warning("Issues with combo_coords matrix detected.")
+  }
+  
   curr.plate[curr.layout$combo_coords$r,curr.layout$combo_coords$c] -> p
   # check if the plate is not a blank
   if (length(unique(as.vector(p))) > 1){
