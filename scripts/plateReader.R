@@ -366,7 +366,6 @@ getCoords <- function(df, df1, df2, mode, factor){
             # special case where the same combination is used on some plate x
             # but for other plates != x, different combinations are used
             unlist(unlist(res, recursive=F), recursive=F) -> res
-            names(res) <- sapply(all.c, function(y) paste(y, collapse="_"))
           } else {
             names(res) <- sapply(all.c, function(y) paste(y, collapse="_"))
           }
