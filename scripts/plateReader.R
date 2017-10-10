@@ -359,7 +359,16 @@ getCoords <- function(df, df1, df2, mode, factor){
         if (is.data.frame(all.c)){
           names(res) <- apply(all.c, 1, function(y) paste(y, collapse="_"))
         } else if (is.list(all.c)){
-          names(res) <- sapply(all.c, function(y) paste(y, collapse="_"))
+          if (length(unlist(unlist(res, recursive=F), recursive = F)) == 2 &&
+              length(all.c) == 1 &&
+              names(unlist(unlist(res, recursive=F), recursive = F)) == 
+              paste(all.c[[1]], collapse="_")){
+            # special case where the same combination is used on some plate x
+            # but for other plates != x, different combinations are used
+            unlist(res, recursive=F) -> res
+          } else {
+            names(res) <- sapply(all.c, function(y) paste(y, collapse="_"))
+          }
         }
       }
     } else {
