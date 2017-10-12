@@ -214,6 +214,17 @@ parseContent <- function(curr.plate, curr.layout, combos, i){
     warning("Issues with combo_coords matrix detected.")
   }
   
+  if (is.null(names(curr.layout)) && length(curr.layout) == 1 && is.list(curr.layout)){
+    # case where curr.layout has to be unlisted
+    while (length(grep("coords", names(curr.layout), ignore.case=T)) == 0){
+      unlist(curr.layout, recursive = F) -> curr.layout
+    }
+    
+    if ("combo_coords" %ni% names(curr.layout) && length(grep("combo_coords", names(curr.layout))) == 1){
+      sapply(strsplit(names(curr.layout), "\\."), function(x) x[2]) -> names(curr.layout)
+    }
+  }
+  
   curr.plate[curr.layout$combo_coords$r,curr.layout$combo_coords$c] -> p
   # check if the plate is not a blank
   if (length(unique(as.vector(p))) > 1){
@@ -301,18 +312,18 @@ readFileXML <- function(coords, files, res.files, singleLayout){
           gsub(".csv", "", sapply(strsplit(pattern, "plate"), 
                                   function(x) paste("plate", x[2], sep=""))) -> pattern
           unlist(coords, recursive = F) -> coords
-          check <- NA
           if (length(grep("plate", names(coords))) > 0){
             gsub("plate", "", names(coords)) -> names(coords)
             sapply(names(coords), function(x) nchar(x)) -> check
           } else {
             sapply(names(coords), function(x) nchar(x)) -> check
           }
+
           paste("plate00",names(coords)[which(check == 1)], sep="") -> names(coords)[which(check == 1)]
           paste("plate0",names(coords)[which(check == 2)], sep="") -> names(coords)[which(check == 2)]
         }
-        names(coords) -> pattern2
         
+        names(coords) -> pattern2
         as.numeric(unlist(sapply(pattern, function(y) 
           grep(y, pattern2, ignore.case=T)))) -> ind.match
         
