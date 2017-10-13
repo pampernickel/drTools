@@ -23,7 +23,7 @@ readFormat <- function(dir, replicates=2, dups, dup.mode, dilution=12.5){
   # prioritize TECAN .xml format files, when available
   list.files(dir, pattern=".xml", full.names = T) -> xml
   if (length(xml) == 1){
-    if (!is.loaded("XML")) require(XML)
+    readXML(files, 1, 1, mode="single_sp", factor = 1) -> meta1
   } else {
     c(list.files(path = dir, pattern = ".txt", recursive=TRUE, full.names = TRUE), 
     list.files(path = dir, pattern = ".csv", recursive=TRUE, full.names = TRUE)) -> files  
@@ -352,6 +352,7 @@ getCoords <- function(df, df1, df2, mode, factor){
         # combos where none of the drugs are in common (d1,d2; d3,d4); use conts
         # to figure out all combos
         strsplit(unique(conts[grep("_", conts)]), "_") -> all.c
+        print(length(all.c))
         lapply(all.c, function(y){
           .getCoords(sub, y, conts, drow, dcol, (length(all.drugs) %% 2), df1, df2) -> res
         }) -> res
@@ -378,7 +379,60 @@ getCoords <- function(df, df1, df2, mode, factor){
     } else {
       # single drug; two cases: multiple patients/plate (mp) or single patient/plate (sp)
       if (mode == "single_sp"){
+        # check location of each fluid and infer its doses and replicate distribution
+        # final structure
+        # drugs: $drug$doses, $drug$coords$rows, $drug$coords$cols OR $drug$rows $drug$cols,
+        # where length(rows) == length(cols)
+        # or a matrix/data.frame
+        unique(sub$`Fluid name`) -> all.fluids
+        setdiff(all.fluids, "DMSO") -> all.fluids
+        lapply(all.fluids, function(z){
+          sub[which(sub$`Fluid name` %in% z),] -> sub1
+          unique(sub1$`Dispensed conc.`) -> doses
+          
+          # check replicates
+          length(which(sub1$`Dispensed conc.` %in% doses[1])) -> reps
+          if (reps == 1){
+            # handle later
+          } else {
+            tempr <- tempc <- matrix(NA, nrow=length(doses), ncol=reps)
+            for (i in 1:length(doses)){
+              sub1$`Dispensed\nrow`[which(sub1$`Dispensed conc.` %in% doses[i])] -> tempr[i,]
+              sub1$`Dispensed\ncol`[which(sub1$`Dispensed conc.` %in% doses[i])] -> tempc[i,]
+            }
+            
+            unique(apply(tempr, 2, function(z) length(unique(z)))) -> valsr
+            unique(apply(tempc, 2, function(z) length(unique(z)))) -> valsc
+            if (valsc == 1){
+              #  columns as vectors, rows as list
+              unique(apply(tempc, 2, function(z) unique(z))) -> cols
+              rows <- list()
+              for (i in 1:ncol(tempr)){
+                tempr[,i] -> rows[[i]]
+              }
+            }
+          }
+          list(as.numeric(as.character(doses)), rows, cols) -> res
+          names(res) <- c("doses","rows", "cols")
+          return(res)
+        }) -> res
+        names(res) <- all.fluids
         
+        # create dmso coords
+        length(unique(drow)) -> drowu
+        length(unique(dcol)) -> dcolu
+        if (dcolu < drowu){
+          # split by cols
+          cols <- rows <- list()
+          for (i in 1:length(unique(dcol))){
+            dcol[which(dcol %in% unique(dcol)[i])] -> cols[[i]]
+            drow[which(dcol %in% unique(dcol)[i])] -> rows[[i]]
+          }
+          list(NA, rows, cols) -> dmso
+          names(dmso) <- c("doses", "rows", "cols")
+        }
+        res[[(length(res)+1)]] <- dmso
+        names(res)[length(res)] <- "DMSOcontrol"
       } else if (mode == "single_mp"){
           # in this case, check for breaks in the DMSO to figure out where the two patients
           # are; split might be on rows or columns; also check distribution of fluid names
@@ -1035,6 +1089,10 @@ readExperiment <- function(files, layout, mode="", pos.control="",
         data <- read.table(as.character(y), header = FALSE, sep = "\t")
       }
     }) -> all.dat
+    
+    if (length(all.dat) != length(all.layout)){
+      stop("Number of plates not equal to number layouts available.")
+    }
     
     # start with layout
     fin.resp <- list()
