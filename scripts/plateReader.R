@@ -1275,7 +1275,9 @@ processPlate <- function(curr.layout, curr.plate, mode, c.mean, f){
           curr.plate[rows[i], cols[i]] -> resp[,(i+1)]
         } else if (is.numeric(rows) && !is.numeric(cols)){
           as.numeric(curr.plate[rows[i], cols[[i]]]) -> resp[,(i+1)]
-        } else if (!is.numeric(rows) && is.numeric(cols)){
+        } else if (is.list(rows) && is.numeric(cols)){
+          as.numeric(curr.plate[rows[[i]], cols[i]]) -> resp[,(i+1)]
+        }else if (!is.numeric(rows) && is.numeric(cols)){
           as.numeric(curr.plate[rows[i], cols[[i]]]) -> resp[,(i+1)]
         }
       }
