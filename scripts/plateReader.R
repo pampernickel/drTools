@@ -1082,6 +1082,7 @@ readExperiment <- function(files, layout, mode="", pos.control="",
   
   # check if each layout file has more than one patient, in which case, the list must be flattened
   lapply(files, function(f){
+    tag <- ""
     lapply(f, function(y){
       if (length(grep(".csv", y)) == 1){
         data <- read.csv(as.character(y), header = FALSE)
@@ -1097,6 +1098,7 @@ readExperiment <- function(files, layout, mode="", pos.control="",
     
     if (length(all.dat) == length(unlist(layout, recursive=F))){
       unlist(layout, recursive=F) -> layout
+      tag <- "xml"
     }
     
     # start with layout
@@ -1140,10 +1142,12 @@ readExperiment <- function(files, layout, mode="", pos.control="",
     # consolidate into plates that have the same concentrations
     lapply(all.resp, function(x) lapply(x, function(y) 
       return(y[,1]))) -> all.conc
+    
+    
     findUniqueConc(all.conc) -> unique.conc
     
     # for each class, group responses
-    groupResponses(all.resp, unique.conc) -> all.resp.fin
+    groupResponses(all.resp, unique.conc, mode, tag) -> all.resp.fin
     
     # then assign drug names based on unique conc; this is mainly
     # for single-rep instances
@@ -1263,7 +1267,6 @@ processPlate <- function(curr.layout, curr.plate, mode, c.mean, f){
     # check which format of the layout is available
     resp <- NULL
     curr.drug <- names(curr.layout)[x]
-    print(curr.drug)
     f.warn <- c()
     d.warn <- c()
     if (length(grep("rows", names(curr.layout[[x]])))>0){
@@ -1393,11 +1396,11 @@ findUniqueConc <- function(all.conc){
   return(class.labels)
 }
 
-groupResponses <- function(all.resp, unique.conc, mode=""){
+groupResponses <- function(all.resp, unique.conc, mode="", tag=""){
   # groups responses based on concentrations
   unique(unlist(unique.conc)) -> all.conc
   all.df <- list()
-  if (mode == ""){
+  if (mode == "" && tag == ""){
     for (i in 1:length(all.conc)){
       lapply(1:length(unique.conc), function(x){
         which(unique.conc[[x]] %in% all.conc[i]) -> ind
@@ -1460,6 +1463,20 @@ groupResponses <- function(all.resp, unique.conc, mode=""){
       res -> all.df[[i]]
     }
     names(all.df) <- names(all.resp)
+  } else if (mode == "" && tag == "xml"){
+    all.df <- list()
+    for (i in 1:length(unique.conc)){
+      # get unique concentration within all.resp
+      unique(unique.conc[[i]]) -> uc
+      sub.df <- NA
+      for (j in 1:length(uc)){
+        which(unique.conc[[i]] %in% uc[j]) -> ind
+        do.call(cbind, all.resp[[i]][ind]) -> df.loc
+        df.loc[,-setdiff(grep("Concentrations", colnames(df.loc)), 1)] -> df.loc
+        as.data.frame(df.loc) -> sub.df
+      }
+      all.df[[i]] <- sub.df
+    }
   }
   return(all.df)
 }
