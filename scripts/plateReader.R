@@ -397,8 +397,8 @@ getCoords <- function(df, df1, df2, mode, factor){
           } else {
             tempr <- tempc <- matrix(NA, nrow=length(doses), ncol=reps)
             for (i in 1:length(doses)){
-              sub1$`Dispensed\nrow`[which(sub1$`Dispensed conc.` %in% doses[i])] -> tempr[i,]
-              sub1$`Dispensed\ncol`[which(sub1$`Dispensed conc.` %in% doses[i])] -> tempc[i,]
+              as.numeric(as.character(sub1$`Dispensed\nrow`[which(sub1$`Dispensed conc.` %in% doses[i])])) -> tempr[i,]
+              as.numeric(as.character(sub1$`Dispensed\ncol`[which(sub1$`Dispensed conc.` %in% doses[i])])) -> tempc[i,]
             }
             
             unique(apply(tempr, 2, function(z) length(unique(z)))) -> valsr
@@ -1090,8 +1090,13 @@ readExperiment <- function(files, layout, mode="", pos.control="",
       }
     }) -> all.dat
     
-    if (length(all.dat) != length(all.layout)){
+    if (length(all.dat) != length(layout) &&
+        length(all.dat) != length(unlist(layout, recursive=F))){
       stop("Number of plates not equal to number layouts available.")
+    }
+    
+    if (length(all.dat) == length(unlist(layout, recursive=F))){
+      unlist(layout, recursive=F) -> layout
     }
     
     # start with layout
@@ -1258,6 +1263,7 @@ processPlate <- function(curr.layout, curr.plate, mode, c.mean, f){
     # check which format of the layout is available
     resp <- NULL
     curr.drug <- names(curr.layout)[x]
+    print(curr.drug)
     f.warn <- c()
     d.warn <- c()
     if (length(grep("rows", names(curr.layout[[x]])))>0){
