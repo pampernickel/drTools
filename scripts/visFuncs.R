@@ -646,8 +646,16 @@ plotRaw <- function(all.resp, mode=c("", "r")){
   colnames(vis.df) <- c("Concentration", "Response", "Replicate", "Drug", "Patient", "Group")
   for (i in 1:length(all.resp)){
     # find unique drugs, and plot replicates together
-    for (j in 1:length(all.resp[[i]])){
-      all.resp[[i]][[j]] -> curr.df
+    if (!is.data.frame(all.resp[[i]])){
+      for (j in 1:length(all.resp[[i]])){
+        all.resp[[i]][[j]] -> curr.df
+        unique(sapply(strsplit(colnames(curr.df)[2:ncol(curr.df)], "_"), function(x)
+          x[1])) -> all.drugs
+        addDrug(curr.df, all.drugs, names(all.resp)[i], j) -> t
+        rbind(vis.df, t) -> vis.df
+      }
+    } else {
+      all.resp[[i]] -> curr.df
       unique(sapply(strsplit(colnames(curr.df)[2:ncol(curr.df)], "_"), function(x)
         x[1])) -> all.drugs
       addDrug(curr.df, all.drugs, names(all.resp)[i], j) -> t
