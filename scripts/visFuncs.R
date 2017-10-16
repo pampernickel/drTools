@@ -814,7 +814,9 @@ plotFit <- function(exp.res, drug.list){
     colnames(df) <- c("drug", "x", "y", "replicate")
       
     # create drug list internally
-    names(x) -> drug.list
+    if (!is.null(names(x))){
+      names(x) -> drug.list
+    }
     sapply(strsplit(drug.list, "_"), 
            function(x) x[1]) -> drugs.u
       
