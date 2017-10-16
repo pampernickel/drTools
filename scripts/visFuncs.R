@@ -835,58 +835,51 @@ plotFit <- function(exp.res, drug.list){
       }
     }
     
-    cbind(df, rep(names(exp.res$res), nrow(df)), rep("fit", nrow(df))) -> df
+    # double-check; old version rep(names(exp.res$res)[i], nrow(df))
+    cbind(df, rep(names(exp.res$res)[i], nrow(df)), rep("fit", nrow(df))) -> df
     colnames(df) <- c(colnames(df)[1:4], "patient", "type")
       
-      #as.data.frame(df) -> test
-      #as.numeric(as.character(test$x)) -> test$x
-      #as.numeric(as.character(test$y)) -> test$y
-      #ggplot(test, aes(x=x, y=y, color=factor(replicate), 
-      #                 group=factor(replicate)))+geom_line()+
-      #  facet_wrap(~drug)+theme_bw()+
-      #  ggtitle(names(exp.res$res)[i])+
-      #  scale_x_log10()-> p
+    # add raw responses
+    dfr <- matrix(0, nrow=0, ncol=4)
+    colnames(dfr) <- c("x", "drug", "y", "replicate")
+    for (j in 1:length(exp.res$experiments[[i]])){
+      melt(exp.res$experiments[[i]][[j]], 
+           id.vars="Concentrations") -> t
+      sapply(strsplit(as.character(t$variable), "_"),
+             function(x) x[2]) -> reps
+      reps[which(reps %in% NA)] <- 1 # cases with no replicates
+      cbind(t, reps) -> t1
+      sapply(strsplit(as.character(t$variable), "_"),
+             function(x) x[1]) -> t1$variable
+      colnames(t1) <- colnames(dfr)
+      rbind(dfr, t1) -> dfr
+    }
+    
+    cbind(dfr, rep(names(exp.res$res), nrow(dfr)), rep("raw", nrow(dfr))) -> dfr
+    colnames(dfr) <- c(colnames(dfr)[1:4], "patient", "type")
+    dfr[,c(2,1,3,4,5,6)] -> dfr
+    as.matrix(dfr) -> dfr
       
-      # add raw responses
-      dfr <- matrix(0, nrow=0, ncol=4)
-      colnames(dfr) <- c("x", "drug", "y", "replicate")
-      for (j in 1:length(exp.res$experiments[[i]])){
-        melt(exp.res$experiments[[i]][[j]], 
-             id.vars="Concentrations") -> t
-        sapply(strsplit(as.character(t$variable), "_"),
-               function(x) x[2]) -> reps
-        reps[which(reps %in% NA)] <- 1 # cases with no replicates
-        cbind(t, reps) -> t1
-        sapply(strsplit(as.character(t$variable), "_"),
-               function(x) x[1]) -> t1$variable
-        colnames(t1) <- colnames(dfr)
-        rbind(dfr, t1) -> dfr
-      }
-      cbind(dfr, rep(names(exp.res$res), nrow(dfr)), rep("raw", nrow(dfr))) -> dfr
-      colnames(dfr) <- c(colnames(dfr)[1:4], "patient", "type")
-      dfr[,c(2,1,3,4,5,6)] -> dfr
-      as.matrix(dfr) -> dfr
+    rbind(df, dfr) -> df.fin
+    as.data.frame(df.fin) -> df.fin
+    rownames(df.fin) <- c(1:nrow(df.fin))
       
-      rbind(df, dfr) -> df.fin
-      as.data.frame(df.fin) -> df.fin
-      rownames(df.fin) <- c(1:nrow(df.fin))
+    as.numeric(as.character(df.fin$x)) -> df.fin$x
+    as.numeric(as.character(df.fin$y)) -> df.fin$y
+    log10(df.fin$x) -> df.fin$x
       
-      as.numeric(as.character(df.fin$x)) -> df.fin$x
-      as.numeric(as.character(df.fin$y)) -> df.fin$y
-      log10(df.fin$x) -> df.fin$x
+    # create multiple layers: df.fin$type = fit: lines; df.fin$type = raw: points
+    toupper(as.character(df.fin$drug)) -> df.fin$drug
       
-      # create multiple layers: df.fin$type = fit: lines; df.fin$type = raw: points
-      toupper(as.character(df.fin$drug)) -> df.fin$drug
-      
-      df.fin[which(df.fin$type %in% "fit"),] -> dff
-      df.fin[which(df.fin$type %in% "raw"),] -> dfr
-      ggplot(dff, aes(x=x, y=y, color=factor(replicate), 
-          group=factor(replicate)))+geom_line()+
-          geom_point(data=dfr, aes(x=x, y=y, color=factor(replicate), 
-                                   group=factor(replicate)))+
-          facet_wrap(~drug)+theme_bw()+
-          ggtitle(names(exp.res$res)[i])-> p
-      print(p)
+    df.fin[which(df.fin$type %in% "fit"),] -> dff
+    df.fin[which(df.fin$type %in% "raw"),] -> dfr
+    ggplot(dff, aes(x=x, y=y, color=factor(replicate), 
+        group=factor(replicate)))+geom_line()+
+        geom_point(data=dfr, aes(x=x, y=y, color=factor(replicate), 
+                                 group=factor(replicate)))+
+        facet_wrap(~drug)+theme_bw()+
+        ggtitle(names(exp.res$res)[i])-> p
+    print(p)
   }
 }
 
