@@ -816,10 +816,13 @@ plotFit <- function(exp.res, drug.list){
     # create drug list internally
     if (!is.null(names(x))){
       names(x) -> drug.list
+    } else {
+      names(x) <- drug.list  
     }
+    
     sapply(strsplit(drug.list, "_"), 
            function(x) x[1]) -> drugs.u
-      
+    
     for (j in 1:length(drugs.u)){
       grep(drugs.u[j],names(x)) -> ind
       for (k in 1:length(ind)){
