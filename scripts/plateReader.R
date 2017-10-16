@@ -167,8 +167,8 @@ readMultiPatient <- function(dir, results.dir, factor=1, annotFile=""){
 
 .getContent <- function(curr.layout, curr.plate){
   lapply(curr.layout, function(x){
-    x[which(names(x) %in% "DMSOcontrol")] -> dmso
-    x[which(names(x) %ni% "DMSOcontrol")] -> x
+    x[grep("DMSO", names(x))] -> dmso
+    x[setdiff(1:length(names(x)), grep("DMSO", names(x)))] -> x
     lapply(1:length(x), function(y){
       t <- cbind(x[[y]]$doses, sapply(1:length(x[[y]]$rows), function(z) 
                                   curr.plate[x[[y]]$rows[[z]],x[[y]]$cols[[z]]]))
