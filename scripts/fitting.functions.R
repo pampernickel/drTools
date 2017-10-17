@@ -156,9 +156,9 @@ refitData <- function(exp.res, refit){
   # and the drug(s) that need to be refitted
   for (i in 1:nrow(refit)){
     which(names(exp.res$experiments) %in% refit$patient[i]) -> ind
-    if (length(ind == 0)){
+    if (length(ind) == 0){
       sapply(refit$patient[i], function(x) grep(x, names(exp.res$experiments))) -> ind
-      if (length(ind == 0)){
+      if (length(ind) == 0){
         stop("Make sure that there is a match between the patient name indicated in the refit file
              and the patient names you have. Run names(exp.res$experiments) to perform a quick check.")
       }
