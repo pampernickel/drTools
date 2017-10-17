@@ -182,10 +182,15 @@ refitData <- function(exp.res, refit){
     
     for (k in 1:length(newFits)){
       for (j in 1:length(exp.res$res[[ind]])){
-        exp.res$res[[ind]][[j]] -> var
-        if (!is.na(newFits[[k]][[j]])){
+        exp.res$res[[ind]][[j]] -> var # variable
+        if (!is.na(newFits[[k]][[j]]) && 
+            !is.null(names(var))){
           var[which(names(var) %in% 
                       names(newFits)[k])] <- newFits[[k]][[j]]
+        } else if (length(grep("ic50", names(newFits)))==0 &&
+                   length(ind1) == length(newFits[[k]])) {
+          # figure out position in var based on ind1
+          
         }
         var -> exp.res$res[[ind]][[j]]
       }
