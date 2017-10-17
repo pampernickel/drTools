@@ -843,8 +843,13 @@ plotFit <- function(exp.res, drug.list){
     dfr <- matrix(0, nrow=0, ncol=4)
     colnames(dfr) <- c("x", "drug", "y", "replicate")
     for (j in 1:length(exp.res$experiments[[i]])){
-      melt(exp.res$experiments[[i]][[j]], 
-           id.vars="Concentrations") -> t
+      if (!is.data.frame(exp.res$experiments[[i]])){
+        melt(exp.res$experiments[[i]][[j]], 
+               id.vars="Concentrations") -> t
+      } else {
+        melt(exp.res$experiments[[i]], 
+             id.vars="Concentrations") -> t
+      }
       sapply(strsplit(as.character(t$variable), "_"),
              function(x) x[2]) -> reps
       reps[which(reps %in% NA)] <- 1 # cases with no replicates
