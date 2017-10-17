@@ -164,12 +164,19 @@ refitData <- function(exp.res, refit){
       }
     }
     
-    which(sapply(exp.res$experiments[[ind]], function(x)
-      length(grep(refit$drug[i], colnames(x)))) > 0) -> ind1
-    exp.res$experiments[[ind]][[ind1]] -> df
-    df[,c(1, grep(refit$drug[i], colnames(df)))] -> dfs
-    apply(dfs[,2:ncol(dfs)], 2, function(y){
-      addFit(dfs[,1], y, max(dfs[,1], na.rm=T)) -> fit
+    if (is.data.frame(exp.res$experiments[[ind]])){
+      grep(refit$drug[i], colnames(x)) -> ind1
+      exp.res$experiments[[ind]][,ind1] -> df
+      df[,c(1, grep(refit$drug[i], colnames(df)))] -> dfs
+      apply(dfs[,2:ncol(dfs)], 2, function(y) 
+        addFit(dfs[,1], y, max(dfs[,1], na.rm=T))) -> fit
+    } else {
+      which(sapply(exp.res$experiments[[ind]], function(x)
+          length(grep(refit$drug[i], colnames(x)))) > 0) -> ind1
+      exp.res$experiments[[ind]][[ind1]] -> df
+      df[,c(1, grep(refit$drug[i], colnames(df)))] -> dfs
+      apply(dfs[,2:ncol(dfs)], 2, function(y){
+        addFit(dfs[,1], y, max(dfs[,1], na.rm=T)) -> fit
     }) -> newFits
     
     
