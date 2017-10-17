@@ -179,7 +179,6 @@ refitData <- function(exp.res, refit){
         addFit(dfs[,1], y, max(dfs[,1], na.rm=T))) -> newFits
     } 
     
-    
     for (k in 1:length(newFits)){
       for (j in 1:length(exp.res$res[[ind]])){
         exp.res$res[[ind]][[j]] -> var # variable
@@ -188,9 +187,11 @@ refitData <- function(exp.res, refit){
           var[which(names(var) %in% 
                       names(newFits)[k])] <- newFits[[k]][[j]]
         } else if (length(grep("ic50", names(newFits)))==0 &&
-                   length(ind1) == length(newFits[[k]])) {
+                   length(ind1) == length(newFits)) {
           # figure out position in var based on ind1
-          
+          for (l in 1:length(ind1)){
+            var[ind1[l]+1] <- newFits[[l]][[j]]
+          }
         }
         var -> exp.res$res[[ind]][[j]]
       }
