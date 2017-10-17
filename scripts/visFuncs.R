@@ -781,7 +781,6 @@ visualizeControls <- function(controls){
 
 plotFit <- function(exp.res, drug.list){
   #if (!is.loaded("gridExtra")) library(gridExtra)
-  
   for (i in 1:length(exp.res$res)){
     lapply(exp.res$res[[i]]$max,
            function(x) processMaxCurves(x)) -> resp
