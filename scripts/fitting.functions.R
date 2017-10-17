@@ -189,9 +189,9 @@ refitData <- function(exp.res, refit){
         } else if (length(grep("ic50", names(newFits)))==0 &&
                    length(ind1) == length(newFits)) {
           # figure out position in var based on ind1
-          for (l in 1:length(ind1)){
-            var[ind1[l]+1] <- newFits[[l]][[j]]
-          }
+          #for (l in 1:length(ind1)){
+          #  var[ind1[l]+1] <- newFits[[l]][[j]]
+          #}
         }
         var -> exp.res$res[[ind]][[j]]
       }
