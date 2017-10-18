@@ -3,6 +3,19 @@ library(limma)
 library(reshape2)
 library(ggplot2)
 
+
+extractComboMax <- function(all.combos){
+  # given a list of combos, get emax for max doses
+  sapply(all.combos, function(x){
+    if (is.matrix(x) || is.data.frame(x)){
+      as.numeric(rownames(x)) -> rmax
+      as.numeric(colnames(x)) -> cmax
+      x[which(rmax %in% max(rmax)),which(cmax %in% max(cmax))] -> emax
+    }
+  }) -> emax
+  return(emax)
+}
+  
 extractMax <- function(t){
   # function for retrieving x and y elements from a max
   # entry
@@ -16,7 +29,7 @@ extractMax <- function(t){
 
 rankResponses <- function(ares, assembled, drug.list.all, topK=10, poi=NULL, pos.only=F){
   # given a fit result (ares, which includes the full fit from which all other params)
-  # may be derived, compare it with responses of other patients and 
+  # may be derived, compare it  with responses of other patients and 
   # rank it accordingly
   if (length(ares) > 1){
     stop("Multi-patient handling for ranking drug response not yet available. Please analyze patients individually.")
@@ -560,4 +573,44 @@ comparePlates <- function(p1, p2){
     
   }
   return(df.sum) 
+}
+
+binarizeMatrix <- function(df, summary, mode=c("full","rank"),
+                           by=""){
+  # Full binarization mode:
+  # Given a data frame with drugs on columns, patients on rows
+  # and some response metric (e.g. ic50 or ec50), delineate whether a given
+  # response is below or above median; one also checks whether
+  # the Emax reaches a critical value for a given drug/patient pair
+  
+  # Rank binarization mode:
+  # Ranks each patient from most responsive to least responsive per drug
+  if (mode %in% "rank"){
+    if (by %in% "drug"){
+      # returns order of response parameter by drug
+      apply(df, 2, function(x){
+        unique(x)[order(unique(x))] -> all.vals
+        
+        # distribute ranks based on unique vals
+        sapply(x, function(y) ifelse(!is.na(y), which(all.vals %in% y), length(all.vals)+1)) -> fin.ranks
+        return(fin.ranks)
+      }) ->  ranks
+      rownames(ranks) <- rownames(df)
+      # heatmap.2(ranks, trace = "none", col=brewer.pal(10, "Spectral"), margins = c(10,10))
+    } else if (by %in% "patient"){
+      # returns order of best drugs per patient;
+      # need to take the Emax into consideration
+      apply(df, 1, function(x){
+        unique(x)[order(unique(x))] -> all.vals
+        
+        # distribute ranks based on unique vals
+        sapply(x, function(y) ifelse(!is.na(y), which(all.vals %in% y), length(all.vals)+1)) -> fin.ranks
+        return(fin.ranks)
+      }) ->  ranks
+      t(ranks) -> ranks
+      # heatmap.2(ranks, trace = "none", margins = c(10,10), scale="col")
+    }
+  } else {
+    
+  }
 }
