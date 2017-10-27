@@ -494,6 +494,20 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   }
 }
 
+subsetReference <- function(reference, pat.lab, variable, pattern){
+  # given a data frame or list of responses (assembled, or the 
+  # reference dataset), pat.lab (patient labels file) and a group of 
+  # patients (e.g. MLL only), subset assembled to group of interesect
+  matches <- pat.lab$paper.name[grep(pattern, pat.lab[,which(colnames(pat.lab) 
+                                                             %in% variable)])]
+  if (is.data.frame(reference)){ 
+    reference[which(rownames(reference) %in% matches),] -> rsub
+  } else (is.list(reference)){
+    
+  }
+  return(rsub)
+}
+
 mapResponse <- function(res.df, assembled, drug.list.all, poi=NULL, order="none",
                         pat.name=NULL){
   # default: create dotplot of res.df results against assembled
