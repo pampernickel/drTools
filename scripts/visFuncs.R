@@ -502,7 +502,7 @@ subsetReference <- function(reference, pat.lab, variable, pattern){
                                                              %in% variable)])]
   if (is.data.frame(reference)){
     reference[which(rownames(reference) %in% matches),] -> rsub
-  } else (is.list(reference)){
+  } else if (is.list(reference)){
     reference[which(names(reference) %in% matches)] -> rsub
   }
   return(rsub)
