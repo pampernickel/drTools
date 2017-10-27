@@ -500,10 +500,10 @@ subsetReference <- function(reference, pat.lab, variable, pattern){
   # patients (e.g. MLL only), subset assembled to group of interesect
   matches <- pat.lab$paper.name[grep(pattern, pat.lab[,which(colnames(pat.lab) 
                                                              %in% variable)])]
-  if (is.data.frame(reference)){ 
+  if (is.data.frame(reference)){
     reference[which(rownames(reference) %in% matches),] -> rsub
   } else (is.list(reference)){
-    
+    reference[which(names(reference) %in% matches)] -> rsub
   }
   return(rsub)
 }
