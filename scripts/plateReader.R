@@ -129,9 +129,13 @@ readMultiPatient <- function(dir, results.dir, factor=1, annotFile=""){
   # create all.resp format, where each response is per patient
   all.resp <- list()
   for (i in 1:length(layout)){
-    layout[[i]] -> curr.layout
-    all.dat[[i]] -> curr.plate
-    .getContent(curr.layout, curr.plate) -> all.resp[[i]]
+    names(layout)[i] -> plateName
+    grep(plateName, names(all.dat)) -> ind
+    if (length(ind) == 1){
+      layout[[i]] -> curr.layout
+      all.dat[[ind]] -> curr.plate
+      .getContent(curr.layout, curr.plate) -> all.resp[[i]]
+    }
   }
   names(all.resp) <- names(layout)
   
