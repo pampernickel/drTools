@@ -54,7 +54,7 @@ source_https('https://raw.githubusercontent.com/pampernickel/chemblr/pampernicke
   
     if (length(corrected.fin) > 0){
       for (i in 1:length(corrected.fin)){
-        as.character(corrected.fin[i]) -> colnames(res.df)[which(colnames(res.df) %in% corrected.drug[i])]
+        as.character(corrected.fin[i]) -> colnames(res.df)[which(colnames(res.df) %in% unmatched[i])]
       }
     }
     common.drugs <- c(common.drugs, corrected.fin[which(corrected.fin %ni% NA)])
