@@ -84,6 +84,19 @@ rankResponses <- function(ares, assembled, drug.list.all, topK=10, poi=NULL, pos
     }) -> res
   }
   
+  # if there are new drugs in the list that were added based on emax,
+  # but have NA in terms of the difference from median IC50, label as new drug
+  which(res$`Difference from median IC50` %in% NA) -> ind
+  if (length(ind) > 0){
+    res[ind,] -> new
+    res[-ind,] -> res
+    rbind(res, new) -> res
+    as.character(res$`Difference from median IC50`) -> res$`Difference from median IC50`
+    as.character(res$`Median IC50 (centered, scaled)`) -> res$`Median IC50 (centered, scaled)`
+    res$`Difference from median IC50`[which(res$`Difference from median IC50` %in% NA)] <- "NA (New drug)"
+    res$`Median IC50 (centered, scaled)`[which(res$`Median IC50 (centered, scaled)` %in% NA)] <- "NA (New drug)"
+  }
+  
   if (pos.only == T){
     res[which(as.numeric(as.character(res$`Difference from median IC50`)) > 0),] -> res
   }
