@@ -356,7 +356,6 @@ getCoords <- function(df, df1, df2, mode, factor){
         # combos where none of the drugs are in common (d1,d2; d3,d4); use conts
         # to figure out all combos
         strsplit(unique(conts[grep("_", conts)]), "_") -> all.c
-        print(length(all.c))
         lapply(all.c, function(y){
           .getCoords(sub, y, conts, drow, dcol, (length(all.drugs) %% 2), df1, df2) -> res
         }) -> res
