@@ -225,11 +225,21 @@ parseContent <- function(curr.plate, curr.layout, combos, i){
     }
   }
   
-  curr.plate[curr.layout$combo_coords$r,curr.layout$combo_coords$c] -> p
+  p <- NA
+  if (is.null(names(curr.layout$combo_coords))){
+    # unnamed combo_coords
+    curr.plate[curr.layout$combo_coords[[1]],curr.layout$combo_coords[[2]]] -> p
+  } else {
+    curr.plate[curr.layout$combo_coords$r,curr.layout$combo_coords$c] -> p
+  }
+  
   # check if the plate is not a blank
   if (length(unique(as.vector(p))) > 1){
     # check orientation of drugs
-    if (length(unique(curr.layout$d1c$c)) == 1){
+    if (length(unique(curr.layout$d1c$c)) == 1 ||
+        length(unique(curr.layout$d1c[[2]]))){
+      # note: switch implemented for cases where layout
+      # is not named
       # d1 is on a single column; add 0,0
       if (isDescending(curr.layout$doses[[1]])){
         rownames(p) <- c(curr.layout$doses[[1]], 0)
@@ -259,6 +269,7 @@ parseContent <- function(curr.plate, curr.layout, combos, i){
       } else {
         curr.plate[unique(curr.layout$dmso_coords[[1]]),unique(curr.layout$dmso_coords[[2]])] -> dmsos
       }
+      
       if (length(which(dmsos %in% 0)) > 0){
         dmsos[-which(dmsos %in% 0)] -> dmsos
         warning("Removed potentially blank DMSO wells.")
@@ -292,11 +303,11 @@ readFileXML <- function(coords, files, res.files, singleLayout){
     # taken; otherwise, there would be one layout per plate, and there should
     # be a concordance between the plate name and the layout (i.e. it's possible to match
     # the plate names to the layout)
-    if (length(coords) == 1){
-      coords[[1]][[1]] -> layout
-    } else {
-      lapply(coords, function(x) x[[1]]) -> layout
-    }
+    #if (length(coords) == 1){
+    coords[[1]][[1]] -> layout
+    #} else {
+    #  lapply(coords, function(x) x[[1]]) -> layout
+    #}
   } else {
     # check if length of layouts match length of res.files
     ind.match <- NA
@@ -363,18 +374,33 @@ readFileXML <- function(coords, files, res.files, singleLayout){
   names(plates) <- res.files
   gsub("_", "-", gsub(".csv", "", sapply(strsplit(names(plates), "\\/"), function(x) x[length(x)]))) -> names(plates)
   
+  # check if there are plates that do not have anything in the dmso wells, i.e. plates
+  # where a division by zero will occur
+  flag <- rep(T, length(plates))
+  for (i in 1:length(plates)){
+    for (j in 1:length(layout)){
+      plates[[i]][unique(layout[[j]]$dmso_coords$r),
+                  unique(layout[[j]]$dmso_coords$c)] -> dmsoTest
+      if (length(which(dmsoTest==0)) == length(dmsoTest)){
+        flag[i] <- F
+      }
+    }
+  }
+  
+  plates[which(flag %in% T)] -> plates
+  
   for (j in 1:length(plates)){
-    #print(j)
+    print(j)
     plates[[j]] -> curr.plate
     combos <- list()
     if (singleLayout==T){
-      for (i in 1:length(layout[[1]][[1]])){
-        layout[[1]][[1]][[i]] -> curr.layout
+      for (i in 1:length(coords[[1]][[1]])){
+        coords[[1]][[1]][[i]] -> curr.layout
         parseContent(curr.plate, curr.layout, combos, i) -> combos[[i]]
       }
       
-      for (i in 1:length(layout[[1]][[1]])){
-        names(combos)[i] <- paste(layout[[1]][[1]][[i]]$drug1, layout[[1]][[1]][[i]]$drug2, sep="_")
+      for (i in 1:length(coords[[1]][[1]])){
+        names(combos)[i] <- paste(coords[[1]][[1]][[i]]$drug1, coords[[1]][[1]][[i]]$drug2, sep="_")
       }
     } else {
       ind.match[j] -> ind
@@ -544,6 +570,17 @@ checkSingleDrugs <- function(all.combos){
   }
   all.combos[which(res %in% F)] -> all.combos
   return(all.combos)
+}
+
+getComboEmax <- function(all.combos){
+  # given a list of combos, get maximum combined effect at highest dose of both
+  # drugs
+  lapply(all.combos, function(x){
+    which(colnames(x) %in% max(colnames(x))) -> cind
+    which(rownames(x) %in% max(rownames(x))) -> rind
+    x[rind,cind] ->emax
+  }) -> emax
+  return(emax)
 }
 
 getComboProperties <- function(cl,i){
